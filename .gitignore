@@ -1,0 +1,8 @@
+/.idea
+/.vscode
+/target
+
+*.swp
+.DS_Store
+.direnv
+.envrc

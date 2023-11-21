@@ -1,0 +1,4 @@
+# From python's `black` autoformatter
+max_width = 88
+# Tabs for accessibility
+hard_tabs = true

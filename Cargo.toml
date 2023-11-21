@@ -1,6 +1,9 @@
 [workspace]
 resolver = "2"
 members = [
+	"apps/rvid/client",
+	"apps/rvid/server",
+
     "crates/nexus-voicechat"
 ]
 # These settings will apply to all members of the workspace that opt in to them
@@ -12,4 +15,5 @@ edition = "2021"
 rust-version = "1.74.0"
 
 [workspace.dependencies]
-leknet = { path = "../../leknet"}
+bevy = "0.12"
+bevy_oxr = "0.1.0"

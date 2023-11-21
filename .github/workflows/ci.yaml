@@ -1,0 +1,52 @@
+name: CI
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  fmt:
+    name: Check Formatting
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+      - name: Cache cargo dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Check formatting
+        run: cargo fmt --check --all
+
+  check:
+    name: Lint and Build
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install bevy dependencies
+        run: |
+          sudo apt-get update && sudo apt-get install -y \
+            g++ pkg-config libx11-dev libasound2-dev libudev-dev
+      - name: Cache cargo dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Clippy lints
+        run: cargo clippy --all --all-features --all-targets --no-deps
+
+      - name: Cargo Doc
+        run: cargo doc --all --all-features --no-deps --document-private-items
+
+  test:
+    name: Run Tests
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install bevy dependencies
+        run: |
+          sudo apt-get update && sudo apt-get install -y \
+            g++ pkg-config libx11-dev libasound2-dev libudev-dev
+      - name: Cache cargo dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Test
+        run: cargo test --all --all-features --all-targets

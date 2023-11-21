@@ -18,6 +18,7 @@ cargo install xbuild --git https://github.com/rust-mobile/xbuild
 ```
 - Get the [Oculus SDK](https://developer.oculus.com/downloads/package/oculus-openxr-mobile-sdk/) and place `OpenXR/Libs/Android/arm64-v8a/Release/libopenxr_loader.so` into the `rumtime_libs/arm64-v8a/` folder.
 - Install the [android command line tools](https://developer.android.com/tools/releases/platform-tools#downloads).
+- Install an openxr openxr loader to be able to build the code natively. If you just want to cross compile to quest, this step is optional. See [here](https://monado.freedesktop.org/getting-started.html#deb) for installation of monado for linux.
 
 ## License
 

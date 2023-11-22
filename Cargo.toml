@@ -19,7 +19,8 @@ bevy = "0.12"
 bevy_oxr = "0.1.0"
 color-eyre = "0.6"
 eyre = "0.6"
-openxr = { verison = "0.17.1", git="https://github.com/TheButlah/openxrs", branch = "add-links" }
+# Adds `links` support
+openxr = { git = "https://github.com/Ralith/openxrs", rev = "361b27e" }
 
 [profile.dev]
 # Enable a small amount of optimization in debug mode

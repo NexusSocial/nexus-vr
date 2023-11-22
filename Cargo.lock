@@ -2663,12 +2663,12 @@ dependencies = [
 [[package]]
 name = "openxr"
 version = "0.17.1"
-source = "git+https://github.com/TheButlah/openxrs?branch=add-links#a30ae78be09dd7003c03e204e8c60a83217c6a4c"
+source = "git+https://github.com/Ralith/openxrs?rev=361b27e#361b27ef2f2dcc93eacd23f5ba5940f3b89f74c2"
 dependencies = [
  "libc",
  "libloading 0.8.1",
  "ndk-context",
- "openxr-sys 0.9.3 (git+https://github.com/TheButlah/openxrs?branch=add-links)",
+ "openxr-sys 0.9.3 (git+https://github.com/Ralith/openxrs?rev=361b27e)",
 ]
 
 [[package]]
@@ -2686,7 +2686,7 @@ dependencies = [
 [[package]]
 name = "openxr-sys"
 version = "0.9.3"
-source = "git+https://github.com/TheButlah/openxrs?branch=add-links#a30ae78be09dd7003c03e204e8c60a83217c6a4c"
+source = "git+https://github.com/Ralith/openxrs?rev=361b27e#361b27ef2f2dcc93eacd23f5ba5940f3b89f74c2"
 dependencies = [
  "libc",
 ]
@@ -3007,7 +3007,7 @@ dependencies = [
  "bevy",
  "bevy_oxr",
  "color-eyre",
- "openxr 0.17.1 (git+https://github.com/TheButlah/openxrs?branch=add-links)",
+ "openxr 0.17.1 (git+https://github.com/Ralith/openxrs?rev=361b27e)",
 ]
 
 [[package]]

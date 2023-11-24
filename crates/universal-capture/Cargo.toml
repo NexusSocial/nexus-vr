@@ -12,7 +12,7 @@ rust-version.workspace = true
 # In-memory sources and destinations are always supported.
 source-dx11 = ["dep:dxcapture"]
 
-[dependencies]
+[target.'cfg(windows)'.dependencies]
 dxcapture = { version = "1.1.3", optional = true }
 
 [dev-dependencies]

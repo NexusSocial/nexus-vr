@@ -7,6 +7,11 @@ libraries and `apps` for application-specific crates.
 
 - [rvid](apps/rvid) - Remote Virtual Display, a rust based PCVR solution.
 
+## Libraries
+
+- [universal-capture](crates/universal-capture) - A cross platform solution for
+  window capture.
+
 ## First Time Setup
 
 - Install [rustup](https://rustup.rs)

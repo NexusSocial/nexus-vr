@@ -4,7 +4,7 @@ members = [
 	"apps/rvid/client",
 	"apps/rvid/server",
 
-    "crates/nexus-voicechat",
+	"crates/nexus-voicechat",
 	"crates/universal-capture",
 ]
 # These settings will apply to all members of the workspace that opt in to them

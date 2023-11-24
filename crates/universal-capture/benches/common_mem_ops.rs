@@ -1,38 +1,11 @@
 //! Benchmarks common memory operations like memcpy, malloc, free, etc.
 
+mod common;
+
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
-use rand::Fill;
 use std::hint::black_box;
 
-struct Dims {
-	width: usize,
-	height: usize,
-}
-
-impl Dims {
-	const fn size(&self) -> usize {
-		self.width * self.height
-	}
-}
-
-const RES_1080: Dims = Dims {
-	width: 1920,
-	height: 1080,
-};
-
-const RES_1440: Dims = Dims {
-	width: 2560,
-	height: 1440,
-};
-
-fn random_frames(res: Dims, num_frames: usize) -> Vec<Vec<u8>> {
-	let mut rng = rand::thread_rng();
-	let mut frames = vec![vec![0; res.size()]; num_frames];
-	for v in frames.iter_mut() {
-		v.as_mut_slice().try_fill(&mut rng).unwrap();
-	}
-	frames
-}
+use common::{random_frames, RES_1080, RES_1440};
 
 fn bench_frame_copy(c: &mut Criterion) {
 	/// Number of source frames we hold in memory as inputs.

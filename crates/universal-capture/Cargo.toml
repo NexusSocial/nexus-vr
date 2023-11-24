@@ -23,3 +23,6 @@ rand = "0.8.5"
 name = "common_mem_ops"
 harness = false
 
+[[bench]]
+name = "in_mem_capture"
+harness = false

@@ -3763,6 +3763,7 @@ version = "0.0.0"
 dependencies = [
  "criterion",
  "dxcapture",
+ "eyre",
  "rand",
 ]
 

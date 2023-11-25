@@ -12,7 +12,27 @@ pub trait Source<Dest>: private::Sealed {
 }
 
 mod private {
+	use super::InMemory;
+
 	pub trait Sealed {}
 
-	impl<T> Sealed for Vec<T> {}
+	impl Sealed for InMemory {}
+}
+
+#[derive(Debug, Clone)]
+pub struct InMemory {
+	pub data: Vec<u8>,
+	pub dims: Dims,
+}
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub struct Dims {
+	pub width: usize,
+	pub height: usize,
+}
+
+impl Dims {
+	pub const fn size(&self) -> usize {
+		self.width * self.height
+	}
 }

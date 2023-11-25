@@ -1,3 +1,4 @@
 use crate::Dest;
+use crate::InMemory;
 
-impl<T> Dest for Vec<T> {}
+impl Dest for InMemory {}

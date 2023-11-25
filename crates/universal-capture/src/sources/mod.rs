@@ -1,3 +1,3 @@
+#[cfg(feature = "source-dxcapture")]
+mod dxcapture;
 mod in_memory;
-
-pub use in_memory::*;

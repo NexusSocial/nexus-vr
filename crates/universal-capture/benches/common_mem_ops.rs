@@ -4,6 +4,7 @@ mod common;
 
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use std::hint::black_box;
+use universal_capture::InMemory;
 
 use common::{random_frames, RES_1080, RES_1440};
 
@@ -13,8 +14,14 @@ fn bench_frame_copy(c: &mut Criterion) {
 
 	let mut frames_1080 = random_frames(RES_1080, N_FRAMES_IN_MEMORY);
 	let mut frames_1440 = random_frames(RES_1440, N_FRAMES_IN_MEMORY);
-	let mut dest_1080 = vec![0; RES_1080.size()];
-	let mut dest_1440 = vec![0; RES_1440.size()];
+	let mut dest_1080 = InMemory {
+		data: vec![0; RES_1080.size()],
+		dims: RES_1080,
+	};
+	let mut dest_1440 = InMemory {
+		data: vec![0; RES_1440.size()],
+		dims: RES_1440,
+	};
 
 	let mut group = c.benchmark_group("frame copy");
 	group.throughput(criterion::Throughput::Elements(
@@ -22,7 +29,7 @@ fn bench_frame_copy(c: &mut Criterion) {
 	));
 
 	#[inline]
-	fn swap_frames(source: &mut [Vec<u8>], mut dest: &mut Vec<u8>) {
+	fn swap_frames(source: &mut [InMemory], mut dest: &mut InMemory) {
 		let source = black_box(source);
 		for f in source {
 			std::mem::swap(dest, f);
@@ -31,34 +38,34 @@ fn bench_frame_copy(c: &mut Criterion) {
 	}
 
 	#[inline]
-	fn memcpy_frames(source: &[Vec<u8>], mut dest: &mut [u8]) {
+	fn memcpy_frames(source: &[InMemory], mut dest: &mut InMemory) {
 		let source = black_box(source);
 		for f in source {
-			dest.copy_from_slice(f.as_slice());
+			dest.data.copy_from_slice(f.data.as_slice());
 			dest = black_box(dest);
 		}
 	}
 
 	#[inline]
-	fn clone_assign_frames(source: &[Vec<u8>], mut dest: &mut Vec<u8>) {
+	fn clone_assign_frames(source: &[InMemory], mut dest: &mut InMemory) {
 		let source = black_box(source);
 		for f in source {
 			// This allocates and copies
-			let cloned_vec = f.clone();
+			let cloned_vec = f.data.clone();
 			// This deallocates the vec that used to be in `dest`
-			*dest = cloned_vec;
+			dest.data = cloned_vec;
 			dest = black_box(dest);
 		}
 	}
 
 	group.bench_with_input(BenchmarkId::new("memcpy", "1080p"), &(), |b, &()| {
 		let source = frames_1080.as_slice();
-		let dest = dest_1080.as_mut_slice();
+		let dest = &mut dest_1080;
 		b.iter(|| memcpy_frames(source, dest))
 	});
 	group.bench_with_input(BenchmarkId::new("memcpy", "1440p"), &(), |b, &()| {
 		let source = frames_1440.as_slice();
-		let dest = dest_1440.as_mut_slice();
+		let dest = &mut dest_1440;
 		b.iter(|| memcpy_frames(source, dest))
 	});
 

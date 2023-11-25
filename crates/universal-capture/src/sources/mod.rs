@@ -1,3 +1,3 @@
-#[cfg(feature = "source-dxcapture")]
+#[cfg(feature = "dxcapture")]
 mod dxcapture;
 mod in_memory;

@@ -15,7 +15,7 @@ pub fn random_frames(res: Dims, num_frames: usize) -> Vec<InMemory> {
 	let mut rng = rand::thread_rng();
 	let mut frames = vec![
 		InMemory {
-			data: Vec::with_capacity(res.width * res.height),
+			data: vec![0; res.width * res.height],
 			dims: res
 		};
 		num_frames

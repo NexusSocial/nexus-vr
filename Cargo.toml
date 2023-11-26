@@ -3,10 +3,13 @@ resolver = "2"
 members = [
 	"apps/rvid/client",
 	"apps/rvid/server",
+	"apps/social/client",
+	"apps/social/server",
 
 	"crates/nexus-voicechat",
 	"crates/universal-capture",
 ]
+
 # These settings will apply to all members of the workspace that opt in to them
 [workspace.package]
 version = "0.0.0"
@@ -17,12 +20,20 @@ rust-version = "1.74.0"
 
 [workspace.dependencies]
 bevy = "0.12"
-bevy_oxr = "0.1.0"
+bevy_oxr = { git = "https://github.com/awtterpip/bevy_oxr", rev = "1cf8663" }
 color-eyre = "0.6"
 eyre = "0.6"
 # Adds `links` support
 openxr = { git = "https://github.com/Ralith/openxrs", rev = "361b27e" }
+bevy_mod_inverse_kinematics = "0.5"
+bevy_egui = "0.23"
+egui = "0.23"
+bevy-inspector-egui = "0.21.0"
 
 [profile.dev]
 # Enable a small amount of optimization in debug mode
 opt-level = 1
+
+# Enable high optimizations for dependencies, but not for our code:
+[profile.dev.package."*"]
+opt-level = 2

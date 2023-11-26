@@ -65,13 +65,15 @@ fn hands(
 ) {
 	let mut func = || -> color_eyre::Result<()> {
 		let frame_state = *frame_state.lock().unwrap();
-
-		let right_controller = oculus_controller
+		let grip_space = oculus_controller
 			.grip_space
+			.as_ref()
+			.expect("missing grip space on controller");
+
+		let right_controller = grip_space
 			.right
 			.relate(&xr_input.stage, frame_state.predicted_display_time)?;
-		let left_controller = oculus_controller
-			.grip_space
+		let left_controller = grip_space
 			.left
 			.relate(&xr_input.stage, frame_state.predicted_display_time)?;
 		gizmos.rect(

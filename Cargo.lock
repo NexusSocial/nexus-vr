@@ -985,11 +985,12 @@ dependencies = [
 [[package]]
 name = "bevy_oxr"
 version = "0.1.0"
-source = "git+https://github.com/awtterpip/bevy_oxr?rev=1cf8663#1cf866324b25ef67ac4db68acfb011171e2a869e"
+source = "git+https://github.com/awtterpip/bevy_oxr?rev=248d160#248d160ae524183b14cdd1e3121ae4914b064771"
 dependencies = [
  "anyhow",
  "ash",
  "bevy",
+ "futures-lite 2.0.1",
  "mint",
  "openxr",
  "wgpu",
@@ -1722,6 +1723,15 @@ name = "claxon"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4bfbf56724aa9eca8afa4fcfadeb479e722935bb2a0900c2d37e0cc477af0688"
+
+[[package]]
+name = "cmake"
+version = "0.1.50"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a31c789563b815f77f4250caee12365734369f942439b7defd71e18a48197130"
+dependencies = [
+ "cc",
+]
 
 [[package]]
 name = "codespan-reporting"
@@ -3938,6 +3948,7 @@ name = "openxr-sys"
 version = "0.9.3"
 source = "git+https://github.com/Ralith/openxrs?rev=361b27e#361b27ef2f2dcc93eacd23f5ba5940f3b89f74c2"
 dependencies = [
+ "cmake",
  "libc",
  "mint",
 ]
@@ -4819,7 +4830,6 @@ dependencies = [
  "color-eyre",
  "cpal",
  "lightyear",
- "oboe",
  "openxr",
  "portpicker",
  "random-number",

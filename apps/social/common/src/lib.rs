@@ -1,3 +1,4 @@
+pub mod macro_utils;
 pub mod shared;
 
 use bevy::prelude::*;

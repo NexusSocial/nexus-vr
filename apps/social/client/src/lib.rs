@@ -1,4 +1,3 @@
-use std::f32::consts::PI;
 use bevy::prelude::*;
 use bevy::transform::components::Transform;
 use bevy_mod_inverse_kinematics::InverseKinematicsPlugin;
@@ -12,6 +11,7 @@ use color_eyre::Result;
 use lightyear::prelude::ClientId;
 use social_common::shared::{CLIENT_PORT, SERVER_PORT};
 use social_common::Transports;
+use std::f32::consts::PI;
 
 use crate::dev_tools::DevToolsPlugins;
 
@@ -104,10 +104,14 @@ fn setup(
 		..default()
 	});
 	// camera
-	commands.spawn((Camera3dBundle {
-		transform: Transform::from_xyz(-2.0, 2.5, 5.0).looking_at(Vec3::ZERO, Vec3::Y),
-		..default()
-	}, bevy_vrm::mtoon::MtoonMainCamera));
+	commands.spawn((
+		Camera3dBundle {
+			transform: Transform::from_xyz(-2.0, 2.5, 5.0)
+				.looking_at(Vec3::ZERO, Vec3::Y),
+			..default()
+		},
+		bevy_vrm::mtoon::MtoonMainCamera,
+	));
 	// Avatar
 	/*commands.spawn(SceneBundle {
 		scene: assets.load("malek.gltf#Scene0"),

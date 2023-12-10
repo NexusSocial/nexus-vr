@@ -9,7 +9,7 @@ description = "A social vr demo in bevy"
 
 [dependencies]
 bevy.workspace = true
-bevy_oxr.workspace = true
+bevy_oxr = { workspace = true, default-features = false }
 color-eyre.workspace = true
 openxr.workspace = true
 bevy_mod_inverse_kinematics.workspace = true 

@@ -1,5 +1,5 @@
 [toolchain]
-channel = "1.74.1" # See workspace Cargo.toml
+channel = "beta-2023-12-02" # See workspace Cargo.toml
 components = ["rust-src"]
 profile = "default"
 targets = ["x86_64-pc-windows-msvc", "aarch64-linux-android"]

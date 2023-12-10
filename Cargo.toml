@@ -21,11 +21,10 @@ rust-version = "1.74.1"
 
 [workspace.dependencies]
 bevy = "0.12"
-bevy_oxr = { git = "https://github.com/awtterpip/bevy_oxr", rev = "1cf8663" }
+bevy_oxr = { git = "https://github.com/awtterpip/bevy_oxr", rev = "1cf8663", default-features = false }
 color-eyre = "0.6"
 eyre = "0.6"
-# Adds `links` support
-openxr = { git = "https://github.com/Ralith/openxrs", rev = "361b27e" }
+openxr = "0.17"
 bevy_mod_inverse_kinematics = "0.5"
 bevy_egui = "0.23"
 egui = "0.23"
@@ -43,3 +42,7 @@ opt-level = 1
 # Enable high optimizations for dependencies, but not for our code:
 [profile.dev.package."*"]
 opt-level = 2
+
+[patch.crates-io]
+# Adds `links` support
+openxr = { git = "https://github.com/Ralith/openxrs", rev = "361b27e" }

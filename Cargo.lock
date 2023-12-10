@@ -898,7 +898,7 @@ dependencies = [
  "ash",
  "bevy",
  "mint",
- "openxr 0.17.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "openxr",
  "wgpu",
  "wgpu-core",
  "wgpu-hal",
@@ -3782,36 +3782,12 @@ dependencies = [
 [[package]]
 name = "openxr"
 version = "0.17.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d7d5c194407c4fb5d3bf08c34ae57f3ea6cc9d9cfbe0594ce066896c809d9215"
-dependencies = [
- "libc",
- "libloading 0.7.4",
- "ndk-context",
- "openxr-sys 0.9.3 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "openxr"
-version = "0.17.1"
 source = "git+https://github.com/Ralith/openxrs?rev=361b27e#361b27ef2f2dcc93eacd23f5ba5940f3b89f74c2"
 dependencies = [
  "libc",
  "libloading 0.8.1",
  "ndk-context",
- "openxr-sys 0.9.3 (git+https://github.com/Ralith/openxrs?rev=361b27e)",
-]
-
-[[package]]
-name = "openxr-sys"
-version = "0.9.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fa8f022053ecd7989d86f867b4fb8c3520347612b9d637e217077a0d6b4a6634"
-dependencies = [
- "cmake",
- "jni 0.19.0",
- "libc",
- "mint",
+ "openxr-sys",
 ]
 
 [[package]]
@@ -3819,7 +3795,9 @@ name = "openxr-sys"
 version = "0.9.3"
 source = "git+https://github.com/Ralith/openxrs?rev=361b27e#361b27ef2f2dcc93eacd23f5ba5940f3b89f74c2"
 dependencies = [
+ "cmake",
  "libc",
+ "mint",
 ]
 
 [[package]]
@@ -4494,7 +4472,7 @@ dependencies = [
  "bevy",
  "bevy_oxr",
  "color-eyre",
- "openxr 0.17.1 (git+https://github.com/Ralith/openxrs?rev=361b27e)",
+ "openxr",
 ]
 
 [[package]]
@@ -4710,7 +4688,7 @@ dependencies = [
  "color-eyre",
  "egui",
  "lightyear",
- "openxr 0.17.1 (git+https://github.com/Ralith/openxrs?rev=361b27e)",
+ "openxr",
  "portpicker",
  "social-common",
 ]

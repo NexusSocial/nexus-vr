@@ -1,0 +1,17 @@
+[package]
+name = "social-common"
+version.workspace = true
+license.workspace = true
+repository.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+lightyear.workspace = true
+bevy.workspace = true
+serde.workspace = true
+derive_more = { version = "0.99", features = ["add", "mul"] }
+tracing = "0.1.40"
+portpicker = "0.1.1"

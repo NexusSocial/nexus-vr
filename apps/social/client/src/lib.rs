@@ -1,3 +1,4 @@
+use std::f32::consts::PI;
 use bevy::prelude::*;
 use bevy::transform::components::Transform;
 use bevy_mod_inverse_kinematics::InverseKinematicsPlugin;
@@ -6,12 +7,18 @@ use bevy_oxr::resources::XrFrameState;
 use bevy_oxr::xr_input::oculus_touch::OculusController;
 use bevy_oxr::xr_input::{QuatConv, Vec3Conv};
 use bevy_oxr::DefaultXrPlugins;
+use bevy_vrm::{VrmBundle, VrmPlugin};
 use color_eyre::Result;
+use lightyear::prelude::ClientId;
+use social_common::shared::{CLIENT_PORT, SERVER_PORT};
+use social_common::Transports;
 
 use crate::dev_tools::DevToolsPlugins;
 
 mod dev_tools;
 mod humanoid;
+
+mod networking;
 
 const ASSET_FOLDER: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../../assets/");
 
@@ -21,14 +28,23 @@ pub fn main() {
 
 	info!("Running `social-client`");
 	App::new()
-		.add_plugins(DefaultXrPlugins.set(AssetPlugin {
+		.add_plugins(bevy_web_asset::WebAssetPlugin::default())
+		/*.add_plugins(DefaultXrPlugins.set(AssetPlugin {
 			file_path: ASSET_FOLDER.to_string(),
 			..Default::default()
-		}))
+		}))*/
+		.add_plugins(DefaultPlugins)
 		.add_plugins(InverseKinematicsPlugin)
 		.add_plugins(DevToolsPlugins)
+		.add_plugins(VrmPlugin)
 		.add_systems(Startup, setup)
-		.add_systems(Update, hands.map(ignore_on_err))
+		.add_plugins(networking::MyClientPlugin {
+			client_id: ClientId::default(),
+			client_port: portpicker::pick_unused_port().unwrap(),
+			server_port: SERVER_PORT,
+			transport: Transports::Udp,
+		})
+		//.add_systems(Update, hands.map(ignore_on_err))
 		.run();
 }
 
@@ -53,6 +69,17 @@ fn setup(
 	mut materials: ResMut<Assets<StandardMaterial>>,
 	assets: Res<AssetServer>,
 ) {
+	let mut transform = Transform::from_xyz(0.0, -1.0, -4.0);
+	transform.rotate_y(PI);
+
+	commands.spawn(VrmBundle {
+		vrm: assets.load("https://vipe.mypinata.cloud/ipfs/QmU7QeqqVMgnMtCAqZBpAYKSwgcjD4gnx4pxFNY9LqA7KQ/default_398.vrm"),
+		scene_bundle: SceneBundle {
+			transform,
+			..default()
+		},
+	});
+
 	// plane
 	commands.spawn(PbrBundle {
 		mesh: meshes.add(shape::Plane::from_size(5.0).into()),
@@ -80,9 +107,9 @@ fn setup(
 	commands.spawn((Camera3dBundle {
 		transform: Transform::from_xyz(-2.0, 2.5, 5.0).looking_at(Vec3::ZERO, Vec3::Y),
 		..default()
-	},));
+	}, bevy_vrm::mtoon::MtoonMainCamera));
 	// Avatar
-	commands.spawn(SceneBundle {
+	/*commands.spawn(SceneBundle {
 		scene: assets.load("malek.gltf#Scene0"),
 		transform: Transform::from_xyz(0.0, 0.0, 0.0).with_rotation(Quat::from_euler(
 			EulerRot::XYZ,
@@ -91,10 +118,10 @@ fn setup(
 			0.0,
 		)),
 		..default()
-	});
+	});*/
 }
 
-fn hands(
+/*fn hands(
 	mut gizmos: Gizmos,
 	oculus_controller: Res<OculusController>,
 	frame_state: Res<XrFrameState>,
@@ -126,3 +153,4 @@ fn hands(
 	);
 	Ok(())
 }
+*/

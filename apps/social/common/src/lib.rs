@@ -21,10 +21,16 @@ pub struct PlayerBundle {
 	position: PlayerPosition,
 	color: PlayerColor,
 	replicate: Replicate,
+	player_avatar_url: PlayerAvatarUrl,
 }
 
 impl PlayerBundle {
-	pub fn new(id: ClientId, position: Vec3, color: Color) -> Self {
+	pub fn new(
+		id: ClientId,
+		position: Vec3,
+		color: Color,
+		player_avatar_url: PlayerAvatarUrl,
+	) -> Self {
 		Self {
 			id: PlayerId(id),
 			position: PlayerPosition(position),
@@ -35,6 +41,7 @@ impl PlayerBundle {
 				interpolation_target: NetworkTarget::AllExcept(id),
 				..default()
 			},
+			player_avatar_url,
 		}
 	}
 }
@@ -62,6 +69,25 @@ pub struct PlayerPosition(pub Vec3);
 #[derive(Component, Message, Deserialize, Serialize, Clone, Debug, PartialEq)]
 pub struct PlayerColor(pub Color);
 
+#[derive(Component, Message, Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct PlayerAvatarUrl(pub Option<String>);
+
+impl Mul<f32> for PlayerAvatarUrl {
+	type Output = Self;
+
+	fn mul(self, rhs: f32) -> Self::Output {
+		self
+	}
+}
+
+impl Add for PlayerAvatarUrl {
+	type Output = Self;
+
+	fn add(self, rhs: Self) -> Self::Output {
+		self
+	}
+}
+
 // Example of a component that contains an entity.
 // This component, when replicated, needs to have the inner entity mapped from the Server world
 // to the client World.
@@ -85,6 +111,8 @@ pub enum Components {
 	PlayerPosition(PlayerPosition),
 	#[sync(once)]
 	PlayerColor(PlayerColor),
+	#[sync(full)]
+	PlayerAvatarUrl(PlayerAvatarUrl),
 }
 
 // Channels
@@ -95,7 +123,7 @@ pub struct Channel1;
 // Messages
 
 #[derive(Message, Serialize, Deserialize, Clone, Debug, PartialEq)]
-pub struct Message1(pub usize);
+pub struct Message1(pub String);
 
 #[message_protocol(protocol = "MyProtocol", derive(Debug))]
 pub enum Messages {
@@ -136,7 +164,7 @@ protocolize! {
 	Input = Inputs,
 }
 
-pub(crate) fn protocol() -> MyProtocol {
+pub fn protocol() -> MyProtocol {
 	let mut protocol = MyProtocol::default();
 	protocol.add_channel::<Channel1>(ChannelSettings {
 		mode: ChannelMode::OrderedReliable(ReliableSettings::default()),

@@ -3161,10 +3161,12 @@ dependencies = [
 
 [[package]]
 name = "lightyear"
-version = "0.3.0-alpha.0"
-source = "git+https://github.com/cBournhonesque/lightyear#57efbfb0bda7557fd8948d2651cfa5364b9be6f2"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c842c9822394b93d42280f066b447e17c085b70fb17a7054e56a7c7b8cf4a87a"
 dependencies = [
  "anyhow",
+ "base64 0.21.5",
  "bevy",
  "bitcode_lightyear_patch",
  "byteorder",
@@ -3179,15 +3181,18 @@ dependencies = [
  "lightyear_macros",
  "paste",
  "rand",
+ "rcgen",
+ "ring 0.17.7",
  "ringbuffer",
  "self_cell",
  "serde",
  "thiserror",
+ "time",
  "tokio",
  "tracing",
  "tracing-log 0.1.4",
  "tracing-subscriber",
- "wtransport",
+ "wtransport_lightyear_patch",
 ]
 
 [[package]]
@@ -3568,16 +3573,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39e3200413f237f41ab11ad6d161bc7239c84dcb631773ccd7de3dfe4b5c267c"
 dependencies = [
  "autocfg",
-]
-
-[[package]]
-name = "num_cpus"
-version = "1.16.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4161fcb6d602d4d2081af7c3a45852d875a03dd337a6bfdd6e06407b61342a43"
-dependencies = [
- "hermit-abi",
- "libc",
 ]
 
 [[package]]
@@ -4074,6 +4069,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "proc-macro-hack"
+version = "0.5.20+deprecated"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dc375e1527247fe1a97d8b7156678dfe7c1af2fc075c9a4db3690ecd2a148068"
+
+[[package]]
 name = "proc-macro2"
 version = "1.0.69"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4179,6 +4180,28 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec0be4795e2f6a28069bec0b5ff3e2ac9bafc99e6a9a7dc3547996c5c816922c"
 dependencies = [
  "getrandom",
+]
+
+[[package]]
+name = "random-number"
+version = "0.1.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3a3da5cbb4c27c5150c03a54a7e4745437cd90f9e329ae657c0b889a144bb7be"
+dependencies = [
+ "proc-macro-hack",
+ "rand",
+ "random-number-macro-impl",
+]
+
+[[package]]
+name = "random-number-macro-impl"
+version = "0.1.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8b86292cf41ccfc96c5de7165c1c53d5b4ac540c5bab9d1857acbe9eba5f1a0b"
+dependencies = [
+ "proc-macro-hack",
+ "quote",
+ "syn 2.0.39",
 ]
 
 [[package]]
@@ -4690,6 +4713,7 @@ dependencies = [
  "lightyear",
  "openxr",
  "portpicker",
+ "random-number",
  "social-common",
 ]
 
@@ -4710,6 +4734,8 @@ name = "social-server"
 version = "0.0.0"
 dependencies = [
  "bevy",
+ "bevy_vrm",
+ "bevy_web_asset",
  "lightyear",
  "social-common",
 ]
@@ -4979,7 +5005,6 @@ dependencies = [
  "backtrace",
  "libc",
  "mio",
- "num_cpus",
  "pin-project-lite",
  "socket2 0.5.5",
  "tokio-macros",
@@ -5891,10 +5916,21 @@ dependencies = [
 ]
 
 [[package]]
-name = "wtransport"
-version = "0.1.9"
+name = "wtransport-proto_lightyear_patch"
+version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "11b4c2a373ff5467c7beed825cb48607ace7db369c7bd97fa1a43cba3efd47cc"
+checksum = "0555e5b014ae618390aac1ef7046aaa77f3179cb1196393add760bef245a409a"
+dependencies = [
+ "ls-qpack",
+ "octets",
+ "url",
+]
+
+[[package]]
+name = "wtransport_lightyear_patch"
+version = "0.1.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d6967fe4e8f18998b00072dad662fba316005f708a3b7baff276671710d9d84c"
 dependencies = [
  "base64 0.21.5",
  "bytes",
@@ -5910,19 +5946,8 @@ dependencies = [
  "tokio",
  "tracing",
  "url",
- "wtransport-proto",
+ "wtransport-proto_lightyear_patch",
  "x509-parser",
-]
-
-[[package]]
-name = "wtransport-proto"
-version = "0.1.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d4a56f366050f96cc2823e034da18389e67419a939789d4e968ae536de6a174f"
-dependencies = [
- "ls-qpack",
- "octets",
- "url",
 ]
 
 [[package]]

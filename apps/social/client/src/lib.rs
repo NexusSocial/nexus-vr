@@ -26,6 +26,8 @@ const ASSET_FOLDER: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../../assets
 pub fn main() {
 	color_eyre::install().unwrap();
 
+	let client_id: u16 = random_number::random!();
+
 	info!("Running `social-client`");
 	App::new()
 		.add_plugins(bevy_web_asset::WebAssetPlugin::default())
@@ -39,7 +41,7 @@ pub fn main() {
 		.add_plugins(VrmPlugin)
 		.add_systems(Startup, setup)
 		.add_plugins(networking::MyClientPlugin {
-			client_id: ClientId::default(),
+			client_id: client_id as u64,
 			client_port: portpicker::pick_unused_port().unwrap(),
 			server_port: SERVER_PORT,
 			transport: Transports::Udp,
@@ -69,7 +71,7 @@ fn setup(
 	mut materials: ResMut<Assets<StandardMaterial>>,
 	assets: Res<AssetServer>,
 ) {
-	let mut transform = Transform::from_xyz(0.0, -1.0, -4.0);
+	/*let mut transform = Transform::from_xyz(0.0, -1.0, -4.0);
 	transform.rotate_y(PI);
 
 	commands.spawn(VrmBundle {
@@ -78,7 +80,7 @@ fn setup(
 			transform,
 			..default()
 		},
-	});
+	});*/
 
 	// plane
 	commands.spawn(PbrBundle {

@@ -4,8 +4,10 @@ use lightyear::prelude::*;
 use social_common::shared::*;
 use social_common::*;
 use std::collections::HashMap;
+use std::f32::consts::PI;
 use std::net::{Ipv4Addr, SocketAddr};
 use std::time::Duration;
+use bevy_vrm::VrmBundle;
 
 pub struct MyServerPlugin {
 	pub(crate) port: u16,
@@ -38,14 +40,14 @@ impl Plugin for MyServerPlugin {
 			netcode: netcode_config,
 			ping: PingConfig::default(),
 		};
-		let plugin_config = PluginConfig::new(config, io, MyProtocol::default());
+		let plugin_config = PluginConfig::new(config, io, protocol());
 		app.add_plugins(server::ServerPlugin::new(plugin_config));
 		app.add_plugins(shared::SharedPlugin);
 		app.init_resource::<Global>();
 		app.add_systems(Startup, init);
 		// the physics/FixedUpdates systems that consume inputs should be run in this set
 		app.add_systems(FixedUpdate, movement.in_set(FixedUpdateSet::Main));
-		app.add_systems(Update, (handle_connections, send_message));
+		app.add_systems(Update, (handle_connections, send_message, get_avatar_msg, on_avatar_url_changed, change_pos));
 	}
 }
 
@@ -83,6 +85,7 @@ pub(crate) fn handle_connections(
 			*client_id,
 			Vec3::ZERO,
 			Color::hsl(h, s, l),
+			PlayerAvatarUrl(None),
 		));
 		// Add a mapping from client id to entity id
 		global
@@ -127,7 +130,7 @@ pub(crate) fn send_message(
 	mut server: ResMut<Server<MyProtocol>>,
 	input: Res<Input<KeyCode>>,
 ) {
-	if input.pressed(KeyCode::M) {
+	/*if input.pressed(KeyCode::M) {
 		// TODO: add way to send message to all
 		let message = Message1(5);
 		info!("Send message: {:?}", message);
@@ -136,5 +139,50 @@ pub(crate) fn send_message(
 			.unwrap_or_else(|e| {
 				error!("Failed to send message: {:?}", e);
 			});
+	}*/
+}
+
+fn get_avatar_msg(
+	mut messages: EventReader<MessageEvent<Message1>>,
+	mut query: Query<(&PlayerId, &mut PlayerAvatarUrl)>
+) {
+	for message in messages.read() {
+		let id = *message.context();
+		let url = message.message().0.clone();
+		for (player_id, mut player_avatar_url) in query.iter_mut() {
+			if player_id.0 != id {
+				continue;
+			}
+			player_avatar_url.0.replace(url.clone());
+		}
+	}
+}
+
+pub fn change_pos(mut query: Query<(&PlayerPosition, &mut Transform), Changed<PlayerPosition>>) {
+	for (player_pos, mut transform) in query.iter_mut() {
+		transform.translation = player_pos.0;
+	}
+}
+
+pub fn on_avatar_url_changed(
+	mut commands: Commands,
+	assets: Res<AssetServer>,
+	mut query: Query<(Entity, &PlayerAvatarUrl), Changed<PlayerAvatarUrl>>,
+) {
+	for (entity, url) in query.iter() {
+		let url = match url.0.as_ref() {
+			None => continue,
+			Some(url) => url.as_str(),
+		};
+		let mut transform = Transform::from_xyz(0.0, -1.0, -4.0);
+		transform.rotate_y(PI);
+
+		commands.entity(entity).insert(VrmBundle {
+			vrm: assets.load(url.to_string()),
+			scene_bundle: SceneBundle {
+				transform,
+				..default()
+			},
+		});
 	}
 }

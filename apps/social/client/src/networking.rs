@@ -1,9 +1,11 @@
 use bevy::prelude::*;
+use bevy_vrm::VrmBundle;
 use lightyear::_reexport::{ShouldBeInterpolated, ShouldBePredicted};
 use lightyear::prelude::client::*;
 use lightyear::prelude::*;
 use social_common::shared::*;
 use social_common::*;
+use std::f32::consts::PI;
 use std::net::{Ipv4Addr, SocketAddr};
 use std::str::FromStr;
 use std::time::Duration;
@@ -18,6 +20,8 @@ pub struct MyClientPlugin {
 
 impl Plugin for MyClientPlugin {
 	fn build(&self, app: &mut App) {
+		app.insert_resource(PlayerClientId(self.client_id));
+
 		let server_addr = SocketAddr::new(Ipv4Addr::LOCALHOST.into(), self.server_port);
 		let auth = Authentication::Manual {
 			server_addr,
@@ -49,14 +53,11 @@ impl Plugin for MyClientPlugin {
 			sync: SyncConfig::default(),
 			prediction: PredictionConfig::default(),
 			// we are sending updates every frame (60fps), let's add a delay of 6 network-ticks
-			interpolation: InterpolationConfig::default().with_delay(
-				InterpolationDelay::default()
-					.with_min_delay(Duration::from_millis(50))
-					.with_send_interval_ratio(2.0),
-			),
+			interpolation: InterpolationConfig::default()
+				.with_delay(InterpolationDelay::Ratio(2.0)),
 			// .with_delay(InterpolationDelay::Ratio(2.0)),
 		};
-		let plugin_config = PluginConfig::new(config, io, MyProtocol::default(), auth);
+		let plugin_config = PluginConfig::new(config, io, protocol(), auth);
 		app.add_plugins(ClientPlugin::new(plugin_config));
 		app.add_plugins(shared::SharedPlugin);
 		app.insert_resource(self.clone());
@@ -73,8 +74,58 @@ impl Plugin for MyClientPlugin {
 				handle_predicted_spawn,
 				handle_interpolated_spawn,
 				log,
+				on_avatar_url_add,
+				on_avatar_url_changed,
+				change_pos,
 			),
 		);
+	}
+}
+
+#[derive(Resource)]
+pub struct PlayerClientId(u64);
+
+pub fn on_avatar_url_add(
+	mut query: Query<(&PlayerId, &mut PlayerAvatarUrl), Added<PlayerAvatarUrl>>,
+	player_client_id: Res<PlayerClientId>,
+	mut client: ResMut<Client<MyProtocol>>,
+) {
+	for (player_id, mut player_avatar_url) in query.iter_mut() {
+		if player_id.0 == player_client_id.0 {
+			if player_avatar_url.0.is_none() {
+				client.buffer_send::<Channel1, _>(Message1("https://vipe.mypinata.cloud/ipfs/QmU7QeqqVMgnMtCAqZBpAYKSwgcjD4gnx4pxFNY9LqA7KQ/default_398.vrm".to_string())).unwrap();
+				//player_avatar_url.0.replace("https://vipe.mypinata.cloud/ipfs/QmU7QeqqVMgnMtCAqZBpAYKSwgcjD4gnx4pxFNY9LqA7KQ/default_398.vrm".to_string());
+			}
+		}
+	}
+}
+
+pub fn on_avatar_url_changed(
+	mut commands: Commands,
+	assets: Res<AssetServer>,
+	mut query: Query<(Entity, &PlayerAvatarUrl), Changed<PlayerAvatarUrl>>,
+) {
+	for (entity, url) in query.iter() {
+		let url = match url.0.as_ref() {
+			None => continue,
+			Some(url) => url.as_str(),
+		};
+		let mut transform = Transform::from_xyz(0.0, -1.0, -4.0);
+		transform.rotate_y(PI);
+
+		commands.entity(entity).insert(VrmBundle {
+			vrm: assets.load(url.to_string()),
+			scene_bundle: SceneBundle {
+				transform,
+				..default()
+			},
+		});
+	}
+}
+
+pub fn change_pos(mut query: Query<(&PlayerPosition, &mut Transform), Changed<PlayerPosition>>) {
+	for (player_pos, mut transform) in query.iter_mut() {
+		transform.translation = player_pos.0;
 	}
 }
 
@@ -159,9 +210,9 @@ pub(crate) fn movement(
 
 // System to receive messages on the client
 pub(crate) fn receive_message1(mut reader: EventReader<MessageEvent<Message1>>) {
-	for event in reader.read() {
+	/*for event in reader.read() {
 		info!("Received message: {:?}", event.message());
-	}
+	}*/
 }
 
 // When the predicted copy of the client-owned entity is spawned, do stuff

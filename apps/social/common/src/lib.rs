@@ -22,6 +22,7 @@ pub struct PlayerBundle {
 	color: PlayerColor,
 	replicate: Replicate,
 	player_avatar_url: PlayerAvatarUrl,
+	networked_spatial_audio: NetworkedSpatialAudio,
 }
 
 impl PlayerBundle {
@@ -42,6 +43,7 @@ impl PlayerBundle {
 				..default()
 			},
 			player_avatar_url,
+			networked_spatial_audio: NetworkedSpatialAudio(None),
 		}
 	}
 }
@@ -71,6 +73,9 @@ pub struct PlayerColor(pub Color);
 
 #[derive(Component, Message, Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct PlayerAvatarUrl(pub Option<String>);
+
+#[derive(Component, Message, Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct NetworkedSpatialAudio(pub Option<Vec<f32>>);
 
 impl Mul<f32> for PlayerAvatarUrl {
 	type Output = Self;
@@ -111,8 +116,10 @@ pub enum Components {
 	PlayerPosition(PlayerPosition),
 	#[sync(once)]
 	PlayerColor(PlayerColor),
-	#[sync(full)]
+	#[sync(simple)]
 	PlayerAvatarUrl(PlayerAvatarUrl),
+	#[sync(simple)]
+	NetworkedSpatialAudio(NetworkedSpatialAudio),
 }
 
 // Channels
@@ -120,14 +127,24 @@ pub enum Components {
 #[derive(Channel)]
 pub struct Channel1;
 
+#[derive(Channel)]
+pub struct AudioChannel;
 // Messages
 
 #[derive(Message, Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct Message1(pub String);
 
+#[derive(Message, Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct MicrophoneAudio(pub Vec<f32>);
+
+#[derive(Message, Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct ServerToClientMicrophoneAudio(pub Vec<f32>, pub u64);
+
 #[message_protocol(protocol = "MyProtocol", derive(Debug))]
 pub enum Messages {
 	Message1(Message1),
+	MicrophoneAudio(MicrophoneAudio),
+	ServerToClientMicrophoneAudio(ServerToClientMicrophoneAudio),
 }
 
 // Inputs
@@ -168,6 +185,12 @@ pub fn protocol() -> MyProtocol {
 	let mut protocol = MyProtocol::default();
 	protocol.add_channel::<Channel1>(ChannelSettings {
 		mode: ChannelMode::OrderedReliable(ReliableSettings::default()),
+		direction: ChannelDirection::Bidirectional,
+	});
+	protocol.add_channel::<AudioChannel>(ChannelSettings {
+		mode: ChannelMode::OrderedReliable(ReliableSettings {
+			rtt_resend_factor: 1.5,
+		}),
 		direction: ChannelDirection::Bidirectional,
 	});
 	protocol

@@ -13,7 +13,7 @@ pub struct MicrophonePlugin;
 impl Plugin for MicrophonePlugin {
 	fn build(&self, app: &mut App) {
 		app.add_systems(Startup, on_startup_add_microphone);
-		app.add_systems(Update, play_microphone);
+		//app.add_systems(Update, play_microphone);
 	}
 }
 
@@ -80,10 +80,11 @@ fn on_startup_add_microphone(mut commands: Commands) {
 			.build_input_stream(
 				&config.into(),
 				move |d: &[f32], _| {
+					tx.send(d.to_vec()).unwrap();
 					//println!("{:?}", d);
-					for slice in d.chunks(channels as _) {
+					/*for slice in d.chunks(channels as _) {
 						tx.send((slice).to_vec()).unwrap();
-					}
+					}*/
 				},
 				err_fn,
 				None,

@@ -15,12 +15,14 @@ use std::f32::consts::PI;
 
 use crate::dev_tools::DevToolsPlugins;
 use crate::microphone::MicrophonePlugin;
+use crate::voice_chat::VoiceChatPlugin;
 
 mod dev_tools;
 mod humanoid;
 
 mod microphone;
 mod networking;
+mod voice_chat;
 
 const ASSET_FOLDER: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../../assets/");
 
@@ -49,6 +51,7 @@ pub fn main() {
 			transport: Transports::Udp,
 		})
 		.add_plugins(MicrophonePlugin)
+		.add_plugins(VoiceChatPlugin)
 		//.add_systems(Update, hands.map(ignore_on_err))
 		.run();
 }

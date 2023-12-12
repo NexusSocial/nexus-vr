@@ -33,7 +33,7 @@ impl Plugin for MyClientPlugin {
 		let link_conditioner = LinkConditionerConfig {
 			incoming_latency: Duration::from_millis(100),
 			incoming_jitter: Duration::from_millis(5),
-			incoming_loss: 0.00,
+			incoming_loss: 0.001,
 		};
 		let transport = match self.transport {
 			Transports::Udp => TransportConfig::UdpSocket(client_addr),
@@ -83,7 +83,7 @@ impl Plugin for MyClientPlugin {
 }
 
 #[derive(Resource)]
-pub struct PlayerClientId(u64);
+pub struct PlayerClientId(pub(crate) u64);
 
 pub fn on_avatar_url_add(
 	mut query: Query<(&PlayerId, &mut PlayerAvatarUrl), Added<PlayerAvatarUrl>>,
@@ -123,7 +123,9 @@ pub fn on_avatar_url_changed(
 	}
 }
 
-pub fn change_pos(mut query: Query<(&PlayerPosition, &mut Transform), Changed<PlayerPosition>>) {
+pub fn change_pos(
+	mut query: Query<(&PlayerPosition, &mut Transform), Changed<PlayerPosition>>,
+) {
 	for (player_pos, mut transform) in query.iter_mut() {
 		transform.translation = player_pos.0;
 	}

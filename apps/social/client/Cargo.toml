@@ -22,3 +22,5 @@ lightyear.workspace = true
 social-common.workspace = true
 portpicker = "0.1.1"
 random-number = "0.1.8"
+cpal = "0.15.2"
+rodio = "0.17.3"

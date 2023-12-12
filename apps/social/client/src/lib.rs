@@ -14,10 +14,12 @@ use social_common::Transports;
 use std::f32::consts::PI;
 
 use crate::dev_tools::DevToolsPlugins;
+use crate::microphone::MicrophonePlugin;
 
 mod dev_tools;
 mod humanoid;
 
+mod microphone;
 mod networking;
 
 const ASSET_FOLDER: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../../assets/");
@@ -46,6 +48,7 @@ pub fn main() {
 			server_port: SERVER_PORT,
 			transport: Transports::Udp,
 		})
+		.add_plugins(MicrophonePlugin)
 		//.add_systems(Update, hands.map(ignore_on_err))
 		.run();
 }

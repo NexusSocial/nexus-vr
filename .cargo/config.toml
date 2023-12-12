@@ -1,3 +1,15 @@
 [target.aarch64-linux-android.openxr_loader]
 rustc-link-search = ["assets/runtime_libs/arm64-v8a"]
 rustc-link-lib = ["openxr_loader"]
+
+[target.x86_64-pc-windows-msvc]
+linker = "lld"
+rustflags = [
+    "-Lnative=~/.xwin/crt/lib/x86_64",
+    "-Lnative=~/.xwin/sdk/lib/um/x86_64",
+    "-Lnative=~/.xwin/sdk/lib/ucrt/x86_64"
+]
+
+
+[alias]
+ci = "run --package local-ci --"

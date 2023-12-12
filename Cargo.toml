@@ -9,6 +9,8 @@ members = [
 
 	"crates/nexus-voicechat",
 	"crates/universal-capture",
+
+	"crates/local-ci",
 ]
 
 # These settings will apply to all members of the workspace that opt in to them
@@ -32,8 +34,9 @@ bevy-inspector-egui = "0.21.0"
 bevy_web_asset = "0.7.0"
 bevy_vrm = "0.0.6"
 social-common.path = "apps/social/common"
-lightyear = { version = "0.2.0", features = ["webtransport"]}
+lightyear = { version = "0.2.0", features = []}
 serde = "1.0.193"
+#blake3 = {version = "1.5.0", features = ["pure"]}
 
 [profile.dev]
 # Enable a small amount of optimization in debug mode
@@ -45,4 +48,4 @@ opt-level = 2
 
 [patch.crates-io]
 # Adds `links` support
-openxr = { git = "https://github.com/Ralith/openxrs", rev = "361b27e" }
+#openxr = { git = "https://github.com/Ralith/openxrs", rev = "361b27e", features = ["mint"] }

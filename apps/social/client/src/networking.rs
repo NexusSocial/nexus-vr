@@ -37,10 +37,7 @@ impl Plugin for MyClientPlugin {
 		};
 		let transport = match self.transport {
 			Transports::Udp => TransportConfig::UdpSocket(client_addr),
-			Transports::Webtransport => TransportConfig::WebTransportClient {
-				client_addr,
-				server_addr,
-			},
+			Transports::Webtransport => panic!(),
 		};
 		let io = Io::from_config(
 			&IoConfig::from_transport(transport).with_conditioner(link_conditioner),
@@ -123,7 +120,9 @@ pub fn on_avatar_url_changed(
 	}
 }
 
-pub fn change_pos(mut query: Query<(&PlayerPosition, &mut Transform), Changed<PlayerPosition>>) {
+pub fn change_pos(
+	mut query: Query<(&PlayerPosition, &mut Transform), Changed<PlayerPosition>>,
+) {
 	for (player_pos, mut transform) in query.iter_mut() {
 		transform.translation = player_pos.0;
 	}

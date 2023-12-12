@@ -31,11 +31,11 @@ pub fn main() {
 	info!("Running `social-client`");
 	App::new()
 		.add_plugins(bevy_web_asset::WebAssetPlugin::default())
-		/*.add_plugins(DefaultXrPlugins.set(AssetPlugin {
+		.add_plugins(DefaultXrPlugins.set(AssetPlugin {
 			file_path: ASSET_FOLDER.to_string(),
 			..Default::default()
-		}))*/
-		.add_plugins(DefaultPlugins)
+		}))
+		//.add_plugins(DefaultPlugins)
 		.add_plugins(InverseKinematicsPlugin)
 		.add_plugins(DevToolsPlugins)
 		.add_plugins(VrmPlugin)
@@ -46,7 +46,7 @@ pub fn main() {
 			server_port: SERVER_PORT,
 			transport: Transports::Udp,
 		})
-		//.add_systems(Update, hands.map(ignore_on_err))
+		.add_systems(Update, hands.map(ignore_on_err))
 		.run();
 }
 
@@ -71,17 +71,6 @@ fn setup(
 	mut materials: ResMut<Assets<StandardMaterial>>,
 	assets: Res<AssetServer>,
 ) {
-	/*let mut transform = Transform::from_xyz(0.0, -1.0, -4.0);
-	transform.rotate_y(PI);
-
-	commands.spawn(VrmBundle {
-		vrm: assets.load("https://vipe.mypinata.cloud/ipfs/QmU7QeqqVMgnMtCAqZBpAYKSwgcjD4gnx4pxFNY9LqA7KQ/default_398.vrm"),
-		scene_bundle: SceneBundle {
-			transform,
-			..default()
-		},
-	});*/
-
 	// plane
 	commands.spawn(PbrBundle {
 		mesh: meshes.add(shape::Plane::from_size(5.0).into()),
@@ -127,7 +116,7 @@ fn setup(
 	});*/
 }
 
-/*fn hands(
+fn hands(
 	mut gizmos: Gizmos,
 	oculus_controller: Res<OculusController>,
 	frame_state: Res<XrFrameState>,
@@ -159,4 +148,3 @@ fn setup(
 	);
 	Ok(())
 }
-*/

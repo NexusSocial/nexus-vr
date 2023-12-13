@@ -6,13 +6,11 @@ use bevy_oxr::resources::XrFrameState;
 use bevy_oxr::xr_input::oculus_touch::OculusController;
 use bevy_oxr::xr_input::{QuatConv, Vec3Conv};
 use bevy_oxr::DefaultXrPlugins;
-use bevy_vrm::{VrmPlugin};
+use bevy_vrm::VrmPlugin;
 use color_eyre::Result;
 
-
-use social_common::shared::{SERVER_PORT};
+use social_common::shared::SERVER_PORT;
 use social_common::Transports;
-
 
 use crate::dev_tools::DevToolsPlugins;
 use crate::microphone::MicrophonePlugin;

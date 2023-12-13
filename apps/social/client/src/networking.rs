@@ -97,9 +97,9 @@ pub fn on_avatar_url_add(
 ) {
 	for (player_id, player_avatar_url) in query.iter_mut() {
 		if player_id.0 == player_client_id.0 && player_avatar_url.0.is_none() {
-  				client.buffer_send::<Channel1, _>(Message1("https://vipe.mypinata.cloud/ipfs/QmU7QeqqVMgnMtCAqZBpAYKSwgcjD4gnx4pxFNY9LqA7KQ/default_398.vrm".to_string())).unwrap();
-  				//player_avatar_url.0.replace("https://vipe.mypinata.cloud/ipfs/QmU7QeqqVMgnMtCAqZBpAYKSwgcjD4gnx4pxFNY9LqA7KQ/default_398.vrm".to_string());
-  			}
+			client.buffer_send::<Channel1, _>(Message1("https://vipe.mypinata.cloud/ipfs/QmU7QeqqVMgnMtCAqZBpAYKSwgcjD4gnx4pxFNY9LqA7KQ/default_398.vrm".to_string())).unwrap();
+			//player_avatar_url.0.replace("https://vipe.mypinata.cloud/ipfs/QmU7QeqqVMgnMtCAqZBpAYKSwgcjD4gnx4pxFNY9LqA7KQ/default_398.vrm".to_string());
+		}
 	}
 }
 

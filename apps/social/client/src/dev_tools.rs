@@ -3,7 +3,7 @@
 use bevy::{
 	app::PluginGroupBuilder,
 	diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
-	prelude::{PluginGroup},
+	prelude::PluginGroup,
 };
 /*use bevy_egui::EguiContext;
 use bevy_inspector_egui::{

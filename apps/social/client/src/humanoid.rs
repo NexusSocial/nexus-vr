@@ -1,6 +1,5 @@
 use social_common::macro_utils::unwrap_or_continue;
 
-
 use bevy::{
 	prelude::{
 		Children, Commands, Component, Entity, Event, EventReader, HierarchyQueryExt,

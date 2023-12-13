@@ -1,3 +1,4 @@
+pub mod macro_utils;
 pub mod shared;
 
 use bevy::prelude::*;
@@ -79,7 +80,7 @@ pub struct NetworkedSpatialAudio(pub Option<Vec<f32>>);
 impl Mul<f32> for PlayerAvatarUrl {
 	type Output = Self;
 
-	fn mul(self, rhs: f32) -> Self::Output {
+	fn mul(self, _rhs: f32) -> Self::Output {
 		self
 	}
 }
@@ -87,7 +88,7 @@ impl Mul<f32> for PlayerAvatarUrl {
 impl Add for PlayerAvatarUrl {
 	type Output = Self;
 
-	fn add(self, rhs: Self) -> Self::Output {
+	fn add(self, _rhs: Self) -> Self::Output {
 		self
 	}
 }

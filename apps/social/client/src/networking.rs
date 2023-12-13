@@ -7,7 +7,7 @@ use social_common::shared::*;
 use social_common::*;
 use std::f32::consts::PI;
 use std::net::{Ipv4Addr, SocketAddr};
-use std::str::FromStr;
+
 use std::time::Duration;
 
 #[derive(Resource, Clone, Copy)]
@@ -61,7 +61,7 @@ impl Plugin for MyClientPlugin {
 		let plugin_config = PluginConfig::new(config, io, protocol(), auth);
 		app.add_plugins(ClientPlugin::new(plugin_config));
 		app.add_plugins(shared::SharedPlugin);
-		app.insert_resource(self.clone());
+		app.insert_resource(*self);
 		app.add_systems(Startup, init);
 		app.add_systems(
 			FixedUpdate,
@@ -95,12 +95,10 @@ pub fn on_avatar_url_add(
 	player_client_id: Res<PlayerClientId>,
 	mut client: ResMut<Client<MyProtocol>>,
 ) {
-	for (player_id, mut player_avatar_url) in query.iter_mut() {
-		if player_id.0 == player_client_id.0 {
-			if player_avatar_url.0.is_none() {
-				client.buffer_send::<Channel1, _>(Message1("https://vipe.mypinata.cloud/ipfs/QmU7QeqqVMgnMtCAqZBpAYKSwgcjD4gnx4pxFNY9LqA7KQ/default_398.vrm".to_string())).unwrap();
-				//player_avatar_url.0.replace("https://vipe.mypinata.cloud/ipfs/QmU7QeqqVMgnMtCAqZBpAYKSwgcjD4gnx4pxFNY9LqA7KQ/default_398.vrm".to_string());
-			}
+	for (player_id, player_avatar_url) in query.iter_mut() {
+		if player_id.0 == player_client_id.0 && player_avatar_url.0.is_none() {
+			client.buffer_send::<Channel1, _>(Message1("https://vipe.mypinata.cloud/ipfs/QmU7QeqqVMgnMtCAqZBpAYKSwgcjD4gnx4pxFNY9LqA7KQ/default_398.vrm".to_string())).unwrap();
+			//player_avatar_url.0.replace("https://vipe.mypinata.cloud/ipfs/QmU7QeqqVMgnMtCAqZBpAYKSwgcjD4gnx4pxFNY9LqA7KQ/default_398.vrm".to_string());
 		}
 	}
 }
@@ -108,7 +106,7 @@ pub fn on_avatar_url_add(
 pub fn on_avatar_url_changed(
 	mut commands: Commands,
 	assets: Res<AssetServer>,
-	mut query: Query<
+	query: Query<
 		(Entity, &PlayerAvatarUrl),
 		(Changed<PlayerAvatarUrl>, With<Predicted>),
 	>,
@@ -227,7 +225,7 @@ pub(crate) fn movement(
 }
 
 // System to receive messages on the client
-pub(crate) fn receive_message1(mut reader: EventReader<MessageEvent<Message1>>) {
+pub(crate) fn receive_message1(_reader: EventReader<MessageEvent<Message1>>) {
 	/*for event in reader.read() {
 		info!("Received message: {:?}", event.message());
 	}*/

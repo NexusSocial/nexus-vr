@@ -1,8 +1,8 @@
 use bevy::prelude::*;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use rodio::buffer::SamplesBuffer;
-use rodio::queue::SourcesQueueOutput;
-use rodio::{OutputStream, OutputStreamHandle, Sink, Source};
+
+use rodio::{OutputStream, Sink};
 use std::sync::mpsc::{channel, Receiver};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -22,8 +22,9 @@ struct MicrophonePlaying;
 
 #[derive(Component)]
 struct SinkWrapper(pub Sink);
+
 fn play_microphone(
-	mut microphone_output: ResMut<MicrophoneOutput>,
+	microphone_output: ResMut<MicrophoneOutput>,
 	mut commands: Commands,
 	mut query: Query<&mut SinkWrapper, With<MicrophonePlaying>>,
 ) {
@@ -40,12 +41,12 @@ fn play_microphone(
 		thread::sleep(Duration::from_secs(1));
 		let s = sh.lock().unwrap();
 		let stream_handle = s.as_ref().unwrap();
-		let sink = Sink::try_new(&stream_handle).unwrap();
+		let sink = Sink::try_new(stream_handle).unwrap();
 		commands.spawn((SinkWrapper(sink), MicrophonePlaying));
 		return;
 	}
 	let q = query.get_single_mut().unwrap();
-	let mut i = 0;
+	let _i = 0;
 	for audio in microphone_output.0.lock().unwrap().iter() {
 		q.0.append(SamplesBuffer::new(1, 44100, audio));
 		q.0.set_volume(1.0);

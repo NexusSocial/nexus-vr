@@ -3,11 +3,10 @@ use crate::networking::PlayerClientId;
 use bevy::prelude::*;
 use lightyear::prelude::client::{Client, MessageEvent, Predicted};
 use rodio::buffer::SamplesBuffer;
-use rodio::static_buffer::StaticSamplesBuffer;
+
 use rodio::{OutputStreamHandle, SpatialSink};
 use social_common::{
-	AudioChannel, Channel1, MicrophoneAudio, MyProtocol, NetworkedSpatialAudio,
-	PlayerId, ServerToClientMicrophoneAudio,
+	AudioChannel, MicrophoneAudio, MyProtocol, PlayerId, ServerToClientMicrophoneAudio,
 };
 
 pub struct VoiceChatPlugin;
@@ -51,7 +50,7 @@ pub struct SpatialAudioSink {
 
 fn on_player_add(
 	mut commands: Commands,
-	mut query: Query<(Entity, &PlayerId), (Added<PlayerId>, With<Predicted>)>,
+	query: Query<(Entity, &PlayerId), (Added<PlayerId>, With<Predicted>)>,
 	player_client_id: Res<PlayerClientId>,
 	audio_output: Res<AudioOutput>,
 ) {
@@ -90,7 +89,7 @@ fn set_spatial_audio_pos(
 		}
 	}
 
-	for (_, mut spatial_audio_sink, transform) in query.iter_mut() {
+	for (_, spatial_audio_sink, transform) in query.iter_mut() {
 		let t = player_transform - transform.translation();
 		println!(
 			"player transform: {}, relative_transform: {}",
@@ -101,12 +100,12 @@ fn set_spatial_audio_pos(
 }
 
 fn play_microphone(
-	mut microphone_output: ResMut<MicrophoneOutput>,
+	microphone_output: ResMut<MicrophoneOutput>,
 	//mut query: Query<(&mut SpatialAudioSink)>,
 	mut client: ResMut<Client<MyProtocol>>,
-	mut local: Local<Vec<f32>>,
+	_local: Local<Vec<f32>>,
 ) {
-	for mut audio in microphone_output.0.lock().unwrap().try_iter() {
+	for audio in microphone_output.0.lock().unwrap().try_iter() {
 		client
 			.buffer_send::<AudioChannel, _>(MicrophoneAudio(audio))
 			.unwrap();
@@ -131,10 +130,10 @@ fn sync_spatial_audio(
 ) {
 	for audio in audio_msg.read() {
 		let audio = audio.message();
-		let id = audio.1.clone();
+		let id = audio.1;
 		let mut clear_local = false;
 		local.append(&mut audio.0.clone());
-		for (player_id, mut spatial_audio_sink) in query.iter_mut() {
+		for (player_id, spatial_audio_sink) in query.iter_mut() {
 			if player_id.0 != id {
 				continue;
 			}
@@ -153,9 +152,7 @@ fn sync_spatial_audio(
 			println!("adding");
 		}
 	}
-	let mut i = 0;
-	for (_, mut spatial_audio_sink) in query.iter_mut() {
-		i += 1;
+	for (_, spatial_audio_sink) in query.iter_mut() {
 		if spatial_audio_sink.sink.len() <= 1 {
 			spatial_audio_sink.sink.pause();
 			continue;
@@ -167,7 +164,7 @@ fn sync_spatial_audio(
 		} else if spatial_audio_sink.sink.len() >= 10 {
 			spatial_audio_sink
 				.sink
-				.set_speed((spatial_audio_sink.sink.len() as f32 / 10.0));
+				.set_speed(spatial_audio_sink.sink.len() as f32 / 10.0);
 		} else {
 			spatial_audio_sink.sink.set_speed(1.0);
 		}

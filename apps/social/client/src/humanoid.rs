@@ -1,5 +1,5 @@
 use social_common::macro_utils::unwrap_or_continue;
-use std::str::FromStr;
+
 
 use bevy::{
 	prelude::{
@@ -69,13 +69,13 @@ pub fn auto_rig_assignment(
 		let winners = Data {
 			head: unwrap_or_continue!(map
 				.iter()
-				.find_map(|(k, v)| (*v == BoneKind::Head).then(|| *k))),
+				.find_map(|(k, v)| (*v == BoneKind::Head).then_some(*k))),
 			hand_l: unwrap_or_continue!(map
 				.iter()
-				.find_map(|(k, v)| (*v == BoneKind::LeftHand).then(|| *k))),
+				.find_map(|(k, v)| (*v == BoneKind::LeftHand).then_some(*k))),
 			hand_r: unwrap_or_continue!(map
 				.iter()
-				.find_map(|(k, v)| (*v == BoneKind::RightHand).then(|| *k))),
+				.find_map(|(k, v)| (*v == BoneKind::RightHand).then_some(*k))),
 		};
 
 		cmds.entity(root_mesh)
@@ -148,9 +148,9 @@ fn detect_side(s: &str, body_part: &str) -> Option<Side> {
 		.expect("`body_part` argument should be present as a substring");
 
 	// TODO: This logic can be improved but ill keep it for now
-	if prefix.contains("l") || suffix.contains("l") {
+	if prefix.contains('l') || suffix.contains('l') {
 		Some(Side::Left)
-	} else if prefix.contains("r") || suffix.contains("r") {
+	} else if prefix.contains('r') || suffix.contains('r') {
 		Some(Side::Right)
 	} else {
 		None

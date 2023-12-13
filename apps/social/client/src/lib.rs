@@ -6,13 +6,13 @@ use bevy_oxr::resources::XrFrameState;
 use bevy_oxr::xr_input::oculus_touch::OculusController;
 use bevy_oxr::xr_input::{QuatConv, Vec3Conv};
 use bevy_oxr::DefaultXrPlugins;
-use bevy_vrm::{VrmBundle, VrmPlugin};
+use bevy_vrm::{VrmPlugin};
 use color_eyre::Result;
-use lightyear::prelude::ClientId;
-use portpicker::Port;
-use social_common::shared::{CLIENT_PORT, SERVER_PORT};
+
+
+use social_common::shared::{SERVER_PORT};
 use social_common::Transports;
-use std::f32::consts::PI;
+
 
 use crate::dev_tools::DevToolsPlugins;
 use crate::microphone::MicrophonePlugin;
@@ -41,7 +41,7 @@ pub fn main() {
 
 	info!("Running `social-client`");
 	App::new()
-		.add_plugins(bevy_web_asset::WebAssetPlugin::default())
+		.add_plugins(bevy_web_asset::WebAssetPlugin)
 		.add_plugins(DefaultXrPlugins.set(AssetPlugin {
 			file_path: ASSET_FOLDER.to_string(),
 			..Default::default()
@@ -53,10 +53,7 @@ pub fn main() {
 		.add_systems(Startup, setup)
 		.add_plugins(networking::MyClientPlugin {
 			client_id: client_id as u64,
-			client_port: match portpicker::pick_unused_port() {
-				None => 2234,
-				Some(p) => p as u16,
-			},
+			client_port: portpicker::pick_unused_port().unwrap_or(2234),
 			server_port: SERVER_PORT,
 			transport: Transports::Udp,
 		})
@@ -85,7 +82,7 @@ fn setup(
 	mut commands: Commands,
 	mut meshes: ResMut<Assets<Mesh>>,
 	mut materials: ResMut<Assets<StandardMaterial>>,
-	assets: Res<AssetServer>,
+	_assets: Res<AssetServer>,
 ) {
 	/*let mut transform = Transform::from_xyz(0.0, -1.0, -4.0);
 	transform.rotate_y(PI);

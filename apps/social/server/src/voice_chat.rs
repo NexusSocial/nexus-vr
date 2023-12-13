@@ -1,8 +1,7 @@
 use bevy::prelude::*;
 use lightyear::prelude::server::*;
 use social_common::{
-	AudioChannel, MicrophoneAudio, MyProtocol, NetworkedSpatialAudio, PlayerId,
-	ServerToClientMicrophoneAudio,
+	AudioChannel, MicrophoneAudio, MyProtocol, ServerToClientMicrophoneAudio,
 };
 
 pub struct VoiceChatPlugin;

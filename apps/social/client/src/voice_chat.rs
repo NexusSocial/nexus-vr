@@ -76,20 +76,26 @@ fn on_player_add(
 }
 
 fn set_spatial_audio_pos(
-	query2: Query<(&PlayerId, &Transform), Without<SpatialAudioSink>>,
 	player_client_id: Res<PlayerClientId>,
-	mut query: Query<(&mut SpatialAudioSink, &Transform), Changed<Transform>>,
+	mut query: Query<
+		(&PlayerId, &mut SpatialAudioSink, &GlobalTransform),
+		Changed<GlobalTransform>,
+	>,
 ) {
-	let mut player_transform = Transform::default();
-	for (player_id, transform) in query2.iter() {
+	let mut player_transform = Vec3::default();
+	for (player_id, _, transform) in query.iter() {
 		if player_id.0 == player_client_id.0 {
-			player_transform = transform.clone();
+			player_transform = transform.translation();
 			break;
 		}
 	}
 
-	for (mut spatial_audio_sink, transform) in query.iter_mut() {
-		let t = player_transform.translation - transform.translation;
+	for (_, mut spatial_audio_sink, transform) in query.iter_mut() {
+		let t = player_transform - transform.translation();
+		println!(
+			"player transform: {}, relative_transform: {}",
+			player_transform, t
+		);
 		spatial_audio_sink.sink.set_emitter_position(t.to_array());
 	}
 }

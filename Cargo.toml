@@ -29,10 +29,10 @@ bevy_mod_inverse_kinematics = "0.5"
 bevy_egui = "0.23"
 egui = "0.23"
 bevy-inspector-egui = "0.21.0"
-bevy_web_asset = "0.7.0"
+bevy_web_asset = { git = "https://github.com/johanhelsing/bevy_web_asset"}
 bevy_vrm = "0.0.6"
 social-common.path = "apps/social/common"
-lightyear = { git = "https://github.com/cBournhonesque/lightyear", features = ["webtransport"]}
+lightyear = { git = "https://github.com/cBournhonesque/lightyear", features = []}
 serde = "1.0.193"
 
 [profile.dev]

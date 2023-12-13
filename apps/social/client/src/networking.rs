@@ -37,10 +37,10 @@ impl Plugin for MyClientPlugin {
 		};
 		let transport = match self.transport {
 			Transports::Udp => TransportConfig::UdpSocket(client_addr),
-			Transports::Webtransport => TransportConfig::WebTransportClient {
-				client_addr,
-				server_addr,
-			},
+			// Transports::Webtransport => TransportConfig::WebTransportClient {
+			// 	client_addr,
+			// 	server_addr,
+			// },
 		};
 		let io = Io::from_config(
 			&IoConfig::from_transport(transport).with_conditioner(link_conditioner),

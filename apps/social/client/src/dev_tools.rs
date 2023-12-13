@@ -6,25 +6,25 @@ use bevy::{
 	prelude::{App, Local, Plugin, PluginGroup, PostUpdate, With, World},
 	window::PrimaryWindow,
 };
-use bevy_egui::EguiContext;
+/*use bevy_egui::EguiContext;
 use bevy_inspector_egui::{
 	bevy_inspector::hierarchy::SelectedEntities, DefaultInspectorConfigPlugin,
 };
-
+*/
 #[derive(Default)]
 pub struct DevToolsPlugins;
 
 impl PluginGroup for DevToolsPlugins {
 	fn build(self) -> PluginGroupBuilder {
 		PluginGroupBuilder::start::<Self>()
-			.add(DefaultInspectorConfigPlugin)
-			.add(bevy_egui::EguiPlugin)
-			.add(InspectorUiPlugin)
+			//.add(DefaultInspectorConfigPlugin)
+			//.add(bevy_egui::EguiPlugin)
+			//.add(InspectorUiPlugin)
 			.add(LogDiagnosticsPlugin::default())
 			.add(FrameTimeDiagnosticsPlugin)
 	}
 }
-
+/*
 #[derive(Default)]
 pub struct InspectorUiPlugin;
 
@@ -80,3 +80,4 @@ fn inspector_ui(world: &mut World, mut selected_entities: Local<SelectedEntities
 			});
 		});
 }
+ */

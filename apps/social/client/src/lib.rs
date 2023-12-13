@@ -9,6 +9,7 @@ use bevy_oxr::DefaultXrPlugins;
 use bevy_vrm::{VrmBundle, VrmPlugin};
 use color_eyre::Result;
 use lightyear::prelude::ClientId;
+use portpicker::Port;
 use social_common::shared::{CLIENT_PORT, SERVER_PORT};
 use social_common::Transports;
 use std::f32::consts::PI;
@@ -30,23 +31,32 @@ const ASSET_FOLDER: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../../assets
 pub fn main() {
 	color_eyre::install().unwrap();
 
+	// let s = oboe::AudioStreamBuilder::default()
+	// 	.set_input()
+	// 	.open_stream()
+	// 	.unwrap();
+	// drop(s);
+
 	let client_id: u16 = random_number::random!();
 
 	info!("Running `social-client`");
 	App::new()
 		.add_plugins(bevy_web_asset::WebAssetPlugin::default())
-		/*.add_plugins(DefaultXrPlugins.set(AssetPlugin {
+		.add_plugins(DefaultXrPlugins.set(AssetPlugin {
 			file_path: ASSET_FOLDER.to_string(),
 			..Default::default()
-		}))*/
-		.add_plugins(DefaultPlugins)
+		}))
+		//.add_plugins(DefaultPlugins)
 		.add_plugins(InverseKinematicsPlugin)
 		.add_plugins(DevToolsPlugins)
 		.add_plugins(VrmPlugin)
 		.add_systems(Startup, setup)
 		.add_plugins(networking::MyClientPlugin {
 			client_id: client_id as u64,
-			client_port: portpicker::pick_unused_port().unwrap(),
+			client_port: match portpicker::pick_unused_port() {
+				None => 2234,
+				Some(p) => p as u16,
+			},
 			server_port: SERVER_PORT,
 			transport: Transports::Udp,
 		})
@@ -133,7 +143,7 @@ fn setup(
 	});*/
 }
 
-/*fn hands(
+fn hands(
 	mut gizmos: Gizmos,
 	oculus_controller: Res<OculusController>,
 	frame_state: Res<XrFrameState>,
@@ -165,4 +175,3 @@ fn setup(
 	);
 	Ok(())
 }
-*/

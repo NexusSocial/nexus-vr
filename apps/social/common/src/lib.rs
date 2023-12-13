@@ -11,7 +11,6 @@ use std::ops::{Add, Mul};
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Transports {
 	Udp,
-	Webtransport,
 }
 
 // Player

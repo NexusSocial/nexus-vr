@@ -7,15 +7,18 @@ edition.workspace = true
 rust-version.workspace = true
 description = "A social vr demo in bevy"
 
+[lib]
+crate-type = ["cdylib", "rlib"]
+
 [dependencies]
 bevy.workspace = true
 bevy_oxr = { workspace = true, default-features = false }
 color-eyre.workspace = true
 openxr.workspace = true
 bevy_mod_inverse_kinematics.workspace = true 
-egui.workspace = true
-bevy_egui.workspace = true
-bevy-inspector-egui.workspace = true
+#egui.workspace = true
+#bevy_egui.workspace = true
+#bevy-inspector-egui.workspace = true
 bevy_web_asset.workspace = true
 bevy_vrm.workspace = true
 lightyear.workspace = true
@@ -24,3 +27,4 @@ portpicker = "0.1.1"
 random-number = "0.1.8"
 cpal = "0.15.2"
 rodio = "0.17.3"
+oboe = { version = "0.5.0" , features = ["java-interface"]}

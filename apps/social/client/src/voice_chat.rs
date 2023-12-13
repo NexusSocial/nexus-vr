@@ -1,8 +1,9 @@
 use crate::microphone::MicrophoneOutput;
 use crate::networking::PlayerClientId;
 use bevy::prelude::*;
-use lightyear::prelude::client::{Client, MessageEvent};
+use lightyear::prelude::client::{Client, MessageEvent, Predicted};
 use rodio::buffer::SamplesBuffer;
+use rodio::static_buffer::StaticSamplesBuffer;
 use rodio::{OutputStreamHandle, SpatialSink};
 use social_common::{
 	AudioChannel, Channel1, MicrophoneAudio, MyProtocol, NetworkedSpatialAudio,
@@ -14,7 +15,6 @@ pub struct VoiceChatPlugin;
 impl Plugin for VoiceChatPlugin {
 	fn build(&self, app: &mut App) {
 		app.add_systems(Update, set_spatial_audio_pos);
-		//app.add_systems(Startup, spawn_boi);
 		app.insert_resource(AudioOutput::default());
 		app.add_systems(Update, play_microphone);
 		app.add_systems(Update, on_player_add);
@@ -51,7 +51,7 @@ pub struct SpatialAudioSink {
 
 fn on_player_add(
 	mut commands: Commands,
-	mut query: Query<(Entity, &PlayerId), Added<PlayerId>>,
+	mut query: Query<(Entity, &PlayerId), (Added<PlayerId>, With<Predicted>)>,
 	player_client_id: Res<PlayerClientId>,
 	audio_output: Res<AudioOutput>,
 ) {
@@ -76,12 +76,21 @@ fn on_player_add(
 }
 
 fn set_spatial_audio_pos(
+	query2: Query<(&PlayerId, &Transform), Without<SpatialAudioSink>>,
+	player_client_id: Res<PlayerClientId>,
 	mut query: Query<(&mut SpatialAudioSink, &Transform), Changed<Transform>>,
 ) {
+	let mut player_transform = Transform::default();
+	for (player_id, transform) in query2.iter() {
+		if player_id.0 == player_client_id.0 {
+			player_transform = transform.clone();
+			break;
+		}
+	}
+
 	for (mut spatial_audio_sink, transform) in query.iter_mut() {
-		spatial_audio_sink
-			.sink
-			.set_emitter_position(transform.translation.to_array());
+		let t = player_transform.translation - transform.translation;
+		spatial_audio_sink.sink.set_emitter_position(t.to_array());
 	}
 }
 
@@ -92,75 +101,69 @@ fn play_microphone(
 	mut local: Local<Vec<f32>>,
 ) {
 	for mut audio in microphone_output.0.lock().unwrap().try_iter() {
-		/*client
-		.buffer_send::<AudioChannel, _>(MicrophoneAudio(audio))
-		.unwrap();*/
-		local.append(&mut audio);
+		client
+			.buffer_send::<AudioChannel, _>(MicrophoneAudio(audio))
+			.unwrap();
+		//local.append(&mut audio);
 	}
-	if local.is_empty() {
-		return;
-	}
-	if local.len() < 20_000 {
-		return;
-	}
-	client
-		.buffer_send::<AudioChannel, _>(MicrophoneAudio(local.to_vec()))
-		.unwrap();
-	local.clear();
+	// if local.is_empty() {
+	// 	return;
+	// }
+	// if local.len() < 1_000 {
+	// 	return;
+	// }
+	// client
+	// 	.buffer_send::<AudioChannel, _>(MicrophoneAudio(local.to_vec()))
+	// 	.unwrap();
+	// local.clear();
 }
 
 fn sync_spatial_audio(
 	mut audio_msg: EventReader<MessageEvent<ServerToClientMicrophoneAudio>>,
 	mut query: Query<(&PlayerId, &mut SpatialAudioSink)>,
+	mut local: Local<Vec<f32>>,
 ) {
 	for audio in audio_msg.read() {
 		let audio = audio.message();
 		let id = audio.1.clone();
+		let mut clear_local = false;
+		local.append(&mut audio.0.clone());
 		for (player_id, mut spatial_audio_sink) in query.iter_mut() {
 			if player_id.0 != id {
 				continue;
 			}
-			spatial_audio_sink.sink.append(SamplesBuffer::new(
-				1,
-				44100,
-				audio.0.clone(),
-			));
-			spatial_audio_sink.sink.set_volume(1.0);
-			//spatial_audio_sink.sink.play();
+			if local.len() > 10_000 {
+				spatial_audio_sink.sink.append(SamplesBuffer::new(
+					1,
+					44100,
+					local.clone(),
+				));
+				clear_local = true;
+			}
+			/*spatial_audio_sink.sink.set_volume(1.0);*/
+		}
+		if clear_local {
+			local.clear();
+			println!("adding");
 		}
 	}
+	let mut i = 0;
 	for (_, mut spatial_audio_sink) in query.iter_mut() {
-		println!("{}", spatial_audio_sink.sink.len());
-		if spatial_audio_sink.sink.len() < 2 {
+		i += 1;
+		if spatial_audio_sink.sink.len() <= 1 {
 			spatial_audio_sink.sink.pause();
-		} else if spatial_audio_sink.sink.len() > 6 {
+			continue;
+		} else {
 			spatial_audio_sink.sink.play();
 		}
-		// if spatial_audio_sink.sink.len() < 6 {
-		// 	spatial_audio_sink
-		// 		.sink
-		// 		.set_speed((spatial_audio_sink.sink.len() as f32) / 6.0);
-		// } else {
-		// 	spatial_audio_sink.sink.set_speed(1.0);
-		// }
+		if spatial_audio_sink.sink.len() <= 3 {
+			spatial_audio_sink.sink.set_speed(0.95);
+		} else if spatial_audio_sink.sink.len() >= 10 {
+			spatial_audio_sink
+				.sink
+				.set_speed((spatial_audio_sink.sink.len() as f32 / 10.0));
+		} else {
+			spatial_audio_sink.sink.set_speed(1.0);
+		}
 	}
-}
-
-fn spawn_boi(mut commands: Commands, audio_output: Res<AudioOutput>) {
-	let output = match audio_output.stream_handle.as_ref() {
-		None => return,
-		Some(output) => output,
-	};
-	commands.spawn((
-		TransformBundle::from_transform(Transform::from_xyz(1.0, 0.0, 0.0)),
-		SpatialAudioSink {
-			sink: SpatialSink::try_new(
-				output,
-				Vec3::new(1.0, 0.0, 0.0).to_array(),
-				(Vec3::X * 4.0 / -2.0).to_array(),
-				(Vec3::X * 4.0 / 2.0).to_array(),
-			)
-			.unwrap(),
-		},
-	));
 }

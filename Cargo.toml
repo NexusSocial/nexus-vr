@@ -32,7 +32,7 @@ bevy-inspector-egui = "0.21.0"
 bevy_web_asset = "0.7.0"
 bevy_vrm = "0.0.6"
 social-common.path = "apps/social/common"
-lightyear = { version = "0.2.0", features = ["webtransport"]}
+lightyear = { git = "https://github.com/cBournhonesque/lightyear", features = ["webtransport"]}
 serde = "1.0.193"
 
 [profile.dev]

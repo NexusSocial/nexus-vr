@@ -3173,12 +3173,10 @@ dependencies = [
 
 [[package]]
 name = "lightyear"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c842c9822394b93d42280f066b447e17c085b70fb17a7054e56a7c7b8cf4a87a"
+version = "0.3.0"
+source = "git+https://github.com/cBournhonesque/lightyear#964c9f088d61128583a77cdc44f8b26dc2f962b9"
 dependencies = [
  "anyhow",
- "base64 0.21.5",
  "bevy",
  "bitcode_lightyear_patch",
  "byteorder",
@@ -3193,25 +3191,21 @@ dependencies = [
  "lightyear_macros",
  "paste",
  "rand",
- "rcgen",
- "ring 0.17.7",
  "ringbuffer",
  "self_cell",
  "serde",
  "thiserror",
- "time",
  "tokio",
  "tracing",
  "tracing-log 0.1.4",
  "tracing-subscriber",
- "wtransport_lightyear_patch",
+ "wtransport",
 ]
 
 [[package]]
 name = "lightyear_macros"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8e3fb5fbdfd94f70b913363bff76ce2aae8abb69c0cb096180cca596fdaee321"
+version = "0.2.0"
+source = "git+https://github.com/cBournhonesque/lightyear#964c9f088d61128583a77cdc44f8b26dc2f962b9"
 dependencies = [
  "anyhow",
  "darling",
@@ -3585,6 +3579,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39e3200413f237f41ab11ad6d161bc7239c84dcb631773ccd7de3dfe4b5c267c"
 dependencies = [
  "autocfg",
+]
+
+[[package]]
+name = "num_cpus"
+version = "1.16.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4161fcb6d602d4d2081af7c3a45852d875a03dd337a6bfdd6e06407b61342a43"
+dependencies = [
+ "hermit-abi",
+ "libc",
 ]
 
 [[package]]
@@ -5071,6 +5075,7 @@ dependencies = [
  "backtrace",
  "libc",
  "mio",
+ "num_cpus",
  "pin-project-lite",
  "socket2 0.5.5",
  "tokio-macros",
@@ -5982,21 +5987,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "wtransport-proto_lightyear_patch"
-version = "0.1.8"
+name = "wtransport"
+version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0555e5b014ae618390aac1ef7046aaa77f3179cb1196393add760bef245a409a"
-dependencies = [
- "ls-qpack",
- "octets",
- "url",
-]
-
-[[package]]
-name = "wtransport_lightyear_patch"
-version = "0.1.10"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d6967fe4e8f18998b00072dad662fba316005f708a3b7baff276671710d9d84c"
+checksum = "11b4c2a373ff5467c7beed825cb48607ace7db369c7bd97fa1a43cba3efd47cc"
 dependencies = [
  "base64 0.21.5",
  "bytes",
@@ -6012,8 +6006,19 @@ dependencies = [
  "tokio",
  "tracing",
  "url",
- "wtransport-proto_lightyear_patch",
+ "wtransport-proto",
  "x509-parser",
+]
+
+[[package]]
+name = "wtransport-proto"
+version = "0.1.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d4a56f366050f96cc2823e034da18389e67419a939789d4e968ae536de6a174f"
+dependencies = [
+ "ls-qpack",
+ "octets",
+ "url",
 ]
 
 [[package]]

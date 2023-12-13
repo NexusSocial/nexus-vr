@@ -38,8 +38,8 @@ impl PlayerBundle {
 			color: PlayerColor(color),
 			replicate: Replicate {
 				// prediction_target: NetworkTarget::None,
-				prediction_target: NetworkTarget::Only(id),
-				interpolation_target: NetworkTarget::AllExcept(id),
+				prediction_target: NetworkTarget::Only(vec![id]),
+				interpolation_target: NetworkTarget::AllExcept(vec![id]),
 				..default()
 			},
 			player_avatar_url,
@@ -108,7 +108,7 @@ impl MapEntities for PlayerParent {
 	}
 }
 
-#[component_protocol(protocol = "MyProtocol", derive(Debug))]
+#[component_protocol(protocol = "MyProtocol")]
 pub enum Components {
 	#[sync(once)]
 	PlayerId(PlayerId),
@@ -140,7 +140,7 @@ pub struct MicrophoneAudio(pub Vec<f32>);
 #[derive(Message, Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct ServerToClientMicrophoneAudio(pub Vec<f32>, pub u64);
 
-#[message_protocol(protocol = "MyProtocol", derive(Debug))]
+#[message_protocol(protocol = "MyProtocol")]
 pub enum Messages {
 	Message1(Message1),
 	MicrophoneAudio(MicrophoneAudio),
@@ -188,9 +188,7 @@ pub fn protocol() -> MyProtocol {
 		direction: ChannelDirection::Bidirectional,
 	});
 	protocol.add_channel::<AudioChannel>(ChannelSettings {
-		mode: ChannelMode::OrderedReliable(ReliableSettings {
-			rtt_resend_factor: 1.5,
-		}),
+		mode: ChannelMode::OrderedReliable(ReliableSettings::default()),
 		direction: ChannelDirection::Bidirectional,
 	});
 	protocol

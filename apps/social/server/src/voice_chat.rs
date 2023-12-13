@@ -19,14 +19,16 @@ fn receive_voice_chat_audio(
 	mut server: ResMut<Server<MyProtocol>>,
 ) {
 	for message in messages.read() {
-		let id = *message.context();
+		let id2 = *message.context();
 		let audio = message.message();
-		server
-			.broadcast_send::<AudioChannel, _>(ServerToClientMicrophoneAudio(
-				audio.0.clone(),
-				id,
-			))
-			.unwrap();
+		for id in server.client_ids().collect::<Vec<_>>() {
+			server
+				.buffer_send::<AudioChannel, _>(
+					id,
+					ServerToClientMicrophoneAudio(audio.0.clone(), id2),
+				)
+				.unwrap();
+		}
 		/*for (player_id, mut networked_spatial_audio) in query.iter_mut() {
 			// we don't wanna send audio back to ourselves.
 			if player_id.0 == id {

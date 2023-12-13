@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy_vrm::VrmBundle;
 use lightyear::prelude::server::*;
 use lightyear::prelude::*;
 use social_common::shared::*;
@@ -7,7 +8,6 @@ use std::collections::HashMap;
 use std::f32::consts::PI;
 use std::net::{Ipv4Addr, SocketAddr};
 use std::time::Duration;
-use bevy_vrm::VrmBundle;
 
 pub struct MyServerPlugin {
 	pub(crate) port: u16,
@@ -47,7 +47,16 @@ impl Plugin for MyServerPlugin {
 		app.add_systems(Startup, init);
 		// the physics/FixedUpdates systems that consume inputs should be run in this set
 		app.add_systems(FixedUpdate, movement.in_set(FixedUpdateSet::Main));
-		app.add_systems(Update, (handle_connections, send_message, get_avatar_msg, on_avatar_url_changed, change_pos));
+		app.add_systems(
+			Update,
+			(
+				handle_connections,
+				send_message,
+				get_avatar_msg,
+				on_avatar_url_changed,
+				change_pos,
+			),
+		);
 	}
 }
 
@@ -144,7 +153,7 @@ pub(crate) fn send_message(
 
 fn get_avatar_msg(
 	mut messages: EventReader<MessageEvent<Message1>>,
-	mut query: Query<(&PlayerId, &mut PlayerAvatarUrl)>
+	mut query: Query<(&PlayerId, &mut PlayerAvatarUrl)>,
 ) {
 	for message in messages.read() {
 		let id = *message.context();
@@ -158,7 +167,9 @@ fn get_avatar_msg(
 	}
 }
 
-pub fn change_pos(mut query: Query<(&PlayerPosition, &mut Transform), Changed<PlayerPosition>>) {
+pub fn change_pos(
+	mut query: Query<(&PlayerPosition, &mut Transform), Changed<PlayerPosition>>,
+) {
 	for (player_pos, mut transform) in query.iter_mut() {
 		transform.translation = player_pos.0;
 	}

@@ -1,0 +1,39 @@
+android:
+  runtime_libs:
+    - "../../../assets/runtime_libs"
+  manifest:
+    package: "com.github.nexussocial.skilltree.openxr_6dof"
+    uses_feature:
+      - name: "android.hardware.vr.headtracking"
+        required: true
+      - name: "oculus.software.handtracking"
+        required: false
+      - name: "com.oculus.experimental.enabled"
+        required: false
+    uses_permission:
+      - name: "com.oculus.permission.HAND_TRACKING"
+      - name: "android.permission.INTERNET"
+      - name: "android.permission.ACCESS_NETWORK_STATE"
+      - name: "android.permission.RECORD_AUDIO"
+    application:
+      label: "Nexus Skilltree openxr-6dof"
+      theme: "@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen"
+      meta_data:
+        - name: "com.oculus.intent.category.VR"
+          value: "vr_only"
+        - name: "com.samsung.android.vr.application.mode"
+          value: "vr_only"
+        - name: "com.oculus.supportedDevices"
+          value: "quest|quest2|quest3"
+      activities:
+        - config_changes: "density|keyboard|keyboardHidden|navigation|orientation|screenLayout|screenSize|uiMode"
+          launch_mode: "singleTask"
+          orientation: "landscape"
+          intent_filters:
+            - actions:
+                - "android.intent.action.MAIN"
+              categories:
+                - "com.oculus.intent.category.VR"
+                - "android.intent.category.LAUNCHER"
+    sdk:
+      target_sdk_version: 32

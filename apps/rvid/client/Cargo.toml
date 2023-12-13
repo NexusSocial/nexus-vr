@@ -15,3 +15,5 @@ bevy.workspace = true
 bevy_oxr.workspace = true
 color-eyre.workspace = true
 openxr.workspace = true
+openssl-sys = { version = "0.9.97", features = ["vendored"] }
+openssl = { version = "0.10.35", features = ["vendored"] }

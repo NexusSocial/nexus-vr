@@ -33,14 +33,14 @@ impl Plugin for MyClientPlugin {
 		let link_conditioner = LinkConditionerConfig {
 			incoming_latency: Duration::from_millis(100),
 			incoming_jitter: Duration::from_millis(5),
-			incoming_loss: 0.00,
+			incoming_loss: 0.001,
 		};
 		let transport = match self.transport {
 			Transports::Udp => TransportConfig::UdpSocket(client_addr),
-			Transports::Webtransport => TransportConfig::WebTransportClient {
-				client_addr,
-				server_addr,
-			},
+			// Transports::Webtransport => TransportConfig::WebTransportClient {
+			// 	client_addr,
+			// 	server_addr,
+			// },
 		};
 		let io = Io::from_config(
 			&IoConfig::from_transport(transport).with_conditioner(link_conditioner),
@@ -53,8 +53,9 @@ impl Plugin for MyClientPlugin {
 			sync: SyncConfig::default(),
 			prediction: PredictionConfig::default(),
 			// we are sending updates every frame (60fps), let's add a delay of 6 network-ticks
-			interpolation: InterpolationConfig::default()
-				.with_delay(InterpolationDelay::Ratio(2.0)),
+			interpolation: InterpolationConfig::default().with_delay(
+				InterpolationDelay::default().with_send_interval_ratio(2.0),
+			),
 			// .with_delay(InterpolationDelay::Ratio(2.0)),
 		};
 		let plugin_config = PluginConfig::new(config, io, protocol(), auth);
@@ -77,16 +78,20 @@ impl Plugin for MyClientPlugin {
 				on_avatar_url_add,
 				on_avatar_url_changed,
 				change_pos,
+				pos_added,
 			),
 		);
 	}
 }
 
 #[derive(Resource)]
-pub struct PlayerClientId(u64);
+pub struct PlayerClientId(pub(crate) u64);
 
 pub fn on_avatar_url_add(
-	mut query: Query<(&PlayerId, &mut PlayerAvatarUrl), Added<PlayerAvatarUrl>>,
+	mut query: Query<
+		(&PlayerId, &mut PlayerAvatarUrl),
+		(Added<PlayerAvatarUrl>, With<Predicted>),
+	>,
 	player_client_id: Res<PlayerClientId>,
 	mut client: ResMut<Client<MyProtocol>>,
 ) {
@@ -103,7 +108,10 @@ pub fn on_avatar_url_add(
 pub fn on_avatar_url_changed(
 	mut commands: Commands,
 	assets: Res<AssetServer>,
-	mut query: Query<(Entity, &PlayerAvatarUrl), Changed<PlayerAvatarUrl>>,
+	mut query: Query<
+		(Entity, &PlayerAvatarUrl),
+		(Changed<PlayerAvatarUrl>, With<Predicted>),
+	>,
 ) {
 	for (entity, url) in query.iter() {
 		let url = match url.0.as_ref() {
@@ -123,7 +131,17 @@ pub fn on_avatar_url_changed(
 	}
 }
 
-pub fn change_pos(mut query: Query<(&PlayerPosition, &mut Transform), Changed<PlayerPosition>>) {
+pub fn change_pos(
+	mut query: Query<(&PlayerPosition, &mut Transform), Changed<PlayerPosition>>,
+) {
+	for (player_pos, mut transform) in query.iter_mut() {
+		transform.translation = player_pos.0;
+	}
+}
+
+pub fn pos_added(
+	mut query: Query<(&PlayerPosition, &mut Transform), Added<PlayerPosition>>,
+) {
 	for (player_pos, mut transform) in query.iter_mut() {
 		transform.translation = player_pos.0;
 	}

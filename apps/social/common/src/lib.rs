@@ -11,7 +11,6 @@ use std::ops::{Add, Mul};
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Transports {
 	Udp,
-	Webtransport,
 }
 
 // Player
@@ -22,6 +21,7 @@ pub struct PlayerBundle {
 	color: PlayerColor,
 	replicate: Replicate,
 	player_avatar_url: PlayerAvatarUrl,
+	networked_spatial_audio: NetworkedSpatialAudio,
 }
 
 impl PlayerBundle {
@@ -37,11 +37,12 @@ impl PlayerBundle {
 			color: PlayerColor(color),
 			replicate: Replicate {
 				// prediction_target: NetworkTarget::None,
-				prediction_target: NetworkTarget::Only(id),
-				interpolation_target: NetworkTarget::AllExcept(id),
+				prediction_target: NetworkTarget::Only(vec![id]),
+				interpolation_target: NetworkTarget::AllExcept(vec![id]),
 				..default()
 			},
 			player_avatar_url,
+			networked_spatial_audio: NetworkedSpatialAudio(None),
 		}
 	}
 }
@@ -71,6 +72,9 @@ pub struct PlayerColor(pub Color);
 
 #[derive(Component, Message, Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct PlayerAvatarUrl(pub Option<String>);
+
+#[derive(Component, Message, Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct NetworkedSpatialAudio(pub Option<Vec<f32>>);
 
 impl Mul<f32> for PlayerAvatarUrl {
 	type Output = Self;
@@ -103,7 +107,7 @@ impl MapEntities for PlayerParent {
 	}
 }
 
-#[component_protocol(protocol = "MyProtocol", derive(Debug))]
+#[component_protocol(protocol = "MyProtocol")]
 pub enum Components {
 	#[sync(once)]
 	PlayerId(PlayerId),
@@ -111,8 +115,10 @@ pub enum Components {
 	PlayerPosition(PlayerPosition),
 	#[sync(once)]
 	PlayerColor(PlayerColor),
-	#[sync(full)]
+	#[sync(simple)]
 	PlayerAvatarUrl(PlayerAvatarUrl),
+	#[sync(simple)]
+	NetworkedSpatialAudio(NetworkedSpatialAudio),
 }
 
 // Channels
@@ -120,14 +126,24 @@ pub enum Components {
 #[derive(Channel)]
 pub struct Channel1;
 
+#[derive(Channel)]
+pub struct AudioChannel;
 // Messages
 
 #[derive(Message, Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct Message1(pub String);
 
-#[message_protocol(protocol = "MyProtocol", derive(Debug))]
+#[derive(Message, Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct MicrophoneAudio(pub Vec<f32>);
+
+#[derive(Message, Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct ServerToClientMicrophoneAudio(pub Vec<f32>, pub u64);
+
+#[message_protocol(protocol = "MyProtocol")]
 pub enum Messages {
 	Message1(Message1),
+	MicrophoneAudio(MicrophoneAudio),
+	ServerToClientMicrophoneAudio(ServerToClientMicrophoneAudio),
 }
 
 // Inputs
@@ -167,6 +183,10 @@ protocolize! {
 pub fn protocol() -> MyProtocol {
 	let mut protocol = MyProtocol::default();
 	protocol.add_channel::<Channel1>(ChannelSettings {
+		mode: ChannelMode::OrderedReliable(ReliableSettings::default()),
+		direction: ChannelDirection::Bidirectional,
+	});
+	protocol.add_channel::<AudioChannel>(ChannelSettings {
 		mode: ChannelMode::OrderedReliable(ReliableSettings::default()),
 		direction: ChannelDirection::Bidirectional,
 	});

@@ -985,7 +985,7 @@ dependencies = [
 [[package]]
 name = "bevy_oxr"
 version = "0.1.0"
-source = "git+https://github.com/awtterpip/bevy_oxr?rev=248d160#248d160ae524183b14cdd1e3121ae4914b064771"
+source = "git+https://github.com/awtterpip/bevy_oxr?rev=265696b#265696b07da0bbda49bec7a280d3ef07858cd201"
 dependencies = [
  "anyhow",
  "ash",

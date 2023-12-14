@@ -21,7 +21,7 @@ rust-version = "1.74.1"
 
 [workspace.dependencies]
 bevy = "0.12"
-bevy_oxr = { git = "https://github.com/awtterpip/bevy_oxr", rev = "248d160", default-features = false }
+bevy_oxr = { git = "https://github.com/awtterpip/bevy_oxr", rev = "265696b", default-features = false }
 color-eyre = "0.6"
 eyre = "0.6"
 openxr = "0.17"

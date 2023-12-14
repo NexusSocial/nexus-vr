@@ -12,7 +12,7 @@ use social_common::Transports;
 
 fn main() {
 	App::new()
-		.add_plugins(bevy_web_asset::WebAssetPlugin::default())
+		.add_plugins(bevy_web_asset::WebAssetPlugin)
 		.add_plugins(DefaultPlugins.build().disable::<LogPlugin>())
 		.add_plugins(VrmPlugin)
 		.add_plugins(MyServerPlugin {

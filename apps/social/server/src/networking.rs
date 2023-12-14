@@ -27,10 +27,10 @@ impl Plugin for MyServerPlugin {
 		};
 		let transport = match self.transport {
 			Transports::Udp => TransportConfig::UdpSocket(server_addr),
-			Transports::Webtransport => TransportConfig::WebTransportServer {
-				server_addr,
-				certificate: Certificate::self_signed(&["localhost"]),
-			},
+			// Transports::Webtransport => TransportConfig::WebTransportServer {
+			// 	server_addr,
+			// 	certificate: Certificate::self_signed(&["localhost"]),
+			// },
 		};
 		let io = Io::from_config(
 			&IoConfig::from_transport(transport).with_conditioner(link_conditioner),
@@ -136,8 +136,8 @@ pub(crate) fn movement(
 
 /// Send messages from server to clients
 pub(crate) fn send_message(
-	mut server: ResMut<Server<MyProtocol>>,
-	input: Res<Input<KeyCode>>,
+	_server: ResMut<Server<MyProtocol>>,
+	_input: Res<Input<KeyCode>>,
 ) {
 	/*if input.pressed(KeyCode::M) {
 		// TODO: add way to send message to all
@@ -178,7 +178,7 @@ pub fn change_pos(
 pub fn on_avatar_url_changed(
 	mut commands: Commands,
 	assets: Res<AssetServer>,
-	mut query: Query<(Entity, &PlayerAvatarUrl), Changed<PlayerAvatarUrl>>,
+	query: Query<(Entity, &PlayerAvatarUrl), Changed<PlayerAvatarUrl>>,
 ) {
 	for (entity, url) in query.iter() {
 		let url = match url.0.as_ref() {

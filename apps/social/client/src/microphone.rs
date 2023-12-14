@@ -23,7 +23,7 @@ struct MicrophonePlaying;
 #[derive(Component)]
 struct SinkWrapper(pub Sink);
 
-fn play_microphone(
+fn _play_microphone(
 	microphone_output: ResMut<MicrophoneOutput>,
 	mut commands: Commands,
 	mut query: Query<&mut SinkWrapper, With<MicrophonePlaying>>,

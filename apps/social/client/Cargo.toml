@@ -16,9 +16,6 @@ bevy_oxr = { workspace = true, default-features = false }
 color-eyre.workspace = true
 openxr.workspace = true
 bevy_mod_inverse_kinematics.workspace = true 
-#egui.workspace = true
-#bevy_egui.workspace = true
-#bevy-inspector-egui.workspace = true
 bevy_web_asset.workspace = true
 bevy_vrm.workspace = true
 lightyear.workspace = true
@@ -27,3 +24,8 @@ portpicker = "0.1.1"
 random-number = "0.1.8"
 cpal = "0.15.2"
 rodio = "0.17.3"
+
+[target.'cfg(not(target_os = "android"))'.dependencies]
+egui.workspace = true
+bevy_egui.workspace = true
+bevy-inspector-egui.workspace = true

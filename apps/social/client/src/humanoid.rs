@@ -20,13 +20,11 @@ impl Plugin for HumanoidPlugin {
 }
 
 #[derive(Component)]
-pub struct Viewpoint {}
-
-#[derive(Component)]
 pub struct HumanoidRig {
 	pub entities: Data<Entity>,
 }
 
+#[derive(Default)]
 pub struct Data<T> {
 	pub head: T,
 	pub hand_l: T,
@@ -35,7 +33,7 @@ pub struct Data<T> {
 }
 
 /// An event that when fired, runs [`auto_rig_assignment`].
-#[derive(Event)]
+#[derive(Event, Debug)]
 pub struct AutoAssignRigRequest {
 	pub mesh: Entity,
 }

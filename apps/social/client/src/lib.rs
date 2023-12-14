@@ -1,3 +1,6 @@
+#![allow(clippy::type_complexity)]
+
+use bevy::app::PluginGroupBuilder;
 use bevy::prelude::*;
 use bevy::transform::components::Transform;
 use bevy_mod_inverse_kinematics::InverseKinematicsPlugin;
@@ -35,8 +38,6 @@ pub fn main() {
 	// 	.unwrap();
 	// drop(s);
 
-	let client_id: u16 = random_number::random!();
-
 	info!("Running `social-client`");
 	App::new()
 		.add_plugins(bevy_web_asset::WebAssetPlugin)
@@ -44,21 +45,29 @@ pub fn main() {
 			file_path: ASSET_FOLDER.to_string(),
 			..Default::default()
 		}))
-		//.add_plugins(DefaultPlugins)
 		.add_plugins(InverseKinematicsPlugin)
 		.add_plugins(DevToolsPlugins)
 		.add_plugins(VrmPlugin)
 		.add_systems(Startup, setup)
-		.add_plugins(networking::MyClientPlugin {
-			client_id: client_id as u64,
-			client_port: portpicker::pick_unused_port().unwrap_or(2234),
-			server_port: SERVER_PORT,
-			transport: Transports::Udp,
-		})
-		.add_plugins(MicrophonePlugin)
-		.add_plugins(VoiceChatPlugin)
 		//.add_systems(Update, hands.map(ignore_on_err))
 		.run();
+}
+
+/// Plugins implemented specifically for this game.
+#[derive(Default)]
+struct NexusPlugins;
+
+impl PluginGroup for NexusPlugins {
+	fn build(self) -> PluginGroupBuilder {
+		self.set(VoiceChatPlugin).set(MicrophonePlugin).set(
+			networking::MyClientPlugin {
+				client_id: random_number::random!(),
+				client_port: portpicker::pick_unused_port().unwrap_or(2234),
+				server_port: SERVER_PORT,
+				transport: Transports::Udp,
+			},
+		)
+	}
 }
 
 pub fn ignore_on_err(_result: Result<()>) {}
@@ -138,7 +147,7 @@ fn setup(
 	});*/
 }
 
-fn hands(
+fn _hands(
 	mut gizmos: Gizmos,
 	oculus_controller: Res<OculusController>,
 	frame_state: Res<XrFrameState>,

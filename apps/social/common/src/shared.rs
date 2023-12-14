@@ -38,6 +38,7 @@ impl Plugin for SharedPlugin {
 // This system defines how we update the player's positions when we receive an input
 pub fn shared_movement_behaviour(position: &mut PlayerPosition, input: &Inputs) {
 	const MOVE_SPEED: f32 = 0.01;
+	#[allow(clippy::single_match)]
 	match input {
 		Inputs::Direction(direction) => {
 			if direction.up {

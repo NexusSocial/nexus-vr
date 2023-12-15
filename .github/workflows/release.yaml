@@ -38,13 +38,13 @@ jobs:
           wget -O quest_oxr_sdk.zip https://securecdn.oculus.com/binaries/download/?id=7092833820755144
           unzip quest_oxr_sdk.zip -d quest_oxr_sdk
           cp quest_oxr_sdk/OpenXR/Libs/Android/arm64-v8a/Release/libopenxr_loader.so assets/runtime_libs/arm64-v8a/libopenxr_loader.so
-      - name: install dependencies
-        run: |
-          sudo apt-get update; sudo apt-get install pkg-config libx11-dev libasound2-dev libudev-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev
+      # - name: install dependencies
+      #   run: |
+      #     sudo apt-get update; sudo apt-get install pkg-config libx11-dev libasound2-dev libudev-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev
 
       - name: Build
         run: |
-          x build --release -p ${{ env.client_binary }} 
+          x build --release -p ${{ env.client_binary }} --platform android --arch arm64
       - name: Move Apk
         run: |
           cp target/x/release/android/${{ env.client_binary }}.apk ${{ env.client_binary }}.apk

@@ -255,6 +255,8 @@ jobs:
         # macOS 11 was the first version to support ARM
         run: |
           export MACOSX_DEPLOYMENT_TARGET="11"
+          # i thought this should be done by dtolnay/rust-toolchain@stable but ig not
+          rustup target add aarch64-apple-darwin
 
       - name: Build
         run: |

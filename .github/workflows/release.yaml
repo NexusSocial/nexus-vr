@@ -481,11 +481,16 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - check-if-upload-to-itch-is-configured
-      - release-wasm
-      - release-linux
-      - release-windows
-      - release-macOS-intel
-      - release-macOS-apple-silicon
+      - release-client-quest
+      - release-client-wasm
+      - release-client-linux
+      - release-client-windows
+      - release-client-macOS-intel
+      - release-client-macOS-apple-silicon
+      - release-server-linux
+      - release-server-windows
+      - release-server-macOS-intel
+      - release-server-macOS-apple-silicon
     if: ${{ needs.check-if-upload-to-itch-is-configured.outputs.should-upload == 'yes' }}
 
     steps:

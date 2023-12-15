@@ -228,9 +228,9 @@ jobs:
       - name: Prepare Package
         run: |
           mkdir -p ${{ env.client_binary }}.app/Contents/MacOS
-          cp target/x86_64-apple-darwin/release/${{ env.client_binary }} ${{ env.binary }}.app/Contents/MacOS/
+          cp target/x86_64-apple-darwin/release/${{ env.client_binary }} ${{ env.client_binary }}.app/Contents/MacOS/
           cp -r assets ${{ env.client_binary }}.app/Contents/MacOS/
-          hdiutil create -fs HFS+ -volname "${{ env.client_binary }}" -srcfolder ${{ env.binary }}.app ${{ env.binary }}-macOS-intel.dmg
+          hdiutil create -fs HFS+ -volname "${{ env.client_binary }}" -srcfolder ${{ env.client_binary }}.app ${{ env.client_binary }}-macOS-intel.dmg
 
       - name: Upload binaries to artifacts
         uses: actions/upload-artifact@v3
@@ -274,9 +274,9 @@ jobs:
       - name: Prepare Package
         run: |
           mkdir -p ${{ env.client_binary }}.app/Contents/MacOS
-          cp target/aarch64-apple-darwin/release/${{ env.client_binary }} ${{ env.binary }}.app/Contents/MacOS/
+          cp target/aarch64-apple-darwin/release/${{ env.client_binary }} ${{ env.client_binary }}.app/Contents/MacOS/
           cp -r assets ${{ env.client_binary }}.app/Contents/MacOS/
-          hdiutil create -fs HFS+ -volname "${{ env.client_binary }}-macOS-apple-silicon" -srcfolder ${{ env.binary }}.app ${{ env.binary }}-macOS-apple-silicon.dmg
+          hdiutil create -fs HFS+ -volname "${{ env.client_binary }}-macOS-apple-silicon" -srcfolder ${{ env.client_binary }}.app ${{ env.client_binary }}-macOS-apple-silicon.dmg
 
       - name: Upload binaries to artifacts
         uses: actions/upload-artifact@v3
@@ -409,9 +409,9 @@ jobs:
       - name: Prepare Package
         run: |
           mkdir -p ${{ env.server_binary }}.app/Contents/MacOS
-          cp target/x86_64-apple-darwin/release/${{ env.server_binary }} ${{ env.binary }}.app/Contents/MacOS/
+          cp target/x86_64-apple-darwin/release/${{ env.server_binary }} ${{ env.server_binary }}.app/Contents/MacOS/
           cp -r assets ${{ env.server_binary }}.app/Contents/MacOS/
-          hdiutil create -fs HFS+ -volname "${{ env.server_binary }}" -srcfolder ${{ env.binary }}.app ${{ env.binary }}-macOS-intel.dmg
+          hdiutil create -fs HFS+ -volname "${{ env.server_binary }}" -srcfolder ${{ env.server_binary }}.app ${{ env.server_binary }}-macOS-intel.dmg
 
       - name: Upload binaries to artifacts
         uses: actions/upload-artifact@v3
@@ -455,9 +455,9 @@ jobs:
       - name: Prepare Package
         run: |
           mkdir -p ${{ env.server_binary }}.app/Contents/MacOS
-          cp target/aarch64-apple-darwin/release/${{ env.server_binary }} ${{ env.binary }}.app/Contents/MacOS/
+          cp target/aarch64-apple-darwin/release/${{ env.server_binary }} ${{ env.server_binary }}.app/Contents/MacOS/
           cp -r assets ${{ env.server_binary }}.app/Contents/MacOS/
-          hdiutil create -fs HFS+ -volname "${{ env.server_binary }}-macOS-apple-silicon" -srcfolder ${{ env.binary }}.app ${{ env.binary }}-macOS-apple-silicon.dmg
+          hdiutil create -fs HFS+ -volname "${{ env.server_binary }}-macOS-apple-silicon" -srcfolder ${{ env.server_binary }}.app ${{ env.server_binary }}-macOS-apple-silicon.dmg
 
       - name: Upload binaries to artifacts
         uses: actions/upload-artifact@v3

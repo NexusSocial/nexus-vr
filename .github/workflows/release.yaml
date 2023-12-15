@@ -37,7 +37,7 @@ jobs:
         run: | 
           wget -O quest_oxr_sdk.zip https://securecdn.oculus.com/binaries/download/?id=7092833820755144
           unzip quest_oxr_sdk.zip -d quest_oxr_sdk
-          cp quest_oxr_sdk/OpenXR/Libs/Android/arm64-v8a/Release/libopenxr_loader.so runtime_libs/arm64-v8a/libopenxr_loader.so
+          cp quest_oxr_sdk/OpenXR/Libs/Android/arm64-v8a/Release/libopenxr_loader.so assets/runtime_libs/arm64-v8a/libopenxr_loader.so
 
       - name: Build
         run: |

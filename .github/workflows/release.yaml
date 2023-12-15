@@ -8,7 +8,7 @@ on:
 env:
   # update with the name of the main binary
   client_binary: social-client
-  server_binary: socail-server
+  server_binary: social-server
   add_binaries_to_github_release: true
   #itch_target: <itch.io-username>/<game-name>
 

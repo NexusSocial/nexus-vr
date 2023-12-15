@@ -27,6 +27,9 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: aarch64-linux-android
+      - name: install target
+        run: |
+          rustup target add aarch64-linux-android
       - name: install x-build
         run: |
           cargo install xbuild --git https://github.com/rust-mobile/xbuild
@@ -71,6 +74,9 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown
+      - name: install target
+        run: |
+          rustup target add wasm32-unknown-unknown
       - name: install wasm-bindgen-cli
         run: |
           cargo install wasm-bindgen-cli

@@ -1,0 +1,11 @@
+[package]
+name = "social-common2"
+version.workspace = true
+license.workspace = true
+repository.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+bevy.workspace = true
+serde.workspace = true

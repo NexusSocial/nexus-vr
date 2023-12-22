@@ -48,6 +48,7 @@ pub fn main() {
 		.add_plugins(InverseKinematicsPlugin)
 		.add_plugins(DevToolsPlugins)
 		.add_plugins(VrmPlugin)
+		.add_plugins(NexusPlugins)
 		.add_systems(Startup, setup)
 		//.add_systems(Update, hands.map(ignore_on_err))
 		.run();
@@ -59,14 +60,16 @@ struct NexusPlugins;
 
 impl PluginGroup for NexusPlugins {
 	fn build(self) -> PluginGroupBuilder {
-		self.set(VoiceChatPlugin).set(MicrophonePlugin).set(
-			networking::MyClientPlugin {
-				client_id: random_number::random!(),
+		let client_id: u16 = random_number::random!(); // Larger values overflow
+		PluginGroupBuilder::start::<Self>()
+			.add(VoiceChatPlugin)
+			.add(MicrophonePlugin)
+			.add(networking::MyClientPlugin {
+				client_id: client_id.into(),
 				client_port: portpicker::pick_unused_port().unwrap_or(2234),
 				server_port: SERVER_PORT,
 				transport: Transports::Udp,
-			},
-		)
+			})
 	}
 }
 

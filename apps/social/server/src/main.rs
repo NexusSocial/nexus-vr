@@ -1,27 +1,61 @@
+mod args;
 mod networking;
 mod voice_chat;
 
+use bevy::core_pipeline::CorePipelinePlugin;
 use crate::networking::MyServerPlugin;
 use crate::voice_chat::VoiceChatPlugin;
 use bevy::log::LogPlugin;
 use bevy::prelude::*;
 use bevy::render::camera::ScalingMode;
+use bevy::render::pipelined_rendering::PipelinedRenderingPlugin;
+use bevy::render::RenderPlugin;
+use bevy::window::ExitCondition;
+use bevy::winit::WinitPlugin;
 use bevy_vrm::VrmPlugin;
 use social_common::shared::SERVER_PORT;
 use social_common::Transports;
 
 fn main() {
-	App::new()
-		.add_plugins(bevy_web_asset::WebAssetPlugin)
-		.add_plugins(DefaultPlugins.build().disable::<LogPlugin>())
+	use clap::Parser;
+	let mut app = App::new();
+	app.add_plugins(bevy_web_asset::WebAssetPlugin);
+	let args = args::Args::parse();
+
+	println!("{}", args.headless);
+
+	match args.headless {
+		true => app.add_plugins(
+			DefaultPlugins
+				.build()
+				.disable::<LogPlugin>()
+				.set(WindowPlugin {
+					primary_window: None,
+					exit_condition: ExitCondition::DontExit,
+					close_when_requested: false,
+				})
+		),
+		false => app.add_plugins(DefaultPlugins.build().disable::<LogPlugin>()),
+	};
+	app
 		.add_plugins(VrmPlugin)
 		.add_plugins(MyServerPlugin {
 			port: SERVER_PORT,
 			transport: Transports::Udp,
 		})
-		.add_systems(Startup, setup)
-		.add_plugins(VoiceChatPlugin)
+		.add_plugins(VoiceChatPlugin);
+
+	match args.headless {
+		true => app.add_systems(Startup, setup_headless),
+		false => app.add_systems(Startup, setup),
+	};
+
+	app
 		.run();
+}
+
+fn setup_headless() {
+
 }
 
 fn setup(

@@ -13,3 +13,4 @@ social-common.workspace = true
 bevy.workspace = true
 bevy_vrm.workspace = true
 bevy_web_asset.workspace = true
+clap.workspace = true

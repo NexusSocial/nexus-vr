@@ -2,9 +2,9 @@ mod args;
 mod networking;
 mod voice_chat;
 
-use bevy::core_pipeline::CorePipelinePlugin;
 use crate::networking::MyServerPlugin;
 use crate::voice_chat::VoiceChatPlugin;
+use bevy::core_pipeline::CorePipelinePlugin;
 use bevy::log::LogPlugin;
 use bevy::prelude::*;
 use bevy::render::camera::ScalingMode;
@@ -25,20 +25,16 @@ fn main() {
 	println!("{}", args.headless);
 
 	match args.headless {
-		true => app.add_plugins(
-			DefaultPlugins
-				.build()
-				.disable::<LogPlugin>()
-				.set(WindowPlugin {
-					primary_window: None,
-					exit_condition: ExitCondition::DontExit,
-					close_when_requested: false,
-				})
-		),
+		true => app.add_plugins(DefaultPlugins.build().disable::<LogPlugin>().set(
+			WindowPlugin {
+				primary_window: None,
+				exit_condition: ExitCondition::DontExit,
+				close_when_requested: false,
+			},
+		)),
 		false => app.add_plugins(DefaultPlugins.build().disable::<LogPlugin>()),
 	};
-	app
-		.add_plugins(VrmPlugin)
+	app.add_plugins(VrmPlugin)
 		.add_plugins(MyServerPlugin {
 			port: SERVER_PORT,
 			transport: Transports::Udp,
@@ -50,13 +46,10 @@ fn main() {
 		false => app.add_systems(Startup, setup),
 	};
 
-	app
-		.run();
+	app.run();
 }
 
-fn setup_headless() {
-
-}
+fn setup_headless() {}
 
 fn setup(
 	mut commands: Commands,

@@ -66,7 +66,7 @@ pub fn main() -> Result<()> {
 		})
         .add_plugins(Avatars)
         .add_plugins(PlayerManagement)
-        .add_plugins(if args.frame_timings {
+        .add_plugins(if !args.frame_timings {
             DevToolsPlugins.build().disable::<LogDiagnosticsPlugin>()
         } else {
             DevToolsPlugins.build()

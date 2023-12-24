@@ -5160,6 +5160,7 @@ dependencies = [
  "bevy_vrm",
  "bevy_web_asset",
  "clap",
+ "color-eyre",
  "lightyear",
  "social-common",
 ]

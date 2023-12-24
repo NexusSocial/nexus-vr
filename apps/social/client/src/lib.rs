@@ -29,18 +29,11 @@ mod voice_chat;
 const ASSET_FOLDER: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../../assets/");
 
 #[bevy_main]
-pub fn main() {
-	color_eyre::install().unwrap();
+pub fn main() -> Result<()> {
+	color_eyre::install()?;
 
-	// let s = oboe::AudioStreamBuilder::default()
-	// 	.set_input()
-	// 	.open_stream()
-	// 	.unwrap();
-	// drop(s);
-
-	info!("Running `social-client`");
-	App::new()
-		.add_plugins(bevy_web_asset::WebAssetPlugin)
+	let mut app = App::new();
+	app.add_plugins(bevy_web_asset::WebAssetPlugin)
 		.add_plugins(DefaultXrPlugins.set(AssetPlugin {
 			file_path: ASSET_FOLDER.to_string(),
 			..Default::default()
@@ -49,9 +42,11 @@ pub fn main() {
 		.add_plugins(DevToolsPlugins)
 		.add_plugins(VrmPlugin)
 		.add_plugins(NexusPlugins)
-		.add_systems(Startup, setup)
-		//.add_systems(Update, hands.map(ignore_on_err))
-		.run();
+		.add_systems(Startup, setup);
+
+	info!("Launching client");
+	app.run();
+	Ok(())
 }
 
 /// Plugins implemented specifically for this game.

@@ -1,4 +1,4 @@
-use social_common::macro_utils::unwrap_or_continue;
+use crate::macro_utils::unwrap_or_continue;
 
 use bevy::{
 	prelude::{
@@ -15,7 +15,6 @@ impl Plugin for HumanoidPlugin {
 	fn build(&self, app: &mut bevy::prelude::App) {
 		app.add_event::<AutoAssignRigRequest>()
 			.add_systems(Update, auto_rig_assignment);
-		//
 	}
 }
 

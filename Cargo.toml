@@ -35,6 +35,8 @@ social-common.path = "apps/social/common"
 lightyear = { git = "https://github.com/cBournhonesque/lightyear", features = []}
 serde = "1.0.193"
 clap = { version = "4.4.11", features = ["derive"] }
+derive_more = { version = "0.99", features = ["add", "mul"] }
+tracing = "0.1.40"
 
 [profile.dev]
 # Enable a small amount of optimization in debug mode

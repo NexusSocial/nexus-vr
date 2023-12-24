@@ -1,5 +1,10 @@
 #![allow(clippy::type_complexity)]
 
+mod dev_tools;
+mod microphone;
+mod networking;
+mod voice_chat;
+
 use bevy::app::PluginGroupBuilder;
 use bevy::prelude::*;
 use bevy::transform::components::Transform;
@@ -18,13 +23,6 @@ use social_common::Transports;
 use crate::dev_tools::DevToolsPlugins;
 use crate::microphone::MicrophonePlugin;
 use crate::voice_chat::VoiceChatPlugin;
-
-mod dev_tools;
-mod humanoid;
-
-mod microphone;
-mod networking;
-mod voice_chat;
 
 const ASSET_FOLDER: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../../assets/");
 

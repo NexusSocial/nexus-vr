@@ -1,8 +1,12 @@
 mod args;
+mod avatars;
 mod networking;
+mod player_management;
 mod voice_chat;
 
+use crate::avatars::Avatars;
 use crate::networking::MyServerPlugin;
+use crate::player_management::PlayerManagement;
 use crate::voice_chat::VoiceChatPlugin;
 
 use bevy::app::PluginGroupBuilder;
@@ -13,6 +17,7 @@ use bevy::render::camera::ScalingMode;
 use bevy::window::ExitCondition;
 use bevy_vrm::VrmPlugin;
 use color_eyre::Result;
+use social_common::humanoid::HumanoidPlugin;
 use social_common::shared::SERVER_PORT;
 use social_common::Transports;
 
@@ -27,6 +32,7 @@ pub fn main() -> Result<()> {
 
 	debug!("headless: {}", args.headless);
 
+	// Core bevy plugins
 	match args.headless {
 		true => app.add_plugins(DefaultPlugins.build().disable::<LogPlugin>().set(
 			WindowPlugin {
@@ -38,14 +44,25 @@ pub fn main() -> Result<()> {
 		false => app.add_plugins(DefaultPlugins.build().disable::<LogPlugin>()),
 	};
 
-	app.add_plugins(NexusPlugins);
+	app.
+        // Third party plugins
+        add_plugins(VrmPlugin)
+		// First party plugins
+		.add_plugins(HumanoidPlugin)
+		.add_plugins(MyServerPlugin {
+			port: SERVER_PORT,
+			transport: Transports::Udp,
+		})
+        .add_plugins(Avatars)
+        .add_plugins(PlayerManagement)
+		.add_plugins(VoiceChatPlugin);
 
 	match args.headless {
 		true => app.add_systems(Startup, setup_headless),
 		false => app.add_systems(Startup, setup),
 	};
 
-	info!("launching server");
+	info!("Launching server");
 	app.run();
 
 	Ok(())
@@ -96,6 +113,7 @@ impl PluginGroup for NexusPlugins {
 	fn build(self) -> PluginGroupBuilder {
 		PluginGroupBuilder::start::<Self>()
 			.add(VrmPlugin)
+			.add(HumanoidPlugin)
 			.add(MyServerPlugin {
 				port: SERVER_PORT,
 				transport: Transports::Udp,

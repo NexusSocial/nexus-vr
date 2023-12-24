@@ -1,7 +1,7 @@
 //! Behavior associated with the initial loading/spawning of avatars
 //!
-//! This behavior is initiated when a vrm is spawned. You can listen for when the
-//! avatar is finished loading with [`AvatarLoadEvt`].
+//! This behavior is initiated when a vrm is spawned. You can query for fully loaded
+//! avatars via [`FullyLoadedAvatar`].
 
 use bevy::{
 	prelude::{

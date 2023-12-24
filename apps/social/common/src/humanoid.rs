@@ -42,7 +42,7 @@ pub struct AutoAssignRigRequest {
 	pub mesh: Entity,
 }
 
-/// Attempts to automatically assign the rig to the mesh in [`AutoAssignRigEvent`].
+/// Attempts to automatically assign the rig to the mesh in [`AutoAssignRigRequest`].
 pub fn auto_rig_assignment(
 	mut cmds: Commands,
 	mut evts: EventReader<AutoAssignRigRequest>,

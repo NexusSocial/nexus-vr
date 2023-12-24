@@ -31,7 +31,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Clippy lints
-        run: cargo clippy --all --all-features --all-targets --no-deps
+        run: cargo clippy --all --all-features --all-targets --no-deps -- -D warnings
 
       - name: Cargo Doc
         run: cargo doc --all --all-features --no-deps --document-private-items

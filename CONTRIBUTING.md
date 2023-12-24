@@ -64,6 +64,7 @@ Bevy-specific guidance:
   either have `my_plugin.rs`, or `my_plugin/mod.rs` + `my_plugin/group_of_things.rs`
   Do not have `my_plugin/subgroup/another_subgroup.rs`, no one benefits from that
   deep of nesting and this isn't Java.
+- In a system, have the commands first, then mutable queries, then immutable ones.
 
 [workspace inheritance]: https://doc.rust-lang.org/cargo/reference/workspaces.html#the-package-table
 [vscode fmt]: https://stackoverflow.com/a/54665086

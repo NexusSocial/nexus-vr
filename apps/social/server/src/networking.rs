@@ -90,7 +90,7 @@ pub(crate) fn handle_connections(
 		let h = (((client_id * 30) % 360) as f32) / 360.0;
 		let s = 0.8;
 		let l = 0.5;
-		let entity = commands.spawn(PlayerBundle::new(
+		let avatar = commands.spawn(PlayerBundle::new(
 			*client_id,
 			Vec3::ZERO,
 			Color::hsl(h, s, l),
@@ -99,7 +99,7 @@ pub(crate) fn handle_connections(
 		// Add a mapping from client id to entity id
 		global
 			.client_id_to_entity_id
-			.insert(*client_id, entity.id());
+			.insert(*client_id, avatar.id());
 	}
 	for disconnection in disconnections.read() {
 		let client_id = disconnection.context();

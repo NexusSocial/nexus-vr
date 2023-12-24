@@ -5145,7 +5145,10 @@ name = "social-common"
 version = "0.0.0"
 dependencies = [
  "bevy",
+ "bevy-inspector-egui",
+ "bevy_egui",
  "derive_more",
+ "egui",
  "lightyear",
  "portpicker",
  "serde",

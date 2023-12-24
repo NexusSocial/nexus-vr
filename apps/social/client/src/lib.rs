@@ -1,6 +1,5 @@
 #![allow(clippy::type_complexity)]
 
-mod dev_tools;
 mod microphone;
 mod networking;
 mod voice_chat;
@@ -17,10 +16,10 @@ use bevy_oxr::DefaultXrPlugins;
 use bevy_vrm::VrmPlugin;
 use color_eyre::Result;
 
+use social_common::dev_tools::DevToolsPlugins;
 use social_common::shared::SERVER_PORT;
 use social_common::Transports;
 
-use crate::dev_tools::DevToolsPlugins;
 use crate::microphone::MicrophonePlugin;
 use crate::voice_chat::VoiceChatPlugin;
 

@@ -1,5 +1,5 @@
-mod args;
 mod avatars;
+mod cli;
 mod networking;
 mod player_management;
 mod voice_chat;
@@ -10,13 +10,16 @@ use crate::player_management::PlayerManagement;
 use crate::voice_chat::VoiceChatPlugin;
 
 use bevy::app::PluginGroupBuilder;
+use bevy::diagnostic::LogDiagnosticsPlugin;
 use bevy::log::LogPlugin;
 use bevy::prelude::PluginGroup;
 use bevy::prelude::*;
 use bevy::render::camera::ScalingMode;
 use bevy::window::ExitCondition;
 use bevy_vrm::VrmPlugin;
+use clap::Parser;
 use color_eyre::Result;
+use social_common::dev_tools::DevToolsPlugins;
 use social_common::humanoid::HumanoidPlugin;
 use social_common::shared::SERVER_PORT;
 use social_common::Transports;
@@ -25,10 +28,11 @@ use social_common::Transports;
 pub fn main() -> Result<()> {
 	color_eyre::install()?;
 
-	use clap::Parser;
 	let mut app = App::new();
+	// Must be before default plugins
 	app.add_plugins(bevy_web_asset::WebAssetPlugin);
-	let args = args::Args::parse();
+
+	let args = cli::Cli::parse();
 
 	debug!("headless: {}", args.headless);
 
@@ -41,20 +45,32 @@ pub fn main() -> Result<()> {
 				close_when_requested: false,
 			},
 		)),
-		false => app.add_plugins(DefaultPlugins.build().disable::<LogPlugin>()),
+		false => app.add_plugins(DefaultPlugins.build().disable::<LogPlugin>().set(
+			WindowPlugin {
+				primary_window: Some(Window {
+					title: "Nexus Server".to_string(),
+					..Default::default()
+				}),
+				..Default::default()
+			},
+		)),
 	};
 
 	app.
         // Third party plugins
         add_plugins(VrmPlugin)
 		// First party plugins
-		.add_plugins(HumanoidPlugin)
 		.add_plugins(MyServerPlugin {
 			port: SERVER_PORT,
 			transport: Transports::Udp,
 		})
         .add_plugins(Avatars)
         .add_plugins(PlayerManagement)
+        .add_plugins(if args.frame_timings {
+            DevToolsPlugins.build().disable::<LogDiagnosticsPlugin>()
+        } else {
+            DevToolsPlugins.build()
+        })
 		.add_plugins(VoiceChatPlugin);
 
 	match args.headless {

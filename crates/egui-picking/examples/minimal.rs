@@ -3,7 +3,7 @@ use bevy::{
 	render::render_resource::{Extent3d, TextureUsages},
 };
 use bevy_egui::{egui, EguiContexts, EguiPlugin, EguiRenderToTexture};
-use bevy_egui_picking::{PickabelEguiPlugin, WorldSpaceUI};
+use egui_picking::{PickabelEguiPlugin, WorldSpaceUI};
 use bevy_mod_picking::DefaultPickingPlugins;
 
 fn main() {

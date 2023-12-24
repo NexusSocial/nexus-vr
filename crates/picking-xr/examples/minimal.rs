@@ -2,7 +2,7 @@
 
 use bevy::prelude::*;
 use bevy_mod_picking::prelude::*;
-use bevy_mod_picking_xr::{XrActionRef, XrPickingPlugin, XrPointer};
+use picking_xr::{XrActionRef, XrPickingPlugin, XrPointer};
 use bevy_oxr::{
 	xr_init::XrSetup,
 	xr_input::{
@@ -29,7 +29,7 @@ fn main() {
 		.run();
 }
 
-const ACTION_SET: &str = "bevy_mod_picking_xr";
+const ACTION_SET: &str = "picking-xr";
 
 fn setup_xr_actions(mut action_sets: ResMut<SetupActionSets>) {
 	let bindings = &[
@@ -90,7 +90,7 @@ fn spawn_controllers_example(
 		OpenXRController,
 		XrPointer::new(
 			assets.as_mut(),
-			bevy_mod_picking_xr::XrPickActions {
+			picking_xr::XrPickActions {
 				primary_action: XrActionRef {
 					action_name: "primary_left",
 					set_name: ACTION_SET,
@@ -114,7 +114,7 @@ fn spawn_controllers_example(
 		OpenXRController,
 		XrPointer::new(
 			assets.as_mut(),
-			bevy_mod_picking_xr::XrPickActions {
+			picking_xr::XrPickActions {
 				primary_action: XrActionRef {
 					action_name: "primary_right",
 					set_name: ACTION_SET,

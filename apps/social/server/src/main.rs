@@ -4,14 +4,13 @@ mod voice_chat;
 
 use crate::networking::MyServerPlugin;
 use crate::voice_chat::VoiceChatPlugin;
-use bevy::core_pipeline::CorePipelinePlugin;
+
 use bevy::log::LogPlugin;
 use bevy::prelude::*;
 use bevy::render::camera::ScalingMode;
-use bevy::render::pipelined_rendering::PipelinedRenderingPlugin;
-use bevy::render::RenderPlugin;
+
 use bevy::window::ExitCondition;
-use bevy::winit::WinitPlugin;
+
 use bevy_vrm::VrmPlugin;
 use social_common::shared::SERVER_PORT;
 use social_common::Transports;

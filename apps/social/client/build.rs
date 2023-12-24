@@ -1,8 +1,8 @@
-use std::env;
-use std::path::PathBuf;
-
 #[cfg(target_os = "macos")]
 fn main() {
+	use std::env;
+	use std::path::PathBuf;
+
 	let mut lib_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
 	lib_dir.pop();
 	lib_dir.pop();

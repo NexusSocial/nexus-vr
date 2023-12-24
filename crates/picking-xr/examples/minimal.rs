@@ -2,7 +2,6 @@
 
 use bevy::prelude::*;
 use bevy_mod_picking::prelude::*;
-use picking_xr::{XrActionRef, XrPickingPlugin, XrPointer};
 use bevy_oxr::{
 	xr_init::XrSetup,
 	xr_input::{
@@ -14,6 +13,7 @@ use bevy_oxr::{
 	},
 	DefaultXrPlugins,
 };
+use picking_xr::{XrActionRef, XrPickingPlugin, XrPointer};
 
 fn main() {
 	App::new()

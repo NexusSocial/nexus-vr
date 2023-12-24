@@ -37,6 +37,9 @@ social-common.path = "apps/social/common"
 lightyear = { git = "https://github.com/cBournhonesque/lightyear", features = []}
 serde = "1.0.193"
 clap = { version = "4.4.11", features = ["derive"] }
+bevy_mod_picking = "0.17.0"
+bevy_mod_raycast = "0.16.0"
+bevy_picking_core = "0.17.0"
 
 [profile.dev]
 # Enable a small amount of optimization in debug mode

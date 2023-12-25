@@ -1,15 +1,18 @@
 //! Handles description of humanoid rigs.
 
 use crate::macro_utils::unwrap_or_continue;
+use color_eyre::{eyre::bail, Result};
 
 use bevy::{
+	log::{error, warn},
 	prelude::{
-		Children, Commands, Component, Entity, Event, EventReader, HierarchyQueryExt,
-		Local, Name, Plugin, PreUpdate, Query,
+		Assets, Children, Commands, Component, Entity, Event, EventReader, Handle,
+		HierarchyQueryExt, Local, Name, Plugin, PreUpdate, Query, Res, Without,
 	},
 	reflect::Reflect,
 	utils::HashMap,
 };
+use bevy_vrm::Vrm;
 
 #[derive(Default)]
 pub struct HumanoidPlugin;
@@ -19,7 +22,8 @@ impl Plugin for HumanoidPlugin {
 		app.register_type::<HumanoidRig>()
 			.add_event::<AutoAssignRigRequest>()
 			// TODO: PreUpdate seemed to fix nondeterminism, check if its necessary
-			.add_systems(PreUpdate, auto_rig_assignment);
+			.add_systems(PreUpdate, autoassign_from_names)
+			.add_systems(PreUpdate, autoassign_from_vrm);
 	}
 }
 
@@ -36,23 +40,87 @@ pub struct Data<T> {
 	// TODO: Specify rest of skeleton
 }
 
-/// An event that when fired, runs [`auto_rig_assignment`].
+/// An event that when fired, automatically inserts a [`HumanoidRig`] component with
+/// autodetected mappings.
 #[derive(Event, Debug)]
 pub struct AutoAssignRigRequest {
 	pub mesh: Entity,
 }
 
-/// Attempts to automatically assign the rig to the mesh in [`AutoAssignRigRequest`].
-pub fn auto_rig_assignment(
+fn autoassign_from_vrm(
+	mut cmds: Commands,
+	mut evts: EventReader<AutoAssignRigRequest>,
+	vrm_handles: Query<&Handle<Vrm>>,
+	vrm_assets: Res<Assets<Vrm>>,
+) {
+	for &AutoAssignRigRequest { mesh: root_mesh } in evts.read() {
+		let Ok(vrm_handle) = vrm_handles.get(root_mesh) else {
+			// this system is only for vrm entities!
+			continue;
+		};
+		let vrm = vrm_assets
+			.get(vrm_handle)
+			.expect("should be impossible for asset to not exist");
+
+		let (vrm_kind, rig_result) = match (
+			&vrm.extensions.vrmc_vrm,
+			&vrm.extensions.vrm0,
+		) {
+			(Some(_), Some(_)) => {
+				error!("both vrm0 and vrm1 extension data was present for entity {root_mesh:?}. Refusing to autoassign rig.");
+				continue;
+			}
+			(None, None) => {
+				error!("both vrm0 and vrm1 extension data was missing for entity {root_mesh:?}. Cannot autoassign rig.");
+				continue;
+			}
+			(Some(vrm1), None) => ("vrm1", rig_from_vrm1(vrm1)),
+			(None, Some(vrm0)) => ("vrm0", rig_from_vrm0(vrm0)),
+		};
+
+		match rig_result {
+			Err(err) => {
+				error!("Failed to determine rig assignment from {vrm_kind} for entity {root_mesh:?}: {err}");
+				continue;
+			}
+			Ok(rig) => {
+				cmds.entity(root_mesh).insert(rig);
+			}
+		}
+	}
+}
+
+fn rig_from_vrm0(vrm: &bevy_vrm::extensions::vrm0::Vrm) -> Result<HumanoidRig> {
+	let Some(_hb) = &vrm.humanoid.human_bones else {
+		bail!("vrm0 human_bones data missing")
+	};
+	bail!("todo")
+}
+
+fn rig_from_vrm1(
+	_vrm: &bevy_vrm::extensions::vrmc_vrm::VrmcVrm,
+) -> Result<HumanoidRig> {
+	bail!("todo")
+}
+
+/// Automatically assigns the rig based on entity names.
+fn autoassign_from_names(
 	mut cmds: Commands,
 	mut evts: EventReader<AutoAssignRigRequest>,
 	children: Query<&Children>,
 	names: Query<&Name>,
 	mut str_buf: Local<String>,
+	non_vrm: Query<Without<Handle<Vrm>>>,
 ) {
-	for evt in evts.read() {
+	for &AutoAssignRigRequest { mesh: root_mesh } in evts.read() {
+		// this system is only needed for non vrm stuff
+		if !non_vrm.contains(root_mesh) {
+			continue;
+		}
+
+		warn!("Guessing humanoid rig mapping for {root_mesh:?}, this is likely to be inaccurate though");
+
 		let mut map = HashMap::new();
-		let root_mesh = evt.mesh;
 		// TODO: Switch to a dfs and keep track of the side of the body as a hint
 		for c in children.iter_descendants(root_mesh) {
 			if let Ok(name) = names.get(c) {

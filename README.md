@@ -6,6 +6,7 @@ libraries and `apps` for application-specific crates.
 ## Apps
 
 - [rvid](apps/rvid) - Remote Virtual Display, a rust based PCVR solution.
+- [social VR demo](apps/social) - Demo Social VR game.
 
 ## Libraries
 

@@ -14,6 +14,8 @@ bevy.workspace = true
 serde.workspace = true
 derive_more.workspace = true
 tracing.workspace = true
+bevy_vrm.workspace = true
+color-eyre.workspace = true
 portpicker = "0.1.1"
 
 [target.'cfg(not(target_os = "android"))'.dependencies]

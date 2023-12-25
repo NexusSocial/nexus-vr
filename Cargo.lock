@@ -1257,8 +1257,7 @@ dependencies = [
 [[package]]
 name = "bevy_shader_mtoon"
 version = "0.0.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "17f7f8113abe5b2263fd385b08c9b8af7f2038d207f76402f50c98356824c8a0"
+source = "git+https://github.com/TheButlah/bevy_vrm?rev=828a4f5#828a4f5def1b8ce2c2e930926c84b2a20ef9c35d"
 dependencies = [
  "bevy",
 ]
@@ -1415,8 +1414,7 @@ dependencies = [
 [[package]]
 name = "bevy_vrm"
 version = "0.0.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c98cfc13f5a5a7c3e4a09a0e8a5009a10818c56d24de3c7251d9616acc60c144"
+source = "git+https://github.com/TheButlah/bevy_vrm?rev=828a4f5#828a4f5def1b8ce2c2e930926c84b2a20ef9c35d"
 dependencies = [
  "bevy",
  "bevy_shader_mtoon",
@@ -5147,6 +5145,8 @@ dependencies = [
  "bevy",
  "bevy-inspector-egui",
  "bevy_egui",
+ "bevy_vrm",
+ "color-eyre",
  "derive_more",
  "egui",
  "lightyear",

@@ -1256,8 +1256,9 @@ dependencies = [
 
 [[package]]
 name = "bevy_shader_mtoon"
-version = "0.0.6"
-source = "git+https://github.com/TheButlah/bevy_vrm?rev=828a4f5#828a4f5def1b8ce2c2e930926c84b2a20ef9c35d"
+version = "0.0.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5f7e947b916968a62df90f3dd23e25df2bae7c3c01451d39ba0180be29f676da"
 dependencies = [
  "bevy",
 ]
@@ -1413,8 +1414,9 @@ dependencies = [
 
 [[package]]
 name = "bevy_vrm"
-version = "0.0.6"
-source = "git+https://github.com/TheButlah/bevy_vrm?rev=828a4f5#828a4f5def1b8ce2c2e930926c84b2a20ef9c35d"
+version = "0.0.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bc10804dd47e699677f56269898156f249ff4993b1b51b52825dc7b054733fa0"
 dependencies = [
  "bevy",
  "bevy_shader_mtoon",

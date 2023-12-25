@@ -30,7 +30,7 @@ bevy_egui = "0.23"
 egui = "0.23"
 bevy-inspector-egui = "0.21.0"
 bevy_web_asset = { git = "https://github.com/johanhelsing/bevy_web_asset"}
-bevy_vrm = { git = "https://github.com/TheButlah/bevy_vrm", rev = "828a4f5" }
+bevy_vrm = "0.0.7"
 social-common.path = "apps/social/common"
 lightyear = { git = "https://github.com/cBournhonesque/lightyear", features = []}
 serde = "1.0.193"

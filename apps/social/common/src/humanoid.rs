@@ -1,10 +1,13 @@
-use social_common::macro_utils::unwrap_or_continue;
+//! Handles description of humanoid rigs.
+
+use crate::macro_utils::unwrap_or_continue;
 
 use bevy::{
 	prelude::{
 		Children, Commands, Component, Entity, Event, EventReader, HierarchyQueryExt,
-		Local, Name, Plugin, Query, Update,
+		Local, Name, Plugin, PreUpdate, Query,
 	},
+	reflect::Reflect,
 	utils::HashMap,
 };
 
@@ -13,18 +16,19 @@ pub struct HumanoidPlugin;
 
 impl Plugin for HumanoidPlugin {
 	fn build(&self, app: &mut bevy::prelude::App) {
-		app.add_event::<AutoAssignRigRequest>()
-			.add_systems(Update, auto_rig_assignment);
-		//
+		app.register_type::<HumanoidRig>()
+			.add_event::<AutoAssignRigRequest>()
+			// TODO: PreUpdate seemed to fix nondeterminism, check if its necessary
+			.add_systems(PreUpdate, auto_rig_assignment);
 	}
 }
 
-#[derive(Component)]
+#[derive(Reflect, Component)]
 pub struct HumanoidRig {
 	pub entities: Data<Entity>,
 }
 
-#[derive(Default)]
+#[derive(Reflect, Default)]
 pub struct Data<T> {
 	pub head: T,
 	pub hand_l: T,
@@ -38,7 +42,7 @@ pub struct AutoAssignRigRequest {
 	pub mesh: Entity,
 }
 
-/// Attempts to automatically assign the rig to the mesh in [`AutoAssignRigEvent`].
+/// Attempts to automatically assign the rig to the mesh in [`AutoAssignRigRequest`].
 pub fn auto_rig_assignment(
 	mut cmds: Commands,
 	mut evts: EventReader<AutoAssignRigRequest>,

@@ -40,6 +40,8 @@ clap = { version = "4.4.11", features = ["derive"] }
 bevy_mod_picking = "0.17.0"
 bevy_mod_raycast = "0.16.0"
 bevy_picking_core = "0.17.0"
+derive_more = { version = "0.99", features = ["add", "mul"] }
+tracing = "0.1.40"
 
 [profile.dev]
 # Enable a small amount of optimization in debug mode

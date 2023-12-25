@@ -1,0 +1,13 @@
+[package]
+name = "egui-picking"
+version.workspace = true
+license.workspace = true
+repository.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+bevy.workspace = true
+# Will move this when the worldspace stuff is merged. Also my fork only because of the bevy version
+bevy_egui = { git = "https://github.com/Schmarni-Dev/bevy_egui/", branch = "add-worldspace-egui" }
+bevy_mod_picking.workspace = true

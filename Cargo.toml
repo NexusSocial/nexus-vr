@@ -16,7 +16,7 @@ members = [
 # These settings will apply to all members of the workspace that opt in to them
 [workspace.package]
 version = "0.0.0"
-license = "MIT OR BSD-2-Clause-Patent"
+license = "MIT OR BSD-2-Clause-Patent OR Apache-2.0"
 repository = "https://github.com/NexusSocial/nexus-vr"
 edition = "2021"
 rust-version = "1.74.1"

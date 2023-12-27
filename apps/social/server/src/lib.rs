@@ -60,10 +60,16 @@ pub fn main() -> Result<()> {
         // Third party plugins
         add_plugins(VrmPlugin)
 		// First party plugins
+        // TODO: migrate to social_networking
 		.add_plugins(MyServerPlugin {
 			port: SERVER_PORT,
 			transport: Transports::Udp,
 		})
+        // TODO: Finish functionality for this plugin and replace the above
+		// .add_plugins(::social_networking::ServerPlugin {
+		// 	port: SERVER_PORT,
+		// 	transport: ::social_networking::Transports::Udp,
+		// })
         .add_plugins(Avatars)
         .add_plugins(PlayerManagement)
         .add_plugins(if !args.frame_timings {

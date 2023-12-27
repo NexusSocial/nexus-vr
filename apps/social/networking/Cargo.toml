@@ -1,0 +1,17 @@
+[package]
+name = "social-networking"
+version.workspace = true
+license.workspace = true
+repository.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+bevy = { workspace = true, features = ["serialize"] }
+color-eyre.workspace = true
+derive_more.workspace = true
+lightyear.workspace = true
+portpicker = "0.1.1"
+random-number.workspace = true
+serde.workspace = true
+tracing.workspace = true

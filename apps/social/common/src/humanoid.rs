@@ -1,13 +1,16 @@
 //! Handles description of humanoid rigs.
 
 use crate::macro_utils::unwrap_or_continue;
-use color_eyre::{eyre::bail, Result};
+use color_eyre::{
+	eyre::{bail, eyre},
+	Result,
+};
 
 use bevy::{
 	log::{error, warn},
 	prelude::{
-		Assets, Children, Commands, Component, Entity, Event, EventReader, Handle,
-		HierarchyQueryExt, Local, Name, Plugin, PreUpdate, Query, Res, Without,
+		default, Assets, Children, Commands, Component, Entity, Event, EventReader,
+		Handle, HierarchyQueryExt, Local, Name, Plugin, PreUpdate, Query, Res, Without,
 	},
 	reflect::Reflect,
 	utils::HashMap,
@@ -29,15 +32,56 @@ impl Plugin for HumanoidPlugin {
 
 #[derive(Reflect, Component)]
 pub struct HumanoidRig {
-	pub entities: Data<Entity>,
+	pub entities: Bones<Entity>,
 }
 
 #[derive(Reflect, Default)]
-pub struct Data<T> {
+pub struct Bones<T> {
 	pub head: T,
 	pub hand_l: T,
 	pub hand_r: T,
 	// TODO: Specify rest of skeleton
+}
+
+impl<T: Clone> Bones<T> {
+	fn clone_hash_map(&self) -> HashMap<BoneKind, T> {
+		let mut map = HashMap::with_capacity(3);
+		map.insert(BoneKind::Head, self.head.clone());
+		map.insert(BoneKind::LeftHand, self.hand_l.clone());
+		map.insert(BoneKind::RightHand, self.hand_r.clone());
+
+		map
+	}
+}
+
+impl<T> TryFrom<HashMap<BoneKind, T>> for Bones<T> {
+	/// The bone that was missing
+	type Error = BoneKind;
+
+	fn try_from(
+		mut value: HashMap<BoneKind, T>,
+	) -> std::result::Result<Self, Self::Error> {
+		Ok(Self {
+			head: value.remove(&BoneKind::Head).ok_or(BoneKind::Head)?,
+			hand_r: value
+				.remove(&BoneKind::RightHand)
+				.ok_or(BoneKind::RightHand)?,
+			hand_l: value
+				.remove(&BoneKind::LeftHand)
+				.ok_or(BoneKind::LeftHand)?,
+		})
+	}
+}
+
+impl<T> Bones<Option<T>> {
+	/// Returns `Some(Data<T>)` if all fields are `Some(T)`
+	pub fn all_some(self) -> Option<Bones<T>> {
+		Some(Bones {
+			head: self.head?,
+			hand_l: self.hand_l?,
+			hand_r: self.hand_r?,
+		})
+	}
 }
 
 /// An event that when fired, automatically inserts a [`HumanoidRig`] component with
@@ -52,6 +96,7 @@ fn autoassign_from_vrm(
 	mut evts: EventReader<AutoAssignRigRequest>,
 	vrm_handles: Query<&Handle<Vrm>>,
 	vrm_assets: Res<Assets<Vrm>>,
+	entity_names: Query<(Entity, &Name)>,
 ) {
 	for &AutoAssignRigRequest { mesh: root_mesh } in evts.read() {
 		let Ok(vrm_handle) = vrm_handles.get(root_mesh) else {
@@ -62,44 +107,105 @@ fn autoassign_from_vrm(
 			.get(vrm_handle)
 			.expect("should be impossible for asset to not exist");
 
-		let (vrm_kind, rig_result) = match (
-			&vrm.extensions.vrmc_vrm,
-			&vrm.extensions.vrm0,
-		) {
-			(Some(_), Some(_)) => {
-				error!("both vrm0 and vrm1 extension data was present for entity {root_mesh:?}. Refusing to autoassign rig.");
+		let (vrm_kind, nodes_result) =
+			match (&vrm.extensions.vrmc_vrm, &vrm.extensions.vrm0) {
+				(Some(_), Some(_)) => {
+					error!(
+						"both vrm0 and vrm1 extension data was present for entity
+                        {root_mesh:?}. Refusing to autoassign rig."
+					);
+					continue;
+				}
+				(None, None) => {
+					error!(
+						"both vrm0 and vrm1 extension data was missing for entity
+                        {root_mesh:?}. Cannot autoassign rig."
+					);
+					continue;
+				}
+				(Some(vrm1), None) => ("vrm1", nodes_from_vrm1(vrm1)),
+				(None, Some(vrm0)) => ("vrm0", nodes_from_vrm0(vrm0)),
+			};
+
+		let nodes = match nodes_result {
+			Err(err) => {
+				error!(
+					"Failed to determine rig assignment from {vrm_kind} for entity
+                    {root_mesh:?}: {err}"
+				);
 				continue;
 			}
-			(None, None) => {
-				error!("both vrm0 and vrm1 extension data was missing for entity {root_mesh:?}. Cannot autoassign rig.");
-				continue;
-			}
-			(Some(vrm1), None) => ("vrm1", rig_from_vrm1(vrm1)),
-			(None, Some(vrm0)) => ("vrm0", rig_from_vrm0(vrm0)),
+			Ok(rig) => rig.clone_hash_map(),
 		};
 
-		match rig_result {
-			Err(err) => {
-				error!("Failed to determine rig assignment from {vrm_kind} for entity {root_mesh:?}: {err}");
-				continue;
-			}
-			Ok(rig) => {
-				cmds.entity(root_mesh).insert(rig);
-			}
+		let mut found_entities: HashMap<BoneKind, Entity> = default();
+		for (b, idx) in nodes.into_iter() {
+			let node_handle = &vrm.gltf.nodes[idx.0 as usize];
+			let Some((node_name, _)) = vrm
+				.gltf
+				.named_nodes
+				.iter()
+				.find(|(_str, handle)| *handle == node_handle)
+			else {
+				panic!("no gltf node exists at the index {}", idx.0);
+			};
+
+			let Some(entity) = entity_names.iter().find_map(|(entity, entity_name)| {
+				(entity_name.as_str() == node_name).then_some(entity)
+			}) else {
+				panic!("no entity with the same name as the node ({node_name}) exists");
+			};
+
+			found_entities.insert(b, entity);
 		}
+
+		let bones = Bones::try_from(found_entities)
+			.expect("failed to extract all necessary bones");
+		cmds.entity(root_mesh)
+			.insert(HumanoidRig { entities: bones });
 	}
 }
 
-fn rig_from_vrm0(vrm: &bevy_vrm::extensions::vrm0::Vrm) -> Result<HumanoidRig> {
-	let Some(_hb) = &vrm.humanoid.human_bones else {
+#[derive(Clone, Copy)]
+struct GltfNodeIdx(u32);
+
+fn nodes_from_vrm0(
+	vrm: &bevy_vrm::extensions::vrm0::Vrm,
+) -> Result<Bones<GltfNodeIdx>> {
+	let Some(hb) = &vrm.humanoid.human_bones else {
 		bail!("vrm0 human_bones data missing")
 	};
-	bail!("todo")
+
+	let mut nodes: Bones<Option<GltfNodeIdx>> = default();
+	for b in hb {
+		let Some(name) = b.name.as_deref() else {
+			continue;
+		};
+		let Some(node) = b.node.map(GltfNodeIdx) else {
+			continue;
+		};
+		match name {
+			"head" => {
+				nodes.head = Some(node);
+			}
+			"leftHand" => {
+				nodes.hand_l = Some(node);
+			}
+			"rightHand" => {
+				nodes.hand_r = Some(node);
+			}
+			_ => {}
+		}
+	}
+
+	nodes
+		.all_some()
+		.ok_or_else(|| eyre!("not all necessary bones were present!"))
 }
 
-fn rig_from_vrm1(
+fn nodes_from_vrm1(
 	_vrm: &bevy_vrm::extensions::vrmc_vrm::VrmcVrm,
-) -> Result<HumanoidRig> {
+) -> Result<Bones<GltfNodeIdx>> {
 	bail!("todo")
 }
 
@@ -117,8 +223,10 @@ fn autoassign_from_names(
 		if !non_vrm.contains(root_mesh) {
 			continue;
 		}
-
-		warn!("Guessing humanoid rig mapping for {root_mesh:?}, this is likely to be inaccurate though");
+		warn!(
+			"Guessing humanoid rig mapping for {root_mesh:?}, this is likely to 
+            be inaccurate though"
+		);
 
 		let mut map = HashMap::new();
 		// TODO: Switch to a dfs and keep track of the side of the body as a hint
@@ -135,7 +243,7 @@ fn autoassign_from_names(
 		// Now that we have a map of entity -> BoneKind as a list of candidates,
 		// pick winners and reverse the map to be BoneKind -> Entity.
 		// TODO: Do something smarter than just picking the first map entry.
-		let winners = Data {
+		let winners = Bones {
 			head: unwrap_or_continue!(map
 				.iter()
 				.find_map(|(k, v)| (*v == BoneKind::Head).then_some(*k))),

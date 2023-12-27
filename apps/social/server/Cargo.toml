@@ -10,7 +10,7 @@ description = "A server for the social vr bevy demo"
 [dependencies]
 lightyear.workspace = true
 social-common.workspace = true
-bevy.workspace = true
+bevy = { workspace = true, features = ["dynamic_linking"] }
 bevy_vrm.workspace = true
 bevy_web_asset.workspace = true
 clap.workspace = true

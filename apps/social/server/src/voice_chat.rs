@@ -22,7 +22,7 @@ fn receive_voice_chat_audio(
 		let audio = message.message();
 		for id in server.client_ids().collect::<Vec<_>>() {
 			server
-				.buffer_send::<AudioChannel, _>(
+				.send_message::<AudioChannel, _>(
 					id,
 					ServerToClientMicrophoneAudio(audio.0.clone(), id2),
 				)

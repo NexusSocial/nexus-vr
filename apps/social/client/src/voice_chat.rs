@@ -107,7 +107,7 @@ fn play_microphone(
 ) {
 	for audio in microphone_output.0.lock().unwrap().try_iter() {
 		client
-			.buffer_send::<AudioChannel, _>(MicrophoneAudio(audio))
+			.send_message::<AudioChannel, _>(MicrophoneAudio(audio))
 			.unwrap();
 		//local.append(&mut audio);
 	}

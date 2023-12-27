@@ -200,7 +200,7 @@ pub(crate) fn buffer_input(
 		info!(client_tick = ?client.tick(), input = ?&input, "Sending input");
 		return client.add_input(Inputs::Direction(input));
 	}
-	return client.add_input(Inputs::None);
+	client.add_input(Inputs::None)
 }
 
 // The client input only gets applied to predicted entities that we own

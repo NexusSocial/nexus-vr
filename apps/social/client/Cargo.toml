@@ -12,18 +12,18 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 bevy = { workspace = true, features = ["dynamic_linking"] }
-bevy_oxr = { workspace = true, default-features = false }
-color-eyre.workspace = true
-openxr.workspace = true
 bevy_mod_inverse_kinematics.workspace = true 
-bevy_web_asset.workspace = true
+bevy_oxr = { workspace = true, default-features = false }
 bevy_vrm.workspace = true
-lightyear.workspace = true
-social-common.workspace = true
-portpicker = "0.1.1"
-random-number = "0.1.8"
+bevy_web_asset.workspace = true
+color-eyre.workspace = true
 cpal = "0.15.2"
+lightyear.workspace = true
+openxr.workspace = true
+portpicker = "0.1.1"
+random-number.workspace = true
 rodio = "0.17.3"
+social-common.workspace = true
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
 egui.workspace = true

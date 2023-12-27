@@ -116,6 +116,7 @@ pub struct Channel1;
 
 #[derive(Channel)]
 pub struct AudioChannel;
+
 // Messages
 
 #[derive(Message, Serialize, Deserialize, Clone, Debug, PartialEq)]

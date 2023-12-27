@@ -4,6 +4,7 @@ members = [
 	"apps/rvid/client",
 	"apps/rvid/server",
 	"apps/social/client",
+	"apps/social/networking",
 	"apps/social/server",
 	"apps/social/common",
 
@@ -23,24 +24,26 @@ rust-version = "1.74.1"
 
 [workspace.dependencies]
 bevy = "0.12"
-bevy_oxr = { git = "https://github.com/awtterpip/bevy_oxr", rev = "265696b", default-features = false }
-color-eyre = "0.6"
-eyre = "0.6"
-openxr = "0.17"
-bevy_mod_inverse_kinematics = "0.5"
-bevy_egui = "0.23"
-egui = "0.23"
 bevy-inspector-egui = "0.21.0"
-bevy_web_asset = { git = "https://github.com/johanhelsing/bevy_web_asset"}
-bevy_vrm = "0.0.7"
-social-common.path = "apps/social/common"
-lightyear = "0.5.1"
-serde = "1.0.193"
-clap = { version = "4.4.11", features = ["derive"] }
+bevy_egui = "0.23"
+bevy_mod_inverse_kinematics = "0.5"
 bevy_mod_picking = "0.17.0"
 bevy_mod_raycast = "0.16.0"
+bevy_oxr = { git = "https://github.com/awtterpip/bevy_oxr", rev = "265696b", default-features = false }
 bevy_picking_core = "0.17.0"
+bevy_vrm = "0.0.7"
+bevy_web_asset = { git = "https://github.com/johanhelsing/bevy_web_asset"}
+clap = { version = "4.4.11", features = ["derive"] }
+color-eyre = "0.6"
 derive_more = { version = "0.99", features = ["add", "mul"] }
+egui = "0.23"
+eyre = "0.6"
+lightyear = "0.5.1"
+openxr = "0.17"
+random-number = "0.1.8"
+serde = "1.0.193"
+social-common.path = "apps/social/common"
+social-networking.path = "apps/social/networking"
 tracing = "0.1.40"
 
 [profile.dev]

@@ -17,6 +17,8 @@ use serde::{Deserialize, Serialize};
 	Reflect,
 )]
 pub struct PlayerPose {
+	/// The root of the avatar. Everything else is relative to this.
+	pub root: Isometry,
 	pub head: Isometry,
 	pub hand_l: Isometry,
 	pub hand_r: Isometry,
@@ -42,7 +44,7 @@ impl InterpFn<PlayerPose> for PlayerPoseInterp {
                 )+
             };
 		}
-		call_interp!(start, other, t, [head, hand_l, hand_r]);
+		call_interp!(start, other, t, [root, head, hand_l, hand_r]);
 
 		start
 	}

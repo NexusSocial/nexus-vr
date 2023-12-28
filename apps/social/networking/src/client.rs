@@ -15,7 +15,7 @@ use lightyear::prelude::{
 };
 
 use crate::{
-	data_model::{register_types, DataModelRoot},
+	data_model as dm,
 	lightyear::{protocol, shared_config},
 	server::{KEY, PROTOCOL_ID},
 	Transports,
@@ -30,9 +30,12 @@ pub struct ClientPlugin {
 
 impl Plugin for ClientPlugin {
 	fn build(&self, app: &mut bevy::prelude::App) {
-		register_types(app);
+		dm::register_types(app);
+
 		let root_entity = app.world.spawn(Name::new("DataModelRoot")).id();
-		app.insert_resource(DataModelRoot(root_entity));
+		app.insert_resource(dm::DataModelRoot(root_entity))
+			.init_resource::<dm::LocalAvatars>()
+			.init_resource::<dm::RemoteAvatars>();
 
 		let client_id: u16 = random_number::random!(); // Larger values overflow
 		let client_port = portpicker::pick_unused_port().unwrap_or(DEFAULT_PORT);

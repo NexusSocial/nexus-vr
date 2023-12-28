@@ -5423,6 +5423,7 @@ dependencies = [
  "bevy_web_asset",
  "color-eyre",
  "cpal",
+ "derive_more",
  "egui 0.23.0",
  "openxr",
  "portpicker",

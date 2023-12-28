@@ -4,18 +4,16 @@ mod avatars;
 mod controllers;
 mod microphone;
 
-use std::f32::consts::PI;
 use std::net::{Ipv4Addr, SocketAddr};
 
 use bevy::app::PluginGroupBuilder;
 use bevy::log::{error, info};
 use bevy::prelude::{
 	bevy_main, default, shape, App, AssetPlugin, Assets, Camera3dBundle, Color,
-	Commands, EventWriter, Gizmos, Mesh, Name, PbrBundle, PluginGroup, PointLight,
+	Commands, EventWriter, Gizmos, Mesh, PbrBundle, PluginGroup, PointLight,
 	PointLightBundle, Res, ResMut, StandardMaterial, Startup, Vec2, Vec3,
 };
 use bevy::transform::components::Transform;
-use bevy::transform::TransformBundle;
 use bevy_mod_inverse_kinematics::InverseKinematicsPlugin;
 use bevy_oxr::input::XrInput;
 use bevy_oxr::resources::XrFrameState;
@@ -28,9 +26,10 @@ use color_eyre::Result;
 use social_common::dev_tools::DevToolsPlugins;
 use social_networking::{ClientPlugin, Transports};
 
+use crate::avatars::LocalAvatar;
 use crate::microphone::MicrophonePlugin;
 
-use self::avatars::select::AssignAvatar;
+use self::avatars::assign::AssignAvatar;
 // use crate::voice_chat::VoiceChatPlugin;
 
 const ASSET_FOLDER: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../../assets/");
@@ -49,7 +48,7 @@ pub fn main() -> Result<()> {
 		.add_plugins(DevToolsPlugins)
 		.add_plugins(VrmPlugin)
 		.add_plugins(NexusPlugins)
-		.add_plugins(self::avatars::Avatars)
+		.add_plugins(self::avatars::AvatarsPlugin)
 		.add_plugins(self::controllers::KeyboardControllerPlugin)
 		.add_systems(Startup, setup);
 
@@ -102,20 +101,11 @@ fn setup(
 	mut cmds: Commands,
 	mut meshes: ResMut<Assets<Mesh>>,
 	mut materials: ResMut<Assets<StandardMaterial>>,
-	mut select_avi_evts: EventWriter<AssignAvatar>,
+	mut assign_avi_evts: EventWriter<AssignAvatar>,
 ) {
-	let mut transform = Transform::from_xyz(0.0, -1.0, -4.0);
-	transform.rotate_y(PI);
-
-	let local_avi = cmds
-		.spawn((
-			Name::from("LocalAvatar"),
-			TransformBundle::default(),
-			self::controllers::KeyboardController::default(),
-		))
-		.id();
+	let local_avi = cmds.spawn(LocalAvatar::default()).id();
 	let avi_url = "https://vipe.mypinata.cloud/ipfs/QmU7QeqqVMgnMtCAqZBpAYKSwgcjD4gnx4pxFNY9LqA7KQ/default_398.vrm".to_owned();
-	select_avi_evts.send(AssignAvatar {
+	assign_avi_evts.send(AssignAvatar {
 		player: local_avi,
 		avi_url,
 	});

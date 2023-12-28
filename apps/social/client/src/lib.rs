@@ -1,12 +1,21 @@
 #![allow(clippy::type_complexity)]
 
+mod avatars;
+mod controllers;
 mod microphone;
 
+use std::f32::consts::PI;
 use std::net::{Ipv4Addr, SocketAddr};
 
 use bevy::app::PluginGroupBuilder;
-use bevy::prelude::*;
+use bevy::log::{error, info};
+use bevy::prelude::{
+	bevy_main, default, shape, App, AssetPlugin, Assets, Camera3dBundle, Color,
+	Commands, EventWriter, Gizmos, Mesh, Name, PbrBundle, PluginGroup, PointLight,
+	PointLightBundle, Res, ResMut, StandardMaterial, Startup, Vec2, Vec3,
+};
 use bevy::transform::components::Transform;
+use bevy::transform::TransformBundle;
 use bevy_mod_inverse_kinematics::InverseKinematicsPlugin;
 use bevy_oxr::input::XrInput;
 use bevy_oxr::resources::XrFrameState;
@@ -20,6 +29,8 @@ use social_common::dev_tools::DevToolsPlugins;
 use social_networking::{ClientPlugin, Transports};
 
 use crate::microphone::MicrophonePlugin;
+
+use self::avatars::select::AssignAvatar;
 // use crate::voice_chat::VoiceChatPlugin;
 
 const ASSET_FOLDER: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../../assets/");
@@ -38,6 +49,8 @@ pub fn main() -> Result<()> {
 		.add_plugins(DevToolsPlugins)
 		.add_plugins(VrmPlugin)
 		.add_plugins(NexusPlugins)
+		.add_plugins(self::avatars::Avatars)
+		.add_plugins(self::controllers::KeyboardControllerPlugin)
 		.add_systems(Startup, setup);
 
 	info!("Launching client");
@@ -86,37 +99,42 @@ pub fn log_on_err(result: Result<()>) {
 
 /// set up a simple 3D scene
 fn setup(
-	mut commands: Commands,
+	mut cmds: Commands,
 	mut meshes: ResMut<Assets<Mesh>>,
 	mut materials: ResMut<Assets<StandardMaterial>>,
-	_assets: Res<AssetServer>,
+	mut select_avi_evts: EventWriter<AssignAvatar>,
 ) {
-	/*let mut transform = Transform::from_xyz(0.0, -1.0, -4.0);
+	let mut transform = Transform::from_xyz(0.0, -1.0, -4.0);
 	transform.rotate_y(PI);
 
-	commands.spawn(VrmBundle {
-		vrm: assets.load("https://vipe.mypinata.cloud/ipfs/QmU7QeqqVMgnMtCAqZBpAYKSwgcjD4gnx4pxFNY9LqA7KQ/default_398.vrm"),
-		scene_bundle: SceneBundle {
-			transform,
-			..default()
-		},
-	});*/
+	let local_avi = cmds
+		.spawn((
+			Name::from("LocalAvatar"),
+			TransformBundle::default(),
+			self::controllers::KeyboardController::default(),
+		))
+		.id();
+	let avi_url = "https://vipe.mypinata.cloud/ipfs/QmU7QeqqVMgnMtCAqZBpAYKSwgcjD4gnx4pxFNY9LqA7KQ/default_398.vrm".to_owned();
+	select_avi_evts.send(AssignAvatar {
+		player: local_avi,
+		avi_url,
+	});
 
 	// plane
-	commands.spawn(PbrBundle {
+	cmds.spawn(PbrBundle {
 		mesh: meshes.add(shape::Plane::from_size(5.0).into()),
 		material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
 		..default()
 	});
 	// cube
-	commands.spawn(PbrBundle {
+	cmds.spawn(PbrBundle {
 		mesh: meshes.add(Mesh::from(shape::Cube { size: 0.1 })),
 		material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
 		transform: Transform::from_xyz(0.0, 0.5, 0.0),
 		..default()
 	});
 	// light
-	commands.spawn(PointLightBundle {
+	cmds.spawn(PointLightBundle {
 		point_light: PointLight {
 			intensity: 1500.0,
 			shadows_enabled: true,
@@ -126,7 +144,7 @@ fn setup(
 		..default()
 	});
 	// camera
-	commands.spawn((
+	cmds.spawn((
 		Camera3dBundle {
 			transform: Transform::from_xyz(-2.0, 2.5, 5.0)
 				.looking_at(Vec3::ZERO, Vec3::Y),
@@ -134,17 +152,6 @@ fn setup(
 		},
 		bevy_vrm::mtoon::MtoonMainCamera,
 	));
-	// Avatar
-	/*commands.spawn(SceneBundle {
-		scene: assets.load("malek.gltf#Scene0"),
-		transform: Transform::from_xyz(0.0, 0.0, 0.0).with_rotation(Quat::from_euler(
-			EulerRot::XYZ,
-			0.0,
-			180.0_f32.to_radians(),
-			0.0,
-		)),
-		..default()
-	});*/
 }
 
 fn _hands(

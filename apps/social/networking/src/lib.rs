@@ -14,3 +14,4 @@ pub use crate::server::ServerPlugin;
 pub enum Transports {
 	Udp,
 }
+pub use lightyear::Interpolated;

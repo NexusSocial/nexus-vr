@@ -91,9 +91,10 @@ fn set_spatial_audio_pos(
 
 	for (_, spatial_audio_sink, transform) in query.iter_mut() {
 		let t = player_transform - transform.translation();
-		println!(
+		trace!(
 			"player transform: {}, relative_transform: {}",
-			player_transform, t
+			player_transform,
+			t
 		);
 		spatial_audio_sink.sink.set_emitter_position(t.to_array());
 	}

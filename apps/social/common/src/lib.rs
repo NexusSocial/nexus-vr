@@ -137,8 +137,10 @@ pub enum Messages {
 
 // Inputs
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Default)]
 pub struct Direction {
+	pub forward: bool,
+	pub back: bool,
 	pub up: bool,
 	pub down: bool,
 	pub left: bool,
@@ -146,8 +148,13 @@ pub struct Direction {
 }
 
 impl Direction {
+	pub fn is_some(&self) -> bool {
+		self.forward || self.back || self.up || self.down || self.left || self.right
+	}
+
+	#[inline]
 	pub fn is_none(&self) -> bool {
-		!self.up && !self.down && !self.left && !self.right
+		!self.is_some()
 	}
 }
 

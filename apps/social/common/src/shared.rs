@@ -20,7 +20,7 @@ pub fn shared_config() -> SharedConfig {
         },
         log: LogConfig {
             level: Level::INFO,
-            filter: "wgpu=error,wgpu_hal=error,naga=warn,bevy_app=info,bevy_render=warn,quinn=warn"
+            filter: "wgpu=error,wgpu_hal=error,naga=warn,bevy_app=info,bevy_render=warn,quinn=warn,lightyear::netcode::client=none"
                 .to_string(),
         },
     }
@@ -41,17 +41,23 @@ pub fn shared_movement_behaviour(position: &mut PlayerPosition, input: &Inputs) 
 	#[allow(clippy::single_match)]
 	match input {
 		Inputs::Direction(direction) => {
+			if direction.forward {
+				position.z += MOVE_SPEED;
+			}
+			if direction.back {
+				position.z -= MOVE_SPEED;
+			}
 			if direction.up {
 				position.y += MOVE_SPEED;
 			}
 			if direction.down {
-				position.z -= MOVE_SPEED;
+				position.y -= MOVE_SPEED;
 			}
 			if direction.left {
-				position.x -= MOVE_SPEED;
+				position.x += MOVE_SPEED;
 			}
 			if direction.right {
-				position.z += MOVE_SPEED;
+				position.x -= MOVE_SPEED;
 			}
 		}
 		_ => {}

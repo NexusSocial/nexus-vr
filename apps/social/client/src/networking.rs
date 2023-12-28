@@ -169,17 +169,18 @@ pub(crate) fn buffer_input(
 	mut client: ResMut<Client<MyProtocol>>,
 	keypress: Res<Input<KeyCode>>,
 ) {
-	let mut input = social_common::Direction {
-		up: false,
-		down: false,
-		left: false,
-		right: false,
-	};
+	let mut input = social_common::Direction::default();
 	if keypress.pressed(KeyCode::W) || keypress.pressed(KeyCode::Up) {
-		input.up = true;
+		input.forward = true;
 	}
 	if keypress.pressed(KeyCode::S) || keypress.pressed(KeyCode::Down) {
-		input.down = true;
+		input.back = true;
+	}
+	if keypress.pressed(KeyCode::Space) {
+		dbg!(input.up = true);
+	}
+	if keypress.pressed(KeyCode::ShiftLeft) {
+		dbg!(input.down = true);
 	}
 	if keypress.pressed(KeyCode::A) || keypress.pressed(KeyCode::Left) {
 		input.left = true;
@@ -187,6 +188,15 @@ pub(crate) fn buffer_input(
 	if keypress.pressed(KeyCode::D) || keypress.pressed(KeyCode::Right) {
 		input.right = true;
 	}
+	// TODO: should we only send an input if it's not all NIL?
+	// info!("Sending input: {:?} on tick: {:?}", &input, client.tick());
+	if input.is_some() {
+		trace!(client_tick = ?client.tick(), input = ?&input, "Sending input");
+		client.add_input(Inputs::Direction(input));
+	} else {
+		client.add_input(Inputs::None);
+	}
+
 	if keypress.pressed(KeyCode::Delete) {
 		// currently, inputs is an enum and we can only add one input per tick
 		return client.add_input(Inputs::Delete);
@@ -194,13 +204,6 @@ pub(crate) fn buffer_input(
 	if keypress.pressed(KeyCode::Space) {
 		return client.add_input(Inputs::Spawn);
 	}
-	// TODO: should we only send an input if it's not all NIL?
-	// info!("Sending input: {:?} on tick: {:?}", &input, client.tick());
-	if !input.is_none() {
-		info!(client_tick = ?client.tick(), input = ?&input, "Sending input");
-		return client.add_input(Inputs::Direction(input));
-	}
-	client.add_input(Inputs::None)
 }
 
 // The client input only gets applied to predicted entities that we own
@@ -217,7 +220,7 @@ pub(crate) fn movement(
 	}
 	for input in input_reader.read() {
 		if let Some(input) = input.input() {
-			info!(?input, "read input");
+			debug!(?input, "read input");
 			for mut position in position_query.iter_mut() {
 				social_common::shared::shared_movement_behaviour(&mut position, input);
 			}

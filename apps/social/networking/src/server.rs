@@ -5,7 +5,7 @@ use std::{
 	time::Duration,
 };
 
-use bevy::prelude::{App, Name, Plugin};
+use bevy::prelude::{Added, App, Commands, default, Entity, Name, Plugin, Query, Update};
 use lightyear::{
 	prelude::{Io, IoConfig, Key, LinkConditionerConfig, PingConfig, TransportConfig},
 	server::{
@@ -13,12 +13,10 @@ use lightyear::{
 		plugin::PluginConfig,
 	},
 };
+use lightyear::prelude::{NetworkTarget, Replicate};
 
-use crate::{
-	data_model::{register_types, DataModelRoot},
-	lightyear::{protocol, shared_config},
-	Transports,
-};
+use crate::{data_model::{register_types, DataModelRoot}, data_model, lightyear::{protocol, shared_config}, Transports};
+use crate::data_model::ClientIdComponent;
 
 pub const PROTOCOL_ID: u64 = 0;
 pub const KEY: Key = [0; 32];
@@ -68,5 +66,21 @@ impl Plugin for ServerPlugin {
 		app.add_plugins(::lightyear::server::plugin::ServerPlugin::new(
 			plugin_config,
 		));
+		app.add_systems(Update, add_replication_for_players);
+	}
+}
+
+fn add_replication_for_players(
+	mut cmds: Commands,
+	added_player: Query<(Entity, &ClientIdComponent), Added<data_model::Player>>,
+) {
+	for (entity, client_id) in added_player.iter() {
+		cmds.entity(entity)
+			.insert(Replicate {
+				replication_target: NetworkTarget::AllExcept(vec![client_id.0]),
+				// we want the other clients to apply interpolation for the cursor
+				interpolation_target: NetworkTarget::AllExcept(vec![client_id.0]),
+				..default()
+			});
 	}
 }

@@ -12,6 +12,8 @@ use bevy::{
 	reflect::Reflect,
 	transform::TransformBundle,
 };
+use bevy::app::PostUpdate;
+use bevy::prelude::{With, Without};
 
 use self::{assign::AvatarSelectPlugin, loading::AvatarLoadPlugin};
 use crate::controllers::KeyboardController;
@@ -30,7 +32,8 @@ impl Plugin for AvatarsPlugin {
 
 		if app.is_plugin_added::<social_networking::ClientPlugin>() {
 			app.add_systems(PreUpdate, (added_dm_entity, removed_dm_entity))
-				.add_systems(Update, write_pose);
+				.add_systems(Update, write_pose)
+				.add_systems(PostUpdate, read_pose);
 		}
 	}
 }
@@ -39,6 +42,9 @@ impl Plugin for AvatarsPlugin {
 /// component is attached to, and the entity in the data model (the one in the tuple).
 #[derive(Component, Reflect, Debug, Copy, Clone)]
 pub struct DmEntity(pub Entity);
+
+#[derive(Component, Reflect, Debug, Copy, Clone)]
+pub struct LocalEntity(pub Entity);
 
 #[derive(Bundle, Debug)]
 pub struct LocalAvatar {
@@ -66,7 +72,7 @@ fn added_dm_entity(
 	for dm_entity in added.iter() {
 		cmds.entity(dm_entity.0)
 			.set_parent(dm_root.0)
-			.insert((Local, AvatarBundle::default()));
+			.insert((AvatarBundle::default()));
 	}
 }
 
@@ -79,11 +85,22 @@ fn removed_dm_entity(
 
 fn write_pose(
 	mut poses: Query<&mut dm::PlayerPose>,
-	local_root_transforms: Query<(&Transform, &DmEntity), Changed<Transform>>,
+	local_root_transforms: Query<(&Transform, &DmEntity), (Changed<Transform>, With<KeyboardController>)>,
 ) {
 	for (t, &DmEntity(dm_entity)) in local_root_transforms.iter() {
 		let mut pose = poses.get_mut(dm_entity).expect("no matching dm entity");
 		pose.root.trans = t.translation;
 		pose.root.rot = t.rotation;
+	}
+}
+
+fn read_pose(
+	mut local_root_transforms: Query<&mut Transform, With<DmEntity>>,
+	poses: Query<(&dm::PlayerPose, &LocalEntity), (Changed<dm::PlayerPose>, With<Local>)>
+) {
+	for (player_pose, &LocalEntity(local_entity)) in poses.iter() {
+		let mut local_root_transform = local_root_transforms.get_mut(local_entity).expect("no matching local entity");
+		local_root_transform.translation = player_pose.root.trans;
+		local_root_transform.rotation = player_pose.root.rot;
 	}
 }

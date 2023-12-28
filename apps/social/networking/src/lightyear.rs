@@ -33,6 +33,10 @@ pub enum Components {
 	PlayerPose(data_model::PlayerPose),
 	#[sync(simple)]
 	PlayerAvatarUrl(data_model::PlayerAvatarUrl),
+	#[sync(simple)]
+	Player(data_model::Player),
+	#[sync(simple)]
+	ClientIdComponent(data_model::ClientIdComponent),
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]

@@ -6,11 +6,7 @@ mod microphone;
 
 use bevy::app::PluginGroupBuilder;
 use bevy::log::{error, info};
-use bevy::prelude::{
-	bevy_main, default, shape, App, AssetPlugin, Assets, Camera3dBundle, Color,
-	Commands, EventWriter, Gizmos, Mesh, PbrBundle, PluginGroup, PointLight,
-	PointLightBundle, Quat, Res, ResMut, StandardMaterial, Startup, Vec2, Vec3,
-};
+use bevy::prelude::{bevy_main, default, shape, App, AssetPlugin, Assets, Camera3dBundle, Color, Commands, EventWriter, Gizmos, Mesh, PbrBundle, PluginGroup, PointLight, PointLightBundle, Quat, Res, ResMut, StandardMaterial, Startup, Vec2, Vec3, Query, Entity, Added, Update};
 use bevy::transform::components::Transform;
 use bevy_mod_inverse_kinematics::InverseKinematicsPlugin;
 use bevy_oxr::input::XrInput;
@@ -21,12 +17,14 @@ use bevy_oxr::DefaultXrPlugins;
 use bevy_vrm::VrmPlugin;
 use color_eyre::Result;
 use std::net::{Ipv4Addr, SocketAddr};
+use bevy::transform::TransformBundle;
 
 use social_common::dev_tools::DevToolsPlugins;
 use social_networking::{ClientPlugin, Transports};
+use social_networking::data_model::Local;
 
 use self::avatars::assign::AssignAvatar;
-use crate::avatars::{DmEntity, LocalAvatar};
+use crate::avatars::{DmEntity, LocalAvatar, LocalEntity};
 use crate::microphone::MicrophonePlugin;
 // use crate::voice_chat::VoiceChatPlugin;
 
@@ -48,7 +46,9 @@ pub fn main() -> Result<()> {
 		.add_plugins(NexusPlugins)
 		.add_plugins(self::avatars::AvatarsPlugin)
 		.add_plugins(self::controllers::KeyboardControllerPlugin)
-		.add_systems(Startup, setup);
+		.add_systems(Startup, setup)
+		.add_systems(Startup, spawn_local_datamodel_player)
+		.add_systems(Update, sync_datamodel);
 
 	info!("Launching client");
 	app.run();
@@ -62,14 +62,7 @@ struct NexusPlugins;
 impl PluginGroup for NexusPlugins {
 	fn build(self) -> PluginGroupBuilder {
 		PluginGroupBuilder::start::<Self>()
-			// .add(VoiceChatPlugin)
 			.add(MicrophonePlugin)
-			// .add(networking::MyClientPlugin {
-			// 	client_id: client_id.into(),
-			// 	client_port: portpicker::pick_unused_port().unwrap_or(2234),
-			// 	server_port: SERVER_PORT,
-			// 	transport: Transports::Udp,
-			// })
 			.add(ClientPlugin {
 				server_addr: SocketAddr::new(
 					Ipv4Addr::LOCALHOST.into(),
@@ -94,20 +87,51 @@ pub fn log_on_err(result: Result<()>) {
 	}
 }
 
+fn sync_datamodel(
+	mut cmds: Commands,
+	mut added_players: Query<(Entity, Option<&Local>), Added<social_networking::data_model::Player>>,
+	mut assign_avi_evts: EventWriter<AssignAvatar>,
+) {
+	//create our entities the local and verison, when we get a new entity from the network.
+	for (data_model_player, opt_local) in added_players.iter() {
+		let dm_player = DmEntity(data_model_player);
+		// make sure the data model contains a mapping to the local, and vice versa
+		let local_player = LocalEntity(cmds.spawn(dm_player).id());
+		cmds.entity(dm_player.0).insert(local_player);
+		// spawn avatar on the local player entity
+		let avi_url = "https://vipe.mypinata.cloud/ipfs/QmU7QeqqVMgnMtCAqZBpAYKSwgcjD4gnx4pxFNY9LqA7KQ/default_398.vrm".to_owned();
+		assign_avi_evts.send(AssignAvatar {
+			player: local_player.0,
+			avi_url,
+		});
+		if opt_local.is_some() {
+			cmds.entity(local_player.0).insert(LocalAvatar::default());
+		} else {
+			cmds.entity(local_player.0).insert(TransformBundle::default());
+		}
+	}
+}
+
+fn spawn_local_datamodel_player(
+	mut cmds: Commands,
+) {
+	cmds.spawn((social_networking::data_model::Player, social_networking::data_model::Local));
+}
+
 /// set up a simple 3D scene
 fn setup(
 	mut cmds: Commands,
 	mut meshes: ResMut<Assets<Mesh>>,
 	mut materials: ResMut<Assets<StandardMaterial>>,
-	mut assign_avi_evts: EventWriter<AssignAvatar>,
+	/*mut assign_avi_evts: EventWriter<AssignAvatar>,*/
 ) {
-	let dm_entity = DmEntity(cmds.spawn_empty().id());
+	/*let dm_entity = DmEntity(cmds.spawn_empty().id());
 	let local_avi = cmds.spawn((dm_entity, LocalAvatar::default())).id();
 	let avi_url = "https://vipe.mypinata.cloud/ipfs/QmU7QeqqVMgnMtCAqZBpAYKSwgcjD4gnx4pxFNY9LqA7KQ/default_398.vrm".to_owned();
 	assign_avi_evts.send(AssignAvatar {
 		player: local_avi,
 		avi_url,
-	});
+	});*/
 
 	// plane
 	cmds.spawn(PbrBundle {

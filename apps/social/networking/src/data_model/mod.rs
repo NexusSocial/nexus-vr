@@ -42,6 +42,32 @@ pub struct DataModelRoot(pub Entity);
 )]
 pub struct PlayerAvatarUrl(pub Option<String>);
 
+#[derive(
+Component,
+Message,
+Serialize,
+Deserialize,
+Clone,
+Debug,
+PartialEq,
+Reflect,
+Default,
+)]
+pub struct Player;
+
+#[derive(
+Component,
+Message,
+Serialize,
+Deserialize,
+Clone,
+Debug,
+PartialEq,
+Reflect,
+Default,
+)]
+pub struct ClientIdComponent(pub(crate) lightyear::netcode::ClientId);
+
 pub(crate) fn register_types(app: &mut App) {
 	app.register_type::<Local>()
 		.register_type::<PlayerAvatarUrl>()

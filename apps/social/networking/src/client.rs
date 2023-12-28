@@ -5,21 +5,15 @@ use std::{
 	time::Duration,
 };
 
-use bevy::prelude::{Name, Plugin};
-use lightyear::prelude::{
-	client::{
-		Authentication, ClientConfig, InputConfig, InterpolationConfig,
-		InterpolationDelay, PluginConfig, PredictionConfig, SyncConfig,
-	},
-	ClientId, Io, IoConfig, LinkConditionerConfig, PingConfig, TransportConfig,
-};
+use bevy::prelude::{Added, Commands, default, Entity, Name, Plugin, Query, Res, ResMut, Resource, Startup, Update, With};
+use lightyear::prelude::{client::{
+	Authentication, ClientConfig, InputConfig, InterpolationConfig,
+	InterpolationDelay, PluginConfig, PredictionConfig, SyncConfig,
+}, ClientId, Io, IoConfig, LinkConditionerConfig, NetworkTarget, PingConfig, Replicate, TransportConfig};
 
-use crate::{
-	data_model as dm,
-	lightyear::{protocol, shared_config},
-	server::{KEY, PROTOCOL_ID},
-	Transports,
-};
+use crate::{data_model as dm, data_model, lightyear::{protocol, shared_config}, server::{KEY, PROTOCOL_ID}, Transports};
+use crate::data_model::Local;
+use crate::lightyear::MyProtocol;
 
 pub const DEFAULT_PORT: u16 = 2234;
 
@@ -72,5 +66,29 @@ impl Plugin for ClientPlugin {
 		app.add_plugins(::lightyear::client::plugin::ClientPlugin::new(
 			plugin_config,
 		));
+		app.insert_resource(ClientIdRes(client_id as ClientId));
+		app.add_systems(Update, data_model_add_replicated);
+		app.add_systems(Startup, connect);
 	}
+}
+
+#[derive(Resource)]
+pub struct ClientIdRes(pub ClientId);
+fn data_model_add_replicated(
+	mut cmds: Commands,
+	added_players: Query<Entity, (Added<data_model::Player>, With<Local>)>,
+	client_id: Res<ClientIdRes>,
+) {
+	for added_player in added_players.iter() {
+		cmds.entity(added_player)
+			.insert((Replicate {
+				replication_target: NetworkTarget::All,
+				interpolation_target: NetworkTarget::AllExcept(vec![client_id.0]),
+				..default()
+			}, data_model::ClientIdComponent(client_id.0)));
+	}
+}
+
+fn connect(mut client: ResMut<lightyear::client::resource::Client<MyProtocol>>) {
+	client.connect();
 }

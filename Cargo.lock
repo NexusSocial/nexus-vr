@@ -5423,13 +5423,13 @@ dependencies = [
  "bevy_web_asset",
  "color-eyre",
  "cpal",
+ "derive_more",
  "egui 0.23.0",
- "lightyear",
  "openxr",
  "portpicker",
- "random-number",
  "rodio",
  "social-common",
+ "social-networking",
 ]
 
 [[package]]
@@ -5443,7 +5443,6 @@ dependencies = [
  "color-eyre",
  "derive_more",
  "egui 0.23.0",
- "lightyear",
  "portpicker",
  "serde",
  "tracing",

@@ -3,9 +3,9 @@
 
 pub mod data_model;
 
-mod client;
+pub mod client;
 mod lightyear;
-mod server;
+pub mod server;
 
 pub use crate::client::ClientPlugin;
 pub use crate::server::ServerPlugin;

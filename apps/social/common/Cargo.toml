@@ -7,7 +7,6 @@ edition.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-lightyear.workspace = true
 bevy.workspace = true
 serde.workspace = true
 derive_more.workspace = true

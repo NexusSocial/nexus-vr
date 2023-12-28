@@ -25,23 +25,18 @@ protocolize! {
 }
 
 #[message_protocol(protocol = "MyProtocol")]
-pub enum Messages {
-	MicrophoneAudio(data_model::MicrophoneAudio),
-	ServerToClientMicrophoneAudio(data_model::ServerToClientMicrophoneAudio),
-}
+pub enum Messages {}
 
 #[component_protocol(protocol = "MyProtocol")]
 pub enum Components {
-	#[sync(once)]
-	PlayerId(data_model::PlayerId),
 	#[sync(full, lerp = PlayerPoseInterp)]
 	PlayerPose(data_model::PlayerPose),
-	#[sync(once)]
-	PlayerColor(data_model::PlayerColor),
 	#[sync(simple)]
 	PlayerAvatarUrl(data_model::PlayerAvatarUrl),
 	#[sync(simple)]
-	NetworkedSpatialAudio(data_model::NetworkedSpatialAudio),
+	Player(data_model::Player),
+	#[sync(simple)]
+	ClientIdComponent(data_model::ClientIdComponent),
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]

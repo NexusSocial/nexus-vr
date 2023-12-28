@@ -78,6 +78,7 @@ impl PluginGroup for DevToolsPlugins {
 	fn build(self) -> PluginGroupBuilder {
 		let builder = PluginGroupBuilder::start::<Self>()
 			.add(LogDiagnosticsPlugin::default())
+			.disable::<LogDiagnosticsPlugin>()
 			.add(FrameTimeDiagnosticsPlugin);
 		#[cfg(not(target_os = "android"))]
 		let builder = builder

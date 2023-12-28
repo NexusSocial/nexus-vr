@@ -1,12 +1,19 @@
 #![allow(clippy::type_complexity)]
 
+mod avatars;
+mod controllers;
 mod microphone;
-mod networking;
-mod voice_chat;
 
 use bevy::app::PluginGroupBuilder;
-use bevy::prelude::*;
+use bevy::log::{error, info};
+use bevy::prelude::{
+	bevy_main, default, shape, Added, App, AssetPlugin, Assets, Camera3dBundle, Color,
+	Commands, Entity, EventWriter, Gizmos, Mesh, PbrBundle, PluginGroup, PointLight,
+	PointLightBundle, Quat, Query, Res, ResMut, StandardMaterial, Startup, Update,
+	Vec2, Vec3,
+};
 use bevy::transform::components::Transform;
+use bevy::transform::TransformBundle;
 use bevy_mod_inverse_kinematics::InverseKinematicsPlugin;
 use bevy_oxr::input::XrInput;
 use bevy_oxr::resources::XrFrameState;
@@ -15,13 +22,16 @@ use bevy_oxr::xr_input::{QuatConv, Vec3Conv};
 use bevy_oxr::DefaultXrPlugins;
 use bevy_vrm::VrmPlugin;
 use color_eyre::Result;
+use std::net::{Ipv4Addr, SocketAddr};
 
 use social_common::dev_tools::DevToolsPlugins;
-use social_common::shared::SERVER_PORT;
-use social_common::Transports;
+use social_networking::data_model::Local;
+use social_networking::{ClientPlugin, Transports};
 
+use self::avatars::assign::AssignAvatar;
+use crate::avatars::{DmEntity, LocalAvatar, LocalEntity};
 use crate::microphone::MicrophonePlugin;
-use crate::voice_chat::VoiceChatPlugin;
+// use crate::voice_chat::VoiceChatPlugin;
 
 const ASSET_FOLDER: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../../assets/");
 
@@ -39,7 +49,11 @@ pub fn main() -> Result<()> {
 		.add_plugins(DevToolsPlugins)
 		.add_plugins(VrmPlugin)
 		.add_plugins(NexusPlugins)
-		.add_systems(Startup, setup);
+		.add_plugins(self::avatars::AvatarsPlugin)
+		.add_plugins(self::controllers::KeyboardControllerPlugin)
+		.add_systems(Startup, setup)
+		.add_systems(Startup, spawn_local_datamodel_player)
+		.add_systems(Update, sync_datamodel);
 
 	info!("Launching client");
 	app.run();
@@ -52,14 +66,13 @@ struct NexusPlugins;
 
 impl PluginGroup for NexusPlugins {
 	fn build(self) -> PluginGroupBuilder {
-		let client_id: u16 = random_number::random!(); // Larger values overflow
 		PluginGroupBuilder::start::<Self>()
-			.add(VoiceChatPlugin)
 			.add(MicrophonePlugin)
-			.add(networking::MyClientPlugin {
-				client_id: client_id.into(),
-				client_port: portpicker::pick_unused_port().unwrap_or(2234),
-				server_port: SERVER_PORT,
+			.add(ClientPlugin {
+				server_addr: SocketAddr::new(
+					Ipv4Addr::LOCALHOST.into(),
+					social_networking::server::DEFAULT_PORT,
+				),
 				transport: Transports::Udp,
 			})
 	}
@@ -79,39 +92,72 @@ pub fn log_on_err(result: Result<()>) {
 	}
 }
 
+fn sync_datamodel(
+	mut cmds: Commands,
+	added_players: Query<
+		(Entity, Option<&Local>),
+		Added<social_networking::data_model::Player>,
+	>,
+	mut assign_avi_evts: EventWriter<AssignAvatar>,
+) {
+	//create our entities the local and verison, when we get a new entity from the network.
+	for (data_model_player, opt_local) in added_players.iter() {
+		let dm_player = DmEntity(data_model_player);
+		// make sure the data model contains a mapping to the local, and vice versa
+		let local_player = LocalEntity(cmds.spawn(dm_player).id());
+		cmds.entity(dm_player.0).insert(local_player);
+		// spawn avatar on the local player entity
+		let avi_url = "https://vipe.mypinata.cloud/ipfs/QmU7QeqqVMgnMtCAqZBpAYKSwgcjD4gnx4pxFNY9LqA7KQ/default_398.vrm".to_owned();
+		assign_avi_evts.send(AssignAvatar {
+			player: local_player.0,
+			avi_url,
+		});
+		if opt_local.is_some() {
+			cmds.entity(local_player.0).insert(LocalAvatar::default());
+		} else {
+			cmds.entity(local_player.0)
+				.insert(TransformBundle::default());
+		}
+	}
+}
+
+fn spawn_local_datamodel_player(mut cmds: Commands) {
+	cmds.spawn((
+		social_networking::data_model::Player,
+		social_networking::data_model::Local,
+	));
+}
+
 /// set up a simple 3D scene
 fn setup(
-	mut commands: Commands,
+	mut cmds: Commands,
 	mut meshes: ResMut<Assets<Mesh>>,
 	mut materials: ResMut<Assets<StandardMaterial>>,
-	_assets: Res<AssetServer>,
+	/*mut assign_avi_evts: EventWriter<AssignAvatar>,*/
 ) {
-	/*let mut transform = Transform::from_xyz(0.0, -1.0, -4.0);
-	transform.rotate_y(PI);
-
-	commands.spawn(VrmBundle {
-		vrm: assets.load("https://vipe.mypinata.cloud/ipfs/QmU7QeqqVMgnMtCAqZBpAYKSwgcjD4gnx4pxFNY9LqA7KQ/default_398.vrm"),
-		scene_bundle: SceneBundle {
-			transform,
-			..default()
-		},
+	/*let dm_entity = DmEntity(cmds.spawn_empty().id());
+	let local_avi = cmds.spawn((dm_entity, LocalAvatar::default())).id();
+	let avi_url = "https://vipe.mypinata.cloud/ipfs/QmU7QeqqVMgnMtCAqZBpAYKSwgcjD4gnx4pxFNY9LqA7KQ/default_398.vrm".to_owned();
+	assign_avi_evts.send(AssignAvatar {
+		player: local_avi,
+		avi_url,
 	});*/
 
 	// plane
-	commands.spawn(PbrBundle {
+	cmds.spawn(PbrBundle {
 		mesh: meshes.add(shape::Plane::from_size(5.0).into()),
 		material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
 		..default()
 	});
 	// cube
-	commands.spawn(PbrBundle {
+	cmds.spawn(PbrBundle {
 		mesh: meshes.add(Mesh::from(shape::Cube { size: 0.1 })),
 		material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
 		transform: Transform::from_xyz(0.0, 0.5, 0.0),
 		..default()
 	});
 	// light
-	commands.spawn(PointLightBundle {
+	cmds.spawn(PointLightBundle {
 		point_light: PointLight {
 			intensity: 1500.0,
 			shadows_enabled: true,
@@ -121,7 +167,7 @@ fn setup(
 		..default()
 	});
 	// camera
-	commands.spawn((
+	cmds.spawn((
 		Camera3dBundle {
 			transform: Transform::from_xyz(-2.0, 2.5, 5.0)
 				.looking_at(Vec3::ZERO, Vec3::Y),
@@ -129,17 +175,6 @@ fn setup(
 		},
 		bevy_vrm::mtoon::MtoonMainCamera,
 	));
-	// Avatar
-	/*commands.spawn(SceneBundle {
-		scene: assets.load("malek.gltf#Scene0"),
-		transform: Transform::from_xyz(0.0, 0.0, 0.0).with_rotation(Quat::from_euler(
-			EulerRot::XYZ,
-			0.0,
-			180.0_f32.to_radians(),
-			0.0,
-		)),
-		..default()
-	});*/
 }
 
 fn _hands(
@@ -173,4 +208,11 @@ fn _hands(
 		Color::YELLOW_GREEN,
 	);
 	Ok(())
+}
+
+fn pose_gizmo(gizmos: &mut Gizmos, t: &Transform, color: Color) {
+	gizmos.ray(t.translation, t.local_x() * 0.1, Color::RED);
+	gizmos.ray(t.translation, t.local_y() * 0.1, Color::GREEN);
+	gizmos.ray(t.translation, t.local_z() * 0.1, Color::BLUE);
+	gizmos.sphere(t.translation, Quat::IDENTITY, 0.1, color);
 }

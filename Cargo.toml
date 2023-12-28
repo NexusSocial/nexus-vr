@@ -35,7 +35,7 @@ bevy_vrm = "0.0.7"
 bevy_web_asset = { git = "https://github.com/johanhelsing/bevy_web_asset"}
 clap = { version = "4.4.11", features = ["derive"] }
 color-eyre = "0.6"
-derive_more = { version = "0.99", features = ["add", "mul"] }
+derive_more = { version = "0.99", default-features = false, features = ["add", "mul", "deref", "deref_mut"] }
 egui = "0.23"
 eyre = "0.6"
 lightyear = "0.5.1"

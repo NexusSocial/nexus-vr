@@ -95,17 +95,20 @@ pub fn log_on_err(result: Result<()>) {
 fn sync_datamodel(
 	mut cmds: Commands,
 	added_players: Query<
-		(Entity, Option<&Local>, Option<&social_networking::Interpolated>),
+		(
+			Entity,
+			Option<&Local>,
+			Option<&social_networking::Interpolated>,
+		),
 		Added<social_networking::data_model::Player>,
 	>,
 	mut assign_avi_evts: EventWriter<AssignAvatar>,
 ) {
-	//create our entities the local and verison, when we get a new entity from the network.
+	// create our entities the local and verison, when we get a new entity from the
+	// network.
 	for (data_model_player, opt_local, opt_interp) in added_players.iter() {
-		if opt_local.is_none() {
-			if opt_interp.is_none() {
-				continue;
-			}
+		if opt_local.is_none() && opt_interp.is_none() {
+			continue;
 		}
 		let dm_player = DmEntity(data_model_player);
 		// make sure the data model contains a mapping to the local, and vice versa

@@ -43,28 +43,28 @@ pub struct DataModelRoot(pub Entity);
 pub struct PlayerAvatarUrl(pub Option<String>);
 
 #[derive(
-Component,
-Message,
-Serialize,
-Deserialize,
-Clone,
-Debug,
-PartialEq,
-Reflect,
-Default,
+	Component,
+	Message,
+	Serialize,
+	Deserialize,
+	Clone,
+	Debug,
+	PartialEq,
+	Reflect,
+	Default,
 )]
 pub struct Player;
 
 #[derive(
-Component,
-Message,
-Serialize,
-Deserialize,
-Clone,
-Debug,
-PartialEq,
-Reflect,
-Default,
+	Component,
+	Message,
+	Serialize,
+	Deserialize,
+	Clone,
+	Debug,
+	PartialEq,
+	Reflect,
+	Default,
 )]
 pub struct ClientIdComponent(pub(crate) lightyear::netcode::ClientId);
 

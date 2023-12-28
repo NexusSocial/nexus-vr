@@ -6,8 +6,14 @@ mod microphone;
 
 use bevy::app::PluginGroupBuilder;
 use bevy::log::{error, info};
-use bevy::prelude::{bevy_main, default, shape, App, AssetPlugin, Assets, Camera3dBundle, Color, Commands, EventWriter, Gizmos, Mesh, PbrBundle, PluginGroup, PointLight, PointLightBundle, Quat, Res, ResMut, StandardMaterial, Startup, Vec2, Vec3, Query, Entity, Added, Update};
+use bevy::prelude::{
+	bevy_main, default, shape, Added, App, AssetPlugin, Assets, Camera3dBundle, Color,
+	Commands, Entity, EventWriter, Gizmos, Mesh, PbrBundle, PluginGroup, PointLight,
+	PointLightBundle, Quat, Query, Res, ResMut, StandardMaterial, Startup, Update,
+	Vec2, Vec3,
+};
 use bevy::transform::components::Transform;
+use bevy::transform::TransformBundle;
 use bevy_mod_inverse_kinematics::InverseKinematicsPlugin;
 use bevy_oxr::input::XrInput;
 use bevy_oxr::resources::XrFrameState;
@@ -17,11 +23,10 @@ use bevy_oxr::DefaultXrPlugins;
 use bevy_vrm::VrmPlugin;
 use color_eyre::Result;
 use std::net::{Ipv4Addr, SocketAddr};
-use bevy::transform::TransformBundle;
 
 use social_common::dev_tools::DevToolsPlugins;
-use social_networking::{ClientPlugin, Transports};
 use social_networking::data_model::Local;
+use social_networking::{ClientPlugin, Transports};
 
 use self::avatars::assign::AssignAvatar;
 use crate::avatars::{DmEntity, LocalAvatar, LocalEntity};
@@ -89,7 +94,10 @@ pub fn log_on_err(result: Result<()>) {
 
 fn sync_datamodel(
 	mut cmds: Commands,
-	mut added_players: Query<(Entity, Option<&Local>), Added<social_networking::data_model::Player>>,
+	added_players: Query<
+		(Entity, Option<&Local>),
+		Added<social_networking::data_model::Player>,
+	>,
 	mut assign_avi_evts: EventWriter<AssignAvatar>,
 ) {
 	//create our entities the local and verison, when we get a new entity from the network.
@@ -107,15 +115,17 @@ fn sync_datamodel(
 		if opt_local.is_some() {
 			cmds.entity(local_player.0).insert(LocalAvatar::default());
 		} else {
-			cmds.entity(local_player.0).insert(TransformBundle::default());
+			cmds.entity(local_player.0)
+				.insert(TransformBundle::default());
 		}
 	}
 }
 
-fn spawn_local_datamodel_player(
-	mut cmds: Commands,
-) {
-	cmds.spawn((social_networking::data_model::Player, social_networking::data_model::Local));
+fn spawn_local_datamodel_player(mut cmds: Commands) {
+	cmds.spawn((
+		social_networking::data_model::Player,
+		social_networking::data_model::Local,
+	));
 }
 
 /// set up a simple 3D scene

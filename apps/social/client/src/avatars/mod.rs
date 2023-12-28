@@ -3,6 +3,8 @@
 pub mod assign;
 mod loading;
 
+use bevy::app::PostUpdate;
+use bevy::prelude::With;
 use bevy::{
 	prelude::{
 		default, Added, App, BuildChildren, Bundle, Changed, Commands, Component,
@@ -12,8 +14,6 @@ use bevy::{
 	reflect::Reflect,
 	transform::TransformBundle,
 };
-use bevy::app::PostUpdate;
-use bevy::prelude::{With, Without};
 
 use self::{assign::AvatarSelectPlugin, loading::AvatarLoadPlugin};
 use crate::controllers::KeyboardController;
@@ -72,7 +72,7 @@ fn added_dm_entity(
 	for dm_entity in added.iter() {
 		cmds.entity(dm_entity.0)
 			.set_parent(dm_root.0)
-			.insert((AvatarBundle::default()));
+			.insert(AvatarBundle::default());
 	}
 }
 
@@ -85,7 +85,10 @@ fn removed_dm_entity(
 
 fn write_pose(
 	mut poses: Query<&mut dm::PlayerPose>,
-	local_root_transforms: Query<(&Transform, &DmEntity), (Changed<Transform>, With<KeyboardController>)>,
+	local_root_transforms: Query<
+		(&Transform, &DmEntity),
+		(Changed<Transform>, With<KeyboardController>),
+	>,
 ) {
 	for (t, &DmEntity(dm_entity)) in local_root_transforms.iter() {
 		let mut pose = poses.get_mut(dm_entity).expect("no matching dm entity");
@@ -96,10 +99,15 @@ fn write_pose(
 
 fn read_pose(
 	mut local_root_transforms: Query<&mut Transform, With<DmEntity>>,
-	poses: Query<(&dm::PlayerPose, &LocalEntity), (Changed<dm::PlayerPose>, With<Local>)>
+	poses: Query<
+		(&dm::PlayerPose, &LocalEntity),
+		(Changed<dm::PlayerPose>, With<Local>),
+	>,
 ) {
 	for (player_pose, &LocalEntity(local_entity)) in poses.iter() {
-		let mut local_root_transform = local_root_transforms.get_mut(local_entity).expect("no matching local entity");
+		let mut local_root_transform = local_root_transforms
+			.get_mut(local_entity)
+			.expect("no matching local entity");
 		local_root_transform.translation = player_pose.root.trans;
 		local_root_transform.rotation = player_pose.root.rot;
 	}

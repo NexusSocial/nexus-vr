@@ -1,13 +1,15 @@
 use bevy::{
 	prelude::{
-		Color, Component, Gizmos, Input, KeyCode, Plugin, Quat, Query, Res, ResMut,
-		Resource, Transform, Update, Vec3, With,
+		Color, Component, Gizmos, Input, KeyCode, Plugin, PreUpdate, Query, Res,
+		ResMut, Resource, Transform, Update, Vec3, With,
 	},
 	reflect::Reflect,
 	time::Time,
 };
 
-const SPEED: f32 = 10.;
+use crate::pose_gizmo;
+
+const SPEED: f32 = 4.;
 
 pub struct KeyboardControllerPlugin;
 
@@ -15,8 +17,8 @@ impl Plugin for KeyboardControllerPlugin {
 	fn build(&self, app: &mut bevy::prelude::App) {
 		app.register_type::<Direction>()
 			.init_resource::<Direction>()
-			.add_systems(Update, move_controlled_entities)
-			.add_systems(Update, direction_from_keys);
+			.add_systems(PreUpdate, direction_from_keys)
+			.add_systems(Update, move_controlled_entities);
 	}
 }
 
@@ -99,13 +101,6 @@ fn move_controlled_entities(
 			+ (t.local_y() * local_vel.y)
 			+ (t.local_z() * local_vel.z);
 		t.translation += parent_vel;
-		pose_gizmo(&mut gizmos, &t);
+		pose_gizmo(&mut gizmos, &t, Color::GRAY);
 	}
-}
-
-fn pose_gizmo(gizmos: &mut Gizmos, t: &Transform) {
-	gizmos.ray(t.translation, t.local_x() * 0.1, Color::RED);
-	gizmos.ray(t.translation, t.local_y() * 0.1, Color::GREEN);
-	gizmos.ray(t.translation, t.local_z() * 0.1, Color::BLUE);
-	gizmos.sphere(t.translation, Quat::IDENTITY, 0.1, Color::GRAY);
 }

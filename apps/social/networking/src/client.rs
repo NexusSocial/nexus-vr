@@ -33,9 +33,7 @@ impl Plugin for ClientPlugin {
 		dm::register_types(app);
 
 		let root_entity = app.world.spawn(Name::new("DataModelRoot")).id();
-		app.insert_resource(dm::DataModelRoot(root_entity))
-			.init_resource::<dm::LocalAvatars>()
-			.init_resource::<dm::RemoteAvatars>();
+		app.insert_resource(dm::DataModelRoot(root_entity));
 
 		let client_id: u16 = random_number::random!(); // Larger values overflow
 		let client_port = portpicker::pick_unused_port().unwrap_or(DEFAULT_PORT);

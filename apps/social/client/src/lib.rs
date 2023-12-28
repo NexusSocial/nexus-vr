@@ -4,14 +4,12 @@ mod avatars;
 mod controllers;
 mod microphone;
 
-use std::net::{Ipv4Addr, SocketAddr};
-
 use bevy::app::PluginGroupBuilder;
 use bevy::log::{error, info};
 use bevy::prelude::{
 	bevy_main, default, shape, App, AssetPlugin, Assets, Camera3dBundle, Color,
 	Commands, EventWriter, Gizmos, Mesh, PbrBundle, PluginGroup, PointLight,
-	PointLightBundle, Res, ResMut, StandardMaterial, Startup, Vec2, Vec3,
+	PointLightBundle, Quat, Res, ResMut, StandardMaterial, Startup, Vec2, Vec3,
 };
 use bevy::transform::components::Transform;
 use bevy_mod_inverse_kinematics::InverseKinematicsPlugin;
@@ -22,14 +20,14 @@ use bevy_oxr::xr_input::{QuatConv, Vec3Conv};
 use bevy_oxr::DefaultXrPlugins;
 use bevy_vrm::VrmPlugin;
 use color_eyre::Result;
+use std::net::{Ipv4Addr, SocketAddr};
 
 use social_common::dev_tools::DevToolsPlugins;
 use social_networking::{ClientPlugin, Transports};
 
-use crate::avatars::LocalAvatar;
-use crate::microphone::MicrophonePlugin;
-
 use self::avatars::assign::AssignAvatar;
+use crate::avatars::{DmEntity, LocalAvatar};
+use crate::microphone::MicrophonePlugin;
 // use crate::voice_chat::VoiceChatPlugin;
 
 const ASSET_FOLDER: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../../assets/");
@@ -103,7 +101,8 @@ fn setup(
 	mut materials: ResMut<Assets<StandardMaterial>>,
 	mut assign_avi_evts: EventWriter<AssignAvatar>,
 ) {
-	let local_avi = cmds.spawn(LocalAvatar::default()).id();
+	let dm_entity = DmEntity(cmds.spawn_empty().id());
+	let local_avi = cmds.spawn((dm_entity, LocalAvatar::default())).id();
 	let avi_url = "https://vipe.mypinata.cloud/ipfs/QmU7QeqqVMgnMtCAqZBpAYKSwgcjD4gnx4pxFNY9LqA7KQ/default_398.vrm".to_owned();
 	assign_avi_evts.send(AssignAvatar {
 		player: local_avi,
@@ -175,4 +174,11 @@ fn _hands(
 		Color::YELLOW_GREEN,
 	);
 	Ok(())
+}
+
+fn pose_gizmo(gizmos: &mut Gizmos, t: &Transform, color: Color) {
+	gizmos.ray(t.translation, t.local_x() * 0.1, Color::RED);
+	gizmos.ray(t.translation, t.local_y() * 0.1, Color::GREEN);
+	gizmos.ray(t.translation, t.local_z() * 0.1, Color::BLUE);
+	gizmos.sphere(t.translation, Quat::IDENTITY, 0.1, color);
 }

@@ -5424,12 +5424,11 @@ dependencies = [
  "color-eyre",
  "cpal",
  "egui 0.23.0",
- "lightyear",
  "openxr",
  "portpicker",
- "random-number",
  "rodio",
  "social-common",
+ "social-networking",
 ]
 
 [[package]]
@@ -5443,7 +5442,6 @@ dependencies = [
  "color-eyre",
  "derive_more",
  "egui 0.23.0",
- "lightyear",
  "portpicker",
  "serde",
  "tracing",

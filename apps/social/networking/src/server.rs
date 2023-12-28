@@ -22,10 +22,20 @@ use crate::{
 
 pub const PROTOCOL_ID: u64 = 0;
 pub const KEY: Key = [0; 32];
+pub const DEFAULT_PORT: u16 = 5000;
 
 pub struct ServerPlugin {
 	pub port: u16,
 	pub transport: Transports,
+}
+
+impl Default for ServerPlugin {
+	fn default() -> Self {
+		Self {
+			port: DEFAULT_PORT,
+			transport: Transports::Udp,
+		}
+	}
 }
 
 impl Plugin for ServerPlugin {

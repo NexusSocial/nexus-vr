@@ -1,8 +1,8 @@
 #![allow(clippy::type_complexity)]
 
 mod microphone;
-mod networking;
-mod voice_chat;
+
+use std::net::{Ipv4Addr, SocketAddr};
 
 use bevy::app::PluginGroupBuilder;
 use bevy::prelude::*;
@@ -17,11 +17,10 @@ use bevy_vrm::VrmPlugin;
 use color_eyre::Result;
 
 use social_common::dev_tools::DevToolsPlugins;
-use social_common::shared::SERVER_PORT;
-use social_common::Transports;
+use social_networking::{ClientPlugin, Transports};
 
 use crate::microphone::MicrophonePlugin;
-use crate::voice_chat::VoiceChatPlugin;
+// use crate::voice_chat::VoiceChatPlugin;
 
 const ASSET_FOLDER: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../../assets/");
 
@@ -52,14 +51,20 @@ struct NexusPlugins;
 
 impl PluginGroup for NexusPlugins {
 	fn build(self) -> PluginGroupBuilder {
-		let client_id: u16 = random_number::random!(); // Larger values overflow
 		PluginGroupBuilder::start::<Self>()
-			.add(VoiceChatPlugin)
+			// .add(VoiceChatPlugin)
 			.add(MicrophonePlugin)
-			.add(networking::MyClientPlugin {
-				client_id: client_id.into(),
-				client_port: portpicker::pick_unused_port().unwrap_or(2234),
-				server_port: SERVER_PORT,
+			// .add(networking::MyClientPlugin {
+			// 	client_id: client_id.into(),
+			// 	client_port: portpicker::pick_unused_port().unwrap_or(2234),
+			// 	server_port: SERVER_PORT,
+			// 	transport: Transports::Udp,
+			// })
+			.add(ClientPlugin {
+				server_addr: SocketAddr::new(
+					Ipv4Addr::LOCALHOST.into(),
+					social_networking::server::DEFAULT_PORT,
+				),
 				transport: Transports::Udp,
 			})
 	}

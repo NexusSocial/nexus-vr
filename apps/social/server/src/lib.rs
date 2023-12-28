@@ -1,13 +1,9 @@
 mod avatars;
 mod cli;
-mod networking;
 mod player_management;
-mod voice_chat;
 
 use crate::avatars::Avatars;
-use crate::networking::MyServerPlugin;
 use crate::player_management::PlayerManagement;
-use crate::voice_chat::VoiceChatPlugin;
 
 use bevy::app::PluginGroupBuilder;
 use bevy::diagnostic::LogDiagnosticsPlugin;
@@ -21,22 +17,20 @@ use clap::Parser;
 use color_eyre::Result;
 use social_common::dev_tools::DevToolsPlugins;
 use social_common::humanoid::HumanoidPlugin;
-use social_common::shared::SERVER_PORT;
-use social_common::Transports;
+use social_networking::{ServerPlugin, Transports};
 
 #[bevy_main]
 pub fn main() -> Result<()> {
 	color_eyre::install()?;
 
+	let args = cli::Cli::parse();
+
 	let mut app = App::new();
 	// Must be before default plugins
 	app.add_plugins(bevy_web_asset::WebAssetPlugin);
 
-	let args = cli::Cli::parse();
-
-	debug!("headless: {}", args.headless);
-
 	// Core bevy plugins
+	debug!("headless: {}", args.headless);
 	match args.headless {
 		true => app.add_plugins(DefaultPlugins.build().disable::<LogPlugin>().set(
 			WindowPlugin {
@@ -61,23 +55,19 @@ pub fn main() -> Result<()> {
         add_plugins(VrmPlugin)
 		// First party plugins
         // TODO: migrate to social_networking
-		.add_plugins(MyServerPlugin {
-			port: SERVER_PORT,
-			transport: Transports::Udp,
-		})
-        // TODO: Finish functionality for this plugin and replace the above
-		// .add_plugins(::social_networking::ServerPlugin {
+		// .add_plugins(MyServerPlugin {
 		// 	port: SERVER_PORT,
-		// 	transport: ::social_networking::Transports::Udp,
+		// 	transport: Transports::Udp,
 		// })
+        // TODO: Finish functionality for this plugin and replace the above
+		.add_plugins(::social_networking::ServerPlugin::default())
         .add_plugins(Avatars)
         .add_plugins(PlayerManagement)
         .add_plugins(if !args.frame_timings {
             DevToolsPlugins.build().disable::<LogDiagnosticsPlugin>()
         } else {
             DevToolsPlugins.build()
-        })
-		.add_plugins(VoiceChatPlugin);
+        });
 
 	match args.headless {
 		true => app.add_systems(Startup, setup_headless),
@@ -136,10 +126,9 @@ impl PluginGroup for NexusPlugins {
 		PluginGroupBuilder::start::<Self>()
 			.add(VrmPlugin)
 			.add(HumanoidPlugin)
-			.add(MyServerPlugin {
-				port: SERVER_PORT,
+			.add(ServerPlugin {
+				port: social_networking::server::DEFAULT_PORT,
 				transport: Transports::Udp,
 			})
-			.add(VoiceChatPlugin)
 	}
 }

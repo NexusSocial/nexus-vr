@@ -3,18 +3,17 @@
 pub mod assign;
 mod loading;
 
+use bevy::app::PostUpdate;
 use bevy::prelude::With;
 use bevy::{
 	prelude::{
 		default, Added, App, BuildChildren, Bundle, Changed, Commands, Component,
-		Entity, Name, Plugin, PreUpdate, Query, RemovedComponents, Res, Transform,
-		Update,
-		IntoSystemConfigs,
+		Entity, IntoSystemConfigs, Name, Plugin, PreUpdate, Query, RemovedComponents,
+		Res, Transform, Update,
 	},
 	reflect::Reflect,
 	transform::TransformBundle,
 };
-use bevy::app::PostUpdate;
 
 use self::{assign::AvatarSelectPlugin, loading::AvatarLoadPlugin};
 use crate::controllers::KeyboardController;
@@ -34,8 +33,7 @@ impl Plugin for AvatarsPlugin {
 
 		if app.is_plugin_added::<social_networking::ClientPlugin>() {
 			app.add_systems(PreUpdate, (added_dm_entity, removed_dm_entity))
-				.add_systems(Update, (write_pose, read_pose).chain())
-			;
+				.add_systems(Update, (write_pose, read_pose).chain());
 		}
 	}
 }

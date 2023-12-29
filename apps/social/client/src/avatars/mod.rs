@@ -14,6 +14,7 @@ use bevy::{
 	reflect::Reflect,
 	transform::TransformBundle,
 };
+use bevy::app::PostUpdate;
 
 use self::{assign::AvatarSelectPlugin, loading::AvatarLoadPlugin};
 use crate::controllers::KeyboardController;
@@ -28,7 +29,8 @@ pub struct AvatarsPlugin;
 impl Plugin for AvatarsPlugin {
 	fn build(&self, app: &mut App) {
 		app.add_plugins((HumanoidPlugin, AvatarLoadPlugin, AvatarSelectPlugin))
-			.register_type::<DmEntity>();
+			.register_type::<DmEntity>()
+			.register_type::<LocalEntity>();
 
 		if app.is_plugin_added::<social_networking::ClientPlugin>() {
 			app.add_systems(PreUpdate, (added_dm_entity, removed_dm_entity))

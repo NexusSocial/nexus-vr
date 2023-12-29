@@ -18,7 +18,7 @@ impl Plugin for KeyboardControllerPlugin {
 		app.register_type::<Direction>()
 			.init_resource::<Direction>()
 			.add_systems(PreUpdate, direction_from_keys)
-			.add_systems(Update, move_controlled_entities);
+			.add_systems(PreUpdate, move_controlled_entities);
 	}
 }
 

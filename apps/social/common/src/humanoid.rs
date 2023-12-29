@@ -226,7 +226,7 @@ macro_rules! enum_helper {
 }
 
 enum_helper! {
-	/// See also https://github.com/vrm-c/vrm-specification/blob/57ba30bcb2638617d5ee655e35444caa299971bd/specification/VRMC_vrm-1.0/humanoid.md
+	/// See also <https://github.com/vrm-c/vrm-specification/blob/57ba30bcb2638617d5ee655e35444caa299971bd/specification/VRMC_vrm-1.0/humanoid.md>
 	#[derive(Reflect, Debug, Eq, PartialEq, Copy, Clone, Hash)]
 	pub enum BoneKind {
 		Neck,

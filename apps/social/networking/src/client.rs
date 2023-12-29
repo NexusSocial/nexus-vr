@@ -49,11 +49,11 @@ impl Plugin for ClientPlugin {
 			private_key: KEY,
 			protocol_id: PROTOCOL_ID,
 		};
-		let client_addr = SocketAddr::new(Ipv4Addr::LOCALHOST.into(), client_port);
+		let client_addr = SocketAddr::new(Ipv4Addr::UNSPECIFIED.into(), client_port);
 		let link_conditioner = LinkConditionerConfig {
-			incoming_latency: Duration::from_millis(100),
-			incoming_jitter: Duration::from_millis(5),
-			incoming_loss: 0.001,
+			incoming_latency: Duration::from_millis(0),
+			incoming_jitter: Duration::from_millis(0),
+			incoming_loss: 0.00,
 		};
 		let transport = match self.transport {
 			Transports::Udp => TransportConfig::UdpSocket(client_addr),
@@ -70,7 +70,7 @@ impl Plugin for ClientPlugin {
 			prediction: PredictionConfig::default(),
 			// we are sending updates every frame (60fps), let's add a delay of 6 network-ticks
 			interpolation: InterpolationConfig::default().with_delay(
-				InterpolationDelay::default().with_send_interval_ratio(2.0),
+				InterpolationDelay::default(), /*.with_send_interval_ratio(2.0),*/
 			),
 			// .with_delay(InterpolationDelay::Ratio(2.0)),
 		};

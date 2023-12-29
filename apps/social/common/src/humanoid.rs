@@ -1,10 +1,8 @@
 //! Handles description of humanoid rigs.
 
-use crate::macro_utils::unwrap_or_continue;
-use color_eyre::{
-	eyre::{bail, eyre},
-	Result,
-};
+use std::str::FromStr;
+
+use color_eyre::{eyre::bail, Result};
 
 use bevy::{
 	log::{error, warn},
@@ -32,55 +30,15 @@ impl Plugin for HumanoidPlugin {
 
 #[derive(Reflect, Component)]
 pub struct HumanoidRig {
-	pub entities: Bones<Entity>,
+	pub bone_map: BoneMap<Entity>,
 }
 
-#[derive(Reflect, Default)]
-pub struct Bones<T> {
-	pub head: T,
-	pub hand_l: T,
-	pub hand_r: T,
-	// TODO: Specify rest of skeleton
-}
+#[derive(Reflect)]
+pub struct BoneMap<T>(pub HashMap<BoneKind, T>);
 
-impl<T: Clone> Bones<T> {
-	fn clone_hash_map(&self) -> HashMap<BoneKind, T> {
-		let mut map = HashMap::with_capacity(3);
-		map.insert(BoneKind::Head, self.head.clone());
-		map.insert(BoneKind::LeftHand, self.hand_l.clone());
-		map.insert(BoneKind::RightHand, self.hand_r.clone());
-
-		map
-	}
-}
-
-impl<T> TryFrom<HashMap<BoneKind, T>> for Bones<T> {
-	/// The bone that was missing
-	type Error = BoneKind;
-
-	fn try_from(
-		mut value: HashMap<BoneKind, T>,
-	) -> std::result::Result<Self, Self::Error> {
-		Ok(Self {
-			head: value.remove(&BoneKind::Head).ok_or(BoneKind::Head)?,
-			hand_r: value
-				.remove(&BoneKind::RightHand)
-				.ok_or(BoneKind::RightHand)?,
-			hand_l: value
-				.remove(&BoneKind::LeftHand)
-				.ok_or(BoneKind::LeftHand)?,
-		})
-	}
-}
-
-impl<T> Bones<Option<T>> {
-	/// Returns `Some(Data<T>)` if all fields are `Some(T)`
-	pub fn all_some(self) -> Option<Bones<T>> {
-		Some(Bones {
-			head: self.head?,
-			hand_l: self.hand_l?,
-			hand_r: self.hand_r?,
-		})
+impl<T> Default for BoneMap<T> {
+	fn default() -> Self {
+		Self(HashMap::default())
 	}
 }
 
@@ -135,11 +93,11 @@ fn autoassign_from_vrm(
 				);
 				continue;
 			}
-			Ok(rig) => rig.clone_hash_map(),
+			Ok(rig) => rig,
 		};
 
-		let mut found_entities: HashMap<BoneKind, Entity> = default();
-		for (b, idx) in nodes.into_iter() {
+		let mut found_bones: HashMap<BoneKind, Entity> = default();
+		for (b, idx) in nodes.0.into_iter() {
 			let node_handle = &vrm.gltf.nodes[idx.0 as usize];
 			let Some((node_name, _)) = vrm
 				.gltf
@@ -156,13 +114,12 @@ fn autoassign_from_vrm(
 				panic!("no entity with the same name as the node ({node_name}) exists");
 			};
 
-			found_entities.insert(b, entity);
+			found_bones.insert(b, entity);
 		}
 
-		let bones = Bones::try_from(found_entities)
-			.expect("failed to extract all necessary bones");
-		cmds.entity(root_mesh)
-			.insert(HumanoidRig { entities: bones });
+		cmds.entity(root_mesh).insert(HumanoidRig {
+			bone_map: BoneMap(found_bones),
+		});
 	}
 }
 
@@ -171,12 +128,12 @@ struct GltfNodeIdx(u32);
 
 fn nodes_from_vrm0(
 	vrm: &bevy_vrm::extensions::vrm0::Vrm,
-) -> Result<Bones<GltfNodeIdx>> {
+) -> Result<BoneMap<GltfNodeIdx>> {
 	let Some(hb) = &vrm.humanoid.human_bones else {
 		bail!("vrm0 human_bones data missing")
 	};
 
-	let mut nodes: Bones<Option<GltfNodeIdx>> = default();
+	let mut nodes: BoneMap<GltfNodeIdx> = default();
 	for b in hb {
 		let Some(name) = b.name.as_deref() else {
 			continue;
@@ -184,28 +141,17 @@ fn nodes_from_vrm0(
 		let Some(node) = b.node.map(GltfNodeIdx) else {
 			continue;
 		};
-		match name {
-			"head" => {
-				nodes.head = Some(node);
-			}
-			"leftHand" => {
-				nodes.hand_l = Some(node);
-			}
-			"rightHand" => {
-				nodes.hand_r = Some(node);
-			}
-			_ => {}
-		}
+		let Ok(kind) = name.parse::<BoneKind>() else {
+			continue;
+		};
+		nodes.0.insert(kind, node);
 	}
-
-	nodes
-		.all_some()
-		.ok_or_else(|| eyre!("not all necessary bones were present!"))
+	Ok(nodes)
 }
 
 fn nodes_from_vrm1(
 	_vrm: &bevy_vrm::extensions::vrmc_vrm::VrmcVrm,
-) -> Result<Bones<GltfNodeIdx>> {
+) -> Result<BoneMap<GltfNodeIdx>> {
 	bail!("todo")
 }
 
@@ -242,41 +188,63 @@ fn autoassign_from_names(
 
 		// Now that we have a map of entity -> BoneKind as a list of candidates,
 		// pick winners and reverse the map to be BoneKind -> Entity.
-		// TODO: Do something smarter than just picking the first map entry.
-		let winners = Bones {
-			head: unwrap_or_continue!(map
-				.iter()
-				.find_map(|(k, v)| (*v == BoneKind::Head).then_some(*k))),
-			hand_l: unwrap_or_continue!(map
-				.iter()
-				.find_map(|(k, v)| (*v == BoneKind::LeftHand).then_some(*k))),
-			hand_r: unwrap_or_continue!(map
-				.iter()
-				.find_map(|(k, v)| (*v == BoneKind::RightHand).then_some(*k))),
-		};
+		// TODO: Do something smarter than just picking the last map entry.
+		let winners = BoneMap(
+			map.into_iter()
+				.map(|(entity, bone)| (bone, entity))
+				.collect(),
+		);
 
 		cmds.entity(root_mesh)
-			.insert(HumanoidRig { entities: winners });
+			.insert(HumanoidRig { bone_map: winners });
 	}
 }
 
-// See also https://github.com/vrm-c/vrm-specification/blob/57ba30bcb2638617d5ee655e35444caa299971bd/specification/VRMC_vrm-1.0/humanoid.md
-#[derive(Debug, Eq, PartialEq, Copy, Clone, Hash)]
-enum BoneKind {
-	Neck,
-	Hips,
-	Head,
-	Spine,
-	RightUpperArm,
-	LeftUpperArm,
-	RightLowerArm,
-	LeftLowerArm,
-	RightHand,
-	LeftHand,
-	RightUpperLeg,
-	LeftUpperLeg,
-	RightFoot,
-	LeftFoot,
+macro_rules! enum_helper {
+    (
+        $(#[$($attr:meta),*])*
+        $vis:vis enum $ident:ident {
+            $($variant:ident,)*
+        }
+    ) => {
+        $(#[$($attr),*])*
+        $vis enum $ident {
+            $($variant,)*
+        }
+
+        impl FromStr for $ident {
+            type Err = ();
+
+            fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+                Ok(match s {
+                    $(s if s.eq_ignore_ascii_case(stringify!($variant)) => Self::$variant,)*
+                    _ => return Err(()),
+                })
+            }
+        }
+    }
+}
+
+enum_helper! {
+	/// See also <https://github.com/vrm-c/vrm-specification/blob/57ba30bcb2638617d5ee655e35444caa299971bd/specification/VRMC_vrm-1.0/humanoid.md>
+	#[derive(Reflect, Debug, Eq, PartialEq, Copy, Clone, Hash)]
+	pub enum BoneKind {
+		Neck,
+		Hips,
+		Head,
+		Spine,
+		Chest,
+		RightUpperArm,
+		LeftUpperArm,
+		RightLowerArm,
+		LeftLowerArm,
+		RightHand,
+		LeftHand,
+		RightUpperLeg,
+		LeftUpperLeg,
+		RightFoot,
+		LeftFoot,
+	}
 }
 
 /// `scratch` is a working scratch space used to avoid allocations

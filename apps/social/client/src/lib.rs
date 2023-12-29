@@ -6,12 +6,12 @@ mod microphone;
 
 use bevy::app::PluginGroupBuilder;
 use bevy::log::{error, info};
-use bevy::pbr::CascadeShadowConfig;
+
 use bevy::prelude::{
 	bevy_main, default, shape, Added, App, AssetPlugin, Assets, Camera3dBundle, Color,
-	Commands, DirectionalLight, DirectionalLightBundle, Entity, EventWriter, Gizmos,
-	Mesh, PbrBundle, PluginGroup, PointLight, PointLightBundle, Quat, Query, Res,
-	ResMut, StandardMaterial, Startup, Update, Vec2, Vec3,
+	Commands, DirectionalLightBundle, Entity, EventWriter, Gizmos, Mesh, PbrBundle,
+	PluginGroup, Quat, Query, Res, ResMut, StandardMaterial, Startup, Update, Vec2,
+	Vec3,
 };
 use bevy::transform::components::Transform;
 use bevy::transform::TransformBundle;

@@ -71,10 +71,12 @@ fn try_audio_perms() {
 
 #[cfg(target_os = "android")]
 fn request_audio_perm() {
+	use jni::sys::jobject;
+
 	let ctx = ndk_context::android_context();
 	let vm = unsafe { jni::JavaVM::from_raw(ctx.vm().cast()) }.unwrap();
 	let mut env = vm.attach_current_thread().unwrap();
-	let activity = unsafe { JObject::from_raw(ctx.context() as jobject) };
+	let activity = unsafe { jni::objects::JObject::from_raw(ctx.context() as jobject) };
 
 	let class_manifest_perm = env.find_class("android/Manifest$permission").unwrap();
 	let lid_perm = env
@@ -90,13 +92,16 @@ fn request_audio_perm() {
 	env.set_object_array_element(&perm_list, 0, lid_perm)
 		.unwrap();
 
-	let a = JObject::from(perm_list);
+	let a = jni::objects::JObject::from(perm_list);
 
 	env.call_method(
 		activity,
 		"requestPermissions",
 		"([Ljava/lang/String;I)V",
-		&[a.as_ref().into(), JValue::Int(jint::from(1))],
+		&[
+			a.as_ref().into(),
+			jni::objects::JValue::Int(jni::sys::jint::from(1)),
+		],
 	)
 	.unwrap();
 }

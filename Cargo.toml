@@ -63,4 +63,4 @@ ndk = { git = "https://github.com/Schmarni-Dev/ndk.git", branch = "070" }
 ndk-sys = { package = "ndk-sys", git = "https://github.com/Schmarni-Dev/ndk.git", branch = "070" }
 ndk-context = { package = "ndk-context", git = "https://github.com/Schmarni-Dev/ndk.git", branch = "070" }
 ndk-glue = { package = "ndk-glue", git = "https://github.com/Schmarni-Dev/ndk.git", branch = "070" }
-bevy = { package = "bevy", git = "https://github.com/MalekiRe/bevy", branch = "release-0.12.1" }
+bevy_pbr = { package = "bevy_pbr", git = "https://github.com/MalekiRe/bevy", branch = "release-0.12.1" }

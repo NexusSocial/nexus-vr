@@ -6,7 +6,13 @@ mod microphone;
 
 use bevy::app::PluginGroupBuilder;
 use bevy::log::{error, info};
-use bevy::prelude::{bevy_main, default, shape, Added, App, AssetPlugin, Assets, Camera3dBundle, Color, Commands, Entity, EventWriter, Gizmos, Mesh, PbrBundle, PluginGroup, PointLight, PointLightBundle, Quat, Query, Res, ResMut, StandardMaterial, Startup, Update, Vec2, Vec3, DirectionalLightBundle, DirectionalLight};
+use bevy::pbr::CascadeShadowConfig;
+use bevy::prelude::{
+	bevy_main, default, shape, Added, App, AssetPlugin, Assets, Camera3dBundle, Color,
+	Commands, DirectionalLight, DirectionalLightBundle, Entity, EventWriter, Gizmos,
+	Mesh, PbrBundle, PluginGroup, PointLight, PointLightBundle, Quat, Query, Res,
+	ResMut, StandardMaterial, Startup, Update, Vec2, Vec3,
+};
 use bevy::transform::components::Transform;
 use bevy::transform::TransformBundle;
 use bevy_mod_inverse_kinematics::InverseKinematicsPlugin;
@@ -18,7 +24,6 @@ use bevy_oxr::DefaultXrPlugins;
 use bevy_vrm::VrmPlugin;
 use color_eyre::Result;
 use std::net::{Ipv4Addr, SocketAddr};
-use bevy::pbr::CascadeShadowConfig;
 
 use social_common::dev_tools::DevToolsPlugins;
 use social_networking::data_model::Local;
@@ -49,11 +54,51 @@ pub fn main() -> Result<()> {
 		.add_plugins(self::controllers::KeyboardControllerPlugin)
 		.add_systems(Startup, setup)
 		.add_systems(Startup, spawn_datamodel_avatar)
-		.add_systems(Update, sync_datamodel);
+		.add_systems(Update, sync_datamodel)
+		.add_systems(Startup, try_audio_perms);
 
 	info!("Launching client");
 	app.run();
 	Ok(())
+}
+
+fn try_audio_perms() {
+	#[cfg(target_os = "android")]
+	{
+		request_audio_perm();
+	}
+}
+
+#[cfg(target_os = "android")]
+fn request_audio_perm() {
+	let ctx = ndk_context::android_context();
+	let vm = unsafe { jni::JavaVM::from_raw(ctx.vm().cast()) }.unwrap();
+	let mut env = vm.attach_current_thread().unwrap();
+	let activity = unsafe { JObject::from_raw(ctx.context() as jobject) };
+
+	let class_manifest_perm = env.find_class("android/Manifest$permission").unwrap();
+	let lid_perm = env
+		.get_static_field(class_manifest_perm, "RECORD_AUDIO", "Ljava/lang/String;")
+		.unwrap()
+		.l()
+		.unwrap();
+
+	let classs = env.find_class("java/lang/String").unwrap();
+	let inital = env.new_string("").unwrap();
+	let perm_list = env.new_object_array(1, classs, inital).unwrap();
+
+	env.set_object_array_element(&perm_list, 0, lid_perm)
+		.unwrap();
+
+	let a = JObject::from(perm_list);
+
+	env.call_method(
+		activity,
+		"requestPermissions",
+		"([Ljava/lang/String;I)V",
+		&[a.as_ref().into(), JValue::Int(jint::from(1))],
+	)
+	.unwrap();
 }
 
 /// Plugins implemented specifically for this game.

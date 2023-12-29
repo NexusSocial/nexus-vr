@@ -1,7 +1,7 @@
 use bevy::{
 	prelude::{
 		Color, Component, Gizmos, Input, KeyCode, Plugin, PreUpdate, Query, Res,
-		ResMut, Resource, Transform, Update, Vec3, With,
+		ResMut, Resource, Transform, Vec3, With,
 	},
 	reflect::Reflect,
 	time::Time,

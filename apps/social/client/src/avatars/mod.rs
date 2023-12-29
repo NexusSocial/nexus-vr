@@ -3,7 +3,7 @@
 pub mod assign;
 mod loading;
 
-use bevy::app::PostUpdate;
+
 use bevy::prelude::With;
 use bevy::{
 	prelude::{

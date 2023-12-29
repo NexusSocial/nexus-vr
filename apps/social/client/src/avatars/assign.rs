@@ -21,7 +21,7 @@ impl Plugin for AvatarSelectPlugin {
 #[derive(Debug, Reflect, Event)]
 pub struct AssignAvatar {
 	/// The player
-	pub player: Entity,
+	pub avi_entity: Entity,
 	pub avi_url: String,
 }
 
@@ -30,7 +30,11 @@ fn on_assign(
 	mut select_evts: EventReader<AssignAvatar>,
 	asset_server: Res<AssetServer>,
 ) {
-	for evt @ AssignAvatar { player, avi_url } in select_evts.read() {
+	for evt @ AssignAvatar {
+		avi_entity: player,
+		avi_url,
+	} in select_evts.read()
+	{
 		debug!("{evt:?}");
 		// let mut transform = Transform::from_xyz(0.0, -1.0, -4.0);
 		// transform.rotate_y(PI);

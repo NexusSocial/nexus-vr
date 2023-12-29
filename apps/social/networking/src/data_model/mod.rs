@@ -53,7 +53,7 @@ pub struct PlayerAvatarUrl(pub Option<String>);
 	Reflect,
 	Default,
 )]
-pub struct Player;
+pub struct Avatar;
 
 #[derive(
 	Component,

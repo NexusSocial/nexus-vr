@@ -2,16 +2,13 @@ mod avatars;
 mod cli;
 mod player_management;
 
-use crate::avatars::Avatars;
-use crate::player_management::PlayerManagement;
-
 use bevy::app::PluginGroupBuilder;
 use bevy::diagnostic::LogDiagnosticsPlugin;
 use bevy::log::LogPlugin;
 use bevy::prelude::PluginGroup;
 use bevy::prelude::*;
 use bevy::render::camera::ScalingMode;
-use bevy::window::ExitCondition;
+
 use bevy_vrm::VrmPlugin;
 use clap::Parser;
 use color_eyre::Result;
@@ -32,27 +29,34 @@ pub fn main() -> Result<()> {
 	// Core bevy plugins
 	debug!("headless: {}", args.headless);
 	match args.headless {
-		true => app.add_plugins(DefaultPlugins.build().disable::<LogPlugin>().set(
-			WindowPlugin {
-				primary_window: None,
-				exit_condition: ExitCondition::DontExit,
-				close_when_requested: false,
-			},
-		)),
-		false => app.add_plugins(DefaultPlugins.build().disable::<LogPlugin>().set(
-			WindowPlugin {
-				primary_window: Some(Window {
-					title: "Nexus Server".to_string(),
+		true => {
+			app.add_plugins(MinimalPlugins.set(
+				bevy::app::ScheduleRunnerPlugin::run_loop(
+					std::time::Duration::from_secs_f64(1.0 / 60.0),
+				),
+			));
+		}
+		false => {
+			app.add_plugins(DefaultPlugins.build().disable::<LogPlugin>().set(
+				WindowPlugin {
+					primary_window: Some(Window {
+						title: "Nexus Server".to_string(),
+						..Default::default()
+					}),
 					..Default::default()
-				}),
-				..Default::default()
-			},
-		)),
+				},
+			));
+			app.add_plugins(VrmPlugin);
+			app.add_plugins(if !args.frame_timings {
+				DevToolsPlugins.build().disable::<LogDiagnosticsPlugin>()
+			} else {
+				DevToolsPlugins.build()
+			});
+		}
 	};
 
 	app.
         // Third party plugins
-        add_plugins(VrmPlugin)
 		// First party plugins
         // TODO: migrate to social_networking
 		// .add_plugins(MyServerPlugin {
@@ -60,14 +64,9 @@ pub fn main() -> Result<()> {
 		// 	transport: Transports::Udp,
 		// })
         // TODO: Finish functionality for this plugin and replace the above
-		.add_plugins(::social_networking::ServerPlugin::default())
-        .add_plugins(Avatars)
-        .add_plugins(PlayerManagement)
-        .add_plugins(if !args.frame_timings {
-            DevToolsPlugins.build().disable::<LogDiagnosticsPlugin>()
-        } else {
-            DevToolsPlugins.build()
-        });
+		add_plugins(::social_networking::ServerPlugin::default());
+	//.add_plugins(Avatars)
+	//.add_plugins(PlayerManagement);
 
 	match args.headless {
 		true => app.add_systems(Startup, setup_headless),

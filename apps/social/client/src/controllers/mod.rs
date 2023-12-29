@@ -1,7 +1,7 @@
 use bevy::{
 	prelude::{
 		Color, Component, Gizmos, Input, KeyCode, Plugin, PreUpdate, Query, Res,
-		ResMut, Resource, Transform, Update, Vec3, With,
+		ResMut, Resource, Transform, Vec3, With,
 	},
 	reflect::Reflect,
 	time::Time,
@@ -18,7 +18,7 @@ impl Plugin for KeyboardControllerPlugin {
 		app.register_type::<Direction>()
 			.init_resource::<Direction>()
 			.add_systems(PreUpdate, direction_from_keys)
-			.add_systems(Update, move_controlled_entities);
+			.add_systems(PreUpdate, move_controlled_entities);
 	}
 }
 

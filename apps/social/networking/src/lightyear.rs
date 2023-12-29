@@ -80,3 +80,5 @@ pub fn shared_config() -> SharedConfig {
         },
     }
 }
+
+pub use lightyear::prelude::client::Interpolated;

@@ -3,13 +3,12 @@
 pub mod assign;
 mod loading;
 
-use bevy::app::PostUpdate;
 use bevy::prelude::With;
 use bevy::{
 	prelude::{
 		default, Added, App, BuildChildren, Bundle, Changed, Commands, Component,
-		Entity, Name, Plugin, PreUpdate, Query, RemovedComponents, Res, Transform,
-		Update,
+		Entity, IntoSystemConfigs, Name, Plugin, PreUpdate, Query, RemovedComponents,
+		Res, Transform, Update,
 	},
 	reflect::Reflect,
 	transform::TransformBundle,
@@ -19,7 +18,7 @@ use self::{assign::AvatarSelectPlugin, loading::AvatarLoadPlugin};
 use crate::controllers::KeyboardController;
 
 use social_common::humanoid::HumanoidPlugin;
-use social_networking::data_model::{self as dm, AvatarBundle, Local};
+use social_networking::data_model::{self as dm, AvatarBundle};
 
 /// Plugins for the [`avatars`](self) module.
 #[derive(Default)]
@@ -28,12 +27,12 @@ pub struct AvatarsPlugin;
 impl Plugin for AvatarsPlugin {
 	fn build(&self, app: &mut App) {
 		app.add_plugins((HumanoidPlugin, AvatarLoadPlugin, AvatarSelectPlugin))
-			.register_type::<DmEntity>();
+			.register_type::<DmEntity>()
+			.register_type::<LocalEntity>();
 
 		if app.is_plugin_added::<social_networking::ClientPlugin>() {
 			app.add_systems(PreUpdate, (added_dm_entity, removed_dm_entity))
-				.add_systems(Update, write_pose)
-				.add_systems(PostUpdate, read_pose);
+				.add_systems(Update, (write_pose, read_pose).chain());
 		}
 	}
 }
@@ -99,10 +98,7 @@ fn write_pose(
 
 fn read_pose(
 	mut local_root_transforms: Query<&mut Transform, With<DmEntity>>,
-	poses: Query<
-		(&dm::PlayerPose, &LocalEntity),
-		(Changed<dm::PlayerPose>, With<Local>),
-	>,
+	poses: Query<(&dm::PlayerPose, &LocalEntity), Changed<dm::PlayerPose>>,
 ) {
 	for (player_pose, &LocalEntity(local_entity)) in poses.iter() {
 		let mut local_root_transform = local_root_transforms

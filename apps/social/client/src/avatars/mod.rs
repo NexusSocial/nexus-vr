@@ -3,7 +3,6 @@
 pub mod assign;
 mod loading;
 
-use bevy::app::PostUpdate;
 use bevy::prelude::With;
 use bevy::{
 	prelude::{
@@ -20,7 +19,7 @@ use self::{assign::AvatarSelectPlugin, loading::AvatarLoadPlugin};
 use crate::controllers::KeyboardController;
 
 use social_common::humanoid::HumanoidPlugin;
-use social_networking::data_model::{self as dm, AvatarBundle, Local};
+use social_networking::data_model::{self as dm, AvatarBundle};
 
 /// Plugins for the [`avatars`](self) module.
 #[derive(Default)]
@@ -100,10 +99,7 @@ fn write_pose(
 
 fn read_pose(
 	mut local_root_transforms: Query<&mut Transform, With<DmEntity>>,
-	poses: Query<
-		(&dm::PlayerPose, &LocalEntity),
-		(Changed<dm::PlayerPose>),
-	>,
+	poses: Query<(&dm::PlayerPose, &LocalEntity), Changed<dm::PlayerPose>>,
 ) {
 	for (player_pose, &LocalEntity(local_entity)) in poses.iter() {
 		let mut local_root_transform = local_root_transforms

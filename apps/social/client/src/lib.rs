@@ -6,12 +6,7 @@ mod microphone;
 
 use bevy::app::PluginGroupBuilder;
 use bevy::log::{error, info};
-use bevy::prelude::{
-	bevy_main, default, shape, Added, App, AssetPlugin, Assets, Camera3dBundle, Color,
-	Commands, Entity, EventWriter, Gizmos, Mesh, PbrBundle, PluginGroup, PointLight,
-	PointLightBundle, Quat, Query, Res, ResMut, StandardMaterial, Startup, Update,
-	Vec2, Vec3,
-};
+use bevy::prelude::{bevy_main, default, shape, Added, App, AssetPlugin, Assets, Camera3dBundle, Color, Commands, Entity, EventWriter, Gizmos, Mesh, PbrBundle, PluginGroup, PointLight, PointLightBundle, Quat, Query, Res, ResMut, StandardMaterial, Startup, Update, Vec2, Vec3, DirectionalLightBundle, DirectionalLight};
 use bevy::transform::components::Transform;
 use bevy::transform::TransformBundle;
 use bevy_mod_inverse_kinematics::InverseKinematicsPlugin;
@@ -23,6 +18,7 @@ use bevy_oxr::DefaultXrPlugins;
 use bevy_vrm::VrmPlugin;
 use color_eyre::Result;
 use std::net::{Ipv4Addr, SocketAddr};
+use bevy::pbr::CascadeShadowConfig;
 
 use social_common::dev_tools::DevToolsPlugins;
 use social_networking::data_model::Local;
@@ -158,7 +154,7 @@ fn setup(
 		..default()
 	});
 	// light
-	cmds.spawn(PointLightBundle {
+	/*cmds.spawn(PointLightBundle {
 		point_light: PointLight {
 			intensity: 1500.0,
 			shadows_enabled: true,
@@ -166,7 +162,16 @@ fn setup(
 		},
 		transform: Transform::from_xyz(4.0, 8.0, 4.0),
 		..default()
+	});*/
+
+	cmds.spawn(DirectionalLightBundle {
+		directional_light: DirectionalLight {
+			shadows_enabled: false,
+			..default()
+		},
+			..default()
 	});
+
 	// camera
 	cmds.spawn((
 		Camera3dBundle {

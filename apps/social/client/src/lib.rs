@@ -164,13 +164,7 @@ fn setup(
 		..default()
 	});*/
 
-	cmds.spawn(DirectionalLightBundle {
-		directional_light: DirectionalLight {
-			shadows_enabled: false,
-			..default()
-		},
-			..default()
-	});
+	cmds.spawn(DirectionalLightBundle::default());
 
 	// camera
 	cmds.spawn((

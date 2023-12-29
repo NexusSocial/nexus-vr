@@ -52,7 +52,7 @@ pub fn main() -> Result<()> {
 		.add_plugins(self::avatars::AvatarsPlugin)
 		.add_plugins(self::controllers::KeyboardControllerPlugin)
 		.add_systems(Startup, setup)
-		.add_systems(Startup, spawn_local_datamodel_player)
+		.add_systems(Startup, spawn_datamodel_avatar)
 		.add_systems(Update, sync_datamodel);
 
 	info!("Launching client");
@@ -94,44 +94,45 @@ pub fn log_on_err(result: Result<()>) {
 
 fn sync_datamodel(
 	mut cmds: Commands,
-	added_players: Query<
+	added_avis: Query<
 		(
 			Entity,
 			Option<&Local>,
 			Option<&social_networking::Interpolated>,
 		),
-		Added<social_networking::data_model::Player>,
+		Added<social_networking::data_model::Avatar>,
 	>,
 	mut assign_avi_evts: EventWriter<AssignAvatar>,
 ) {
 	// create our entities the local and verison, when we get a new entity from the
 	// network.
-	for (data_model_player, opt_local, opt_interp) in added_players.iter() {
-		if opt_local.is_none() && opt_interp.is_none() {
+	for (dm_avi_entity, local, interp) in added_avis.iter() {
+		if local.is_none() && interp.is_none() {
 			continue;
 		}
-		let dm_player = DmEntity(data_model_player);
+		let dm_avi_entity = DmEntity(dm_avi_entity);
 		// make sure the data model contains a mapping to the local, and vice versa
-		let local_player = LocalEntity(cmds.spawn(dm_player).id());
-		cmds.entity(dm_player.0).insert(local_player);
-		// spawn avatar on the local player entity
+		let local_avi_entity = LocalEntity(cmds.spawn(dm_avi_entity).id());
+		cmds.entity(dm_avi_entity.0).insert(local_avi_entity);
+		// spawn avatar on the local avatar entity
 		let avi_url = "https://vipe.mypinata.cloud/ipfs/QmU7QeqqVMgnMtCAqZBpAYKSwgcjD4gnx4pxFNY9LqA7KQ/default_398.vrm".to_owned();
 		assign_avi_evts.send(AssignAvatar {
-			player: local_player.0,
+			avi_entity: local_avi_entity.0,
 			avi_url,
 		});
-		if opt_local.is_some() {
-			cmds.entity(local_player.0).insert(LocalAvatar::default());
+		if local.is_some() {
+			cmds.entity(local_avi_entity.0)
+				.insert(LocalAvatar::default());
 		} else {
-			cmds.entity(local_player.0)
+			cmds.entity(local_avi_entity.0)
 				.insert(TransformBundle::default());
 		}
 	}
 }
 
-fn spawn_local_datamodel_player(mut cmds: Commands) {
+fn spawn_datamodel_avatar(mut cmds: Commands) {
 	cmds.spawn((
-		social_networking::data_model::Player,
+		social_networking::data_model::Avatar,
 		social_networking::data_model::Local,
 	));
 }
@@ -143,14 +144,6 @@ fn setup(
 	mut materials: ResMut<Assets<StandardMaterial>>,
 	/*mut assign_avi_evts: EventWriter<AssignAvatar>,*/
 ) {
-	/*let dm_entity = DmEntity(cmds.spawn_empty().id());
-	let local_avi = cmds.spawn((dm_entity, LocalAvatar::default())).id();
-	let avi_url = "https://vipe.mypinata.cloud/ipfs/QmU7QeqqVMgnMtCAqZBpAYKSwgcjD4gnx4pxFNY9LqA7KQ/default_398.vrm".to_owned();
-	assign_avi_evts.send(AssignAvatar {
-		player: local_avi,
-		avi_url,
-	});*/
-
 	// plane
 	cmds.spawn(PbrBundle {
 		mesh: meshes.add(shape::Plane::from_size(5.0).into()),

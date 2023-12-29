@@ -84,11 +84,13 @@ impl Plugin for ClientPlugin {
 	}
 }
 
+/// Tracks the client's lightyear ClientId.
 #[derive(Resource)]
-pub struct ClientIdRes(pub ClientId);
+struct ClientIdRes(ClientId);
+
 fn data_model_add_replicated(
 	mut cmds: Commands,
-	added_players: Query<Entity, (Added<data_model::Player>, With<Local>)>,
+	added_players: Query<Entity, (Added<data_model::Avatar>, With<Local>)>,
 	client_id: Res<ClientIdRes>,
 ) {
 	for added_player in added_players.iter() {

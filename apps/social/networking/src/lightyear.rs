@@ -34,7 +34,7 @@ pub enum Components {
 	#[sync(simple)]
 	PlayerAvatarUrl(data_model::PlayerAvatarUrl),
 	#[sync(simple)]
-	Player(data_model::Player),
+	Player(data_model::Avatar),
 	#[sync(simple)]
 	ClientIdComponent(data_model::ClientIdComponent),
 }

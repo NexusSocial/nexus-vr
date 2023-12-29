@@ -49,7 +49,7 @@ impl Plugin for ServerPlugin {
 		let root_entity = app.world.spawn(Name::new("DataModelRoot")).id();
 		app.insert_resource(DataModelRoot(root_entity));
 
-		let server_addr = SocketAddr::new(Ipv4Addr::LOCALHOST.into(), self.port);
+		let server_addr = SocketAddr::new(Ipv4Addr::UNSPECIFIED.into(), self.port);
 		let netcode_config = NetcodeConfig::default()
 			.with_protocol_id(PROTOCOL_ID)
 			.with_key(KEY);

@@ -58,3 +58,8 @@ opt-level = 2
 [patch.crates-io]
 # Adds `links` support
 openxr = { git = "https://github.com/Ralith/openxrs", rev = "361b27e" }
+
+ndk = { git = "https://github.com/Schmarni-Dev/ndk.git", branch = "070" }
+ndk-sys = { package = "ndk-sys", git = "https://github.com/Schmarni-Dev/ndk.git", branch = "070" }
+ndk-context = { package = "ndk-context", git = "https://github.com/Schmarni-Dev/ndk.git", branch = "070" }
+ndk-glue = { package = "ndk-glue", git = "https://github.com/Schmarni-Dev/ndk.git", branch = "070" }

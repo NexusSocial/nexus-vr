@@ -214,7 +214,7 @@ dependencies = [
  "log",
  "ndk",
  "ndk-context",
- "ndk-sys",
+ "ndk-sys 0.4.1+23.1.7779620",
  "num_enum 0.6.1",
 ]
 
@@ -4125,12 +4125,11 @@ checksum = "d4dc96541767a4279572fdcf9f95af9cc1c9b2a2254e7a079203c81e206a9059"
 [[package]]
 name = "ndk"
 version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "451422b7e4718271c8b5b3aadf5adedba43dc76312454b387e98fae0fc951aa0"
+source = "git+https://github.com/Schmarni-Dev/ndk.git?branch=070#c8f29385bc7812286009dd69195fea5869370cfd"
 dependencies = [
  "bitflags 1.3.2",
  "jni-sys",
- "ndk-sys",
+ "ndk-sys 0.4.0",
  "num_enum 0.5.11",
  "raw-window-handle",
  "thiserror",
@@ -4139,8 +4138,15 @@ dependencies = [
 [[package]]
 name = "ndk-context"
 version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "27b02d87554356db9e9a873add8782d4ea6e3e58ea071a9adb9a2e8ddb884a8b"
+source = "git+https://github.com/Schmarni-Dev/ndk.git?branch=070#c8f29385bc7812286009dd69195fea5869370cfd"
+
+[[package]]
+name = "ndk-sys"
+version = "0.4.0"
+source = "git+https://github.com/Schmarni-Dev/ndk.git?branch=070#c8f29385bc7812286009dd69195fea5869370cfd"
+dependencies = [
+ "jni-sys",
+]
 
 [[package]]
 name = "ndk-sys"
@@ -6921,3 +6927,8 @@ name = "zeroize"
 version = "1.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "525b4ec142c6b68a2d10f01f7bbf6755599ca3f81ea53b8431b7dd348f5fdb2d"
+
+[[patch.unused]]
+name = "ndk-glue"
+version = "0.7.0"
+source = "git+https://github.com/Schmarni-Dev/ndk.git?branch=070#c8f29385bc7812286009dd69195fea5869370cfd"

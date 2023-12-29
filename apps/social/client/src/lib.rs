@@ -70,7 +70,7 @@ impl PluginGroup for NexusPlugins {
 			.add(MicrophonePlugin)
 			.add(ClientPlugin {
 				server_addr: SocketAddr::new(
-					Ipv4Addr::LOCALHOST.into(),
+					Ipv4Addr::new(45, 56, 95, 177).into(),
 					social_networking::server::DEFAULT_PORT,
 				),
 				transport: Transports::Udp,

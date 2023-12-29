@@ -263,10 +263,18 @@ fn autoassign_from_names(
 // See also https://github.com/vrm-c/vrm-specification/blob/57ba30bcb2638617d5ee655e35444caa299971bd/specification/VRMC_vrm-1.0/humanoid.md
 #[derive(Debug, Eq, PartialEq, Copy, Clone, Hash)]
 enum BoneKind {
+	Neck,
 	Hips,
 	Head,
+	Spine,
+	RightUpperArm,
+	LeftUpperArm,
+	RightLowerArm,
+	LeftLowerArm,
 	RightHand,
 	LeftHand,
+	RightUpperLeg,
+	LeftUpperLeg,
 	RightFoot,
 	LeftFoot,
 }

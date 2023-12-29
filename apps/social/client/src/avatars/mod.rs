@@ -10,6 +10,7 @@ use bevy::{
 		default, Added, App, BuildChildren, Bundle, Changed, Commands, Component,
 		Entity, Name, Plugin, PreUpdate, Query, RemovedComponents, Res, Transform,
 		Update,
+		IntoSystemConfigs,
 	},
 	reflect::Reflect,
 	transform::TransformBundle,
@@ -32,8 +33,8 @@ impl Plugin for AvatarsPlugin {
 
 		if app.is_plugin_added::<social_networking::ClientPlugin>() {
 			app.add_systems(PreUpdate, (added_dm_entity, removed_dm_entity))
-				.add_systems(Update, write_pose)
-				.add_systems(Update, read_pose);
+				.add_systems(Update, (write_pose, read_pose).chain())
+			;
 		}
 	}
 }

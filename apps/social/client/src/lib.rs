@@ -34,14 +34,17 @@ use rodio::SpatialSink;
 use std::net::{Ipv4Addr, SocketAddr};
 
 use social_common::dev_tools::DevToolsPlugins;
-use social_networking::data_model::Local;
+use social_networking::data_model::{ClientIdComponent, Local};
 use social_networking::{ClientPlugin, Transports};
 
 use self::avatars::assign::AssignAvatar;
 use crate::avatars::{DmEntity, LocalAvatar, LocalEntity};
 use crate::custom_audio::audio_output::AudioOutput;
 use crate::custom_audio::microphone::MicrophoneAudio;
-use crate::custom_audio::spatial_audio::{SpatialAudioListener, SpatialAudioListenerBundle, SpatialAudioSink, SpatialAudioSinkBundle};
+use crate::custom_audio::spatial_audio::{
+	SpatialAudioListener, SpatialAudioListenerBundle, SpatialAudioSink,
+	SpatialAudioSinkBundle,
+};
 
 const ASSET_FOLDER: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../../assets/");
 
@@ -70,8 +73,8 @@ pub fn main() -> Result<()> {
 		.add_systems(Update, nuke_standard_material)
 		.add_systems(Update, vr_rimlight)
 		.add_systems(Update, going_dark);
-		// .add_systems(Startup, spawn_test_audio)
-		// .add_systems(Update, test_loopback_audio);
+	// .add_systems(Startup, spawn_test_audio)
+	// .add_systems(Update, test_loopback_audio);
 
 	info!("Launching client");
 	app.run();
@@ -158,7 +161,7 @@ impl PluginGroup for NexusPlugins {
 	fn build(self) -> PluginGroupBuilder {
 		PluginGroupBuilder::start::<Self>().add(ClientPlugin {
 			server_addr: SocketAddr::new(
-				Ipv4Addr::new(45, 56, 95, 177).into(),
+				/*Ipv4Addr::new(45, 56, 95, 177)*/ Ipv4Addr::LOCALHOST.into(),
 				social_networking::server::DEFAULT_PORT,
 			),
 			transport: Transports::Udp,
@@ -182,19 +185,21 @@ pub fn log_on_err(result: Result<()>) {
 
 fn sync_datamodel(
 	mut cmds: Commands,
+	mut audio_output: ResMut<AudioOutput>,
 	added_avis: Query<
 		(
 			Entity,
+			&ClientIdComponent,
 			Option<&Local>,
 			Option<&social_networking::Interpolated>,
 		),
-		Added<social_networking::data_model::Avatar>,
+		Added<social_networking::data_model::ClientIdComponent>,
 	>,
 	mut assign_avi_evts: EventWriter<AssignAvatar>,
 ) {
 	// create our entities the local and verison, when we get a new entity from the
 	// network.
-	for (dm_avi_entity, local, interp) in added_avis.iter() {
+	for (dm_avi_entity, client_id_component, local, interp) in added_avis.iter() {
 		if local.is_none() && interp.is_none() {
 			continue;
 		}
@@ -211,9 +216,31 @@ fn sync_datamodel(
 		if local.is_some() {
 			cmds.entity(local_avi_entity.0)
 				.insert(LocalAvatar::default());
+			cmds.entity(local_avi_entity.0).insert(SpatialAudioSink {
+				sink: SpatialSink::try_new(
+					audio_output.stream_handle.as_ref().unwrap(),
+					[0.0, 0.0, 0.0],
+					(Vec3::X * 4.0 / -2.0).to_array(),
+					(Vec3::X * 4.0 / 2.0).to_array(),
+				)
+				.unwrap(),
+			});
+			cmds.entity(local_avi_entity.0)
+				.insert(client_id_component.clone());
 		} else {
 			cmds.entity(local_avi_entity.0)
 				.insert(TransformBundle::default());
+			cmds.entity(local_avi_entity.0).insert(SpatialAudioSink {
+				sink: SpatialSink::try_new(
+					audio_output.stream_handle.as_ref().unwrap(),
+					[0.0, 0.0, 0.0],
+					(Vec3::X * 4.0 / -2.0).to_array(),
+					(Vec3::X * 4.0 / 2.0).to_array(),
+				)
+				.unwrap(),
+			});
+			cmds.entity(local_avi_entity.0)
+				.insert(client_id_component.clone());
 		}
 	}
 }

@@ -17,9 +17,9 @@ use bevy::{
 use self::{assign::AvatarSelectPlugin, loading::AvatarLoadPlugin};
 use crate::controllers::KeyboardController;
 
+use crate::custom_audio::spatial_audio::SpatialAudioListener;
 use social_common::humanoid::HumanoidPlugin;
 use social_networking::data_model::{self as dm, AvatarBundle};
-use crate::custom_audio::spatial_audio::SpatialAudioListener;
 
 /// Plugins for the [`avatars`](self) module.
 #[derive(Default)]

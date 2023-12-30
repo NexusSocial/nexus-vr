@@ -30,7 +30,7 @@ impl Default for MicrophoneConfig {
 	fn default() -> Self {
 		Self {
 			channels: 1,
-			sample_rate: 44_100,
+			sample_rate: 48_000,
 		}
 	}
 }

@@ -29,6 +29,7 @@ social-common.workspace = true
 social-networking.workspace = true
 derive_more.workspace = true
 opus.workspace = true
+audiopus_sys = { version = "0.2.0" , features = ["static"]}
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
 egui.workspace = true

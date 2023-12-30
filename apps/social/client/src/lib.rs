@@ -13,8 +13,8 @@ use bevy::log::{error, info};
 use bevy::pbr::{AmbientLight, DirectionalLight, PointLight};
 use bevy::prelude::{
 	bevy_main, default, Added, App, AssetPlugin, Assets, Camera3dBundle, Color,
-	Commands, DirectionalLightBundle, Entity, EventWriter, Gizmos, PluginGroup, Quat, Query, Res, ResMut, StandardMaterial, Startup, Update, Vec2,
-	Vec3,
+	Commands, DirectionalLightBundle, Entity, EventWriter, Gizmos, PluginGroup, Quat,
+	Query, Res, ResMut, StandardMaterial, Startup, Update, Vec2, Vec3,
 };
 use bevy::scene::SceneBundle;
 use bevy::transform::components::Transform;

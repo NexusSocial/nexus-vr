@@ -2,7 +2,8 @@
 
 mod avatars;
 mod controllers;
-mod microphone;
+mod custom_audio;
+mod voice_chat;
 
 use bevy::app::PluginGroupBuilder;
 use bevy::asset::Handle;
@@ -14,7 +15,7 @@ use bevy::pbr::{AmbientLight, DirectionalLight, PointLight};
 use bevy::prelude::{
 	bevy_main, default, Added, App, AssetPlugin, Assets, Camera3dBundle, Color,
 	Commands, DirectionalLightBundle, Entity, EventWriter, Gizmos, PluginGroup, Quat,
-	Query, Res, ResMut, StandardMaterial, Startup, Update, Vec2, Vec3,
+	Query, Res, ResMut, SpatialBundle, StandardMaterial, Startup, Update, Vec2, Vec3,
 };
 use bevy::scene::SceneBundle;
 use bevy::transform::components::Transform;
@@ -29,6 +30,7 @@ use bevy_oxr::DefaultXrPlugins;
 use bevy_vrm::mtoon::{MtoonMainCamera, MtoonMaterial};
 use bevy_vrm::VrmPlugin;
 use color_eyre::Result;
+use rodio::SpatialSink;
 use std::net::{Ipv4Addr, SocketAddr};
 
 use social_common::dev_tools::DevToolsPlugins;
@@ -37,8 +39,9 @@ use social_networking::{ClientPlugin, Transports};
 
 use self::avatars::assign::AssignAvatar;
 use crate::avatars::{DmEntity, LocalAvatar, LocalEntity};
-use crate::microphone::MicrophonePlugin;
-// use crate::voice_chat::VoiceChatPlugin;
+use crate::custom_audio::audio_output::AudioOutput;
+use crate::custom_audio::microphone::MicrophoneAudio;
+use crate::custom_audio::spatial_audio::{SpatialAudioListener, SpatialAudioListenerBundle, SpatialAudioSink, SpatialAudioSinkBundle};
 
 const ASSET_FOLDER: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../../assets/");
 
@@ -58,6 +61,8 @@ pub fn main() -> Result<()> {
 		.add_plugins(NexusPlugins)
 		.add_plugins(self::avatars::AvatarsPlugin)
 		.add_plugins(self::controllers::KeyboardControllerPlugin)
+		.add_plugins(self::custom_audio::CustomAudioPlugins)
+		.add_plugins(self::voice_chat::VoiceChatPlugin)
 		.add_systems(Startup, setup)
 		.add_systems(Startup, spawn_datamodel_avatar)
 		.add_systems(Update, sync_datamodel)
@@ -65,11 +70,41 @@ pub fn main() -> Result<()> {
 		.add_systems(Update, nuke_standard_material)
 		.add_systems(Update, vr_rimlight)
 		.add_systems(Update, going_dark);
+		// .add_systems(Startup, spawn_test_audio)
+		// .add_systems(Update, test_loopback_audio);
 
 	info!("Launching client");
 	app.run();
 	Ok(())
 }
+
+// fn spawn_test_audio(mut commands: Commands, mut audio_output: ResMut<AudioOutput>) {
+// 	commands.spawn(SpatialAudioSinkBundle {
+// 		spatial_audio_sink: SpatialAudioSink {
+// 			sink: SpatialSink::try_new(
+// 				audio_output.stream_handle.as_ref().unwrap(),
+// 				[0.0, 0.0, 0.0],
+// 				(Vec3::X * 4.0 / -2.0).to_array(),
+// 				(Vec3::X * 4.0 / 2.0).to_array(),
+// 			)
+// 			.unwrap(),
+// 		},
+// 		spatial_bundle: SpatialBundle {
+// 			transform: Transform::from_xyz(1.0, 0.0, 0.0),
+// 			..default()
+// 		},
+// 	});
+// 	// commands.spawn(SpatialAudioListenerBundle { spatial_audio_listener: SpatialAudioListener, spatial_bundle: Default::default() });
+// }
+// fn test_loopback_audio(mut microphone: ResMut<MicrophoneAudio>, spatial_audio_sink: Query<&SpatialAudioSink>) {
+// 	let spatial_audio_sink = spatial_audio_sink.single();
+// 	while let Ok( audio) = microphone.0.lock().unwrap().try_recv() {
+// 		spatial_audio_sink.sink.append(rodio::buffer::SamplesBuffer::new(1, 44100, audio));
+// 		spatial_audio_sink.sink.set_volume(1.0);
+// 		spatial_audio_sink.sink.set_speed(1.0);
+// 		spatial_audio_sink.sink.play();
+// 	}
+// }
 
 fn try_audio_perms() {
 	#[cfg(target_os = "android")]
@@ -121,15 +156,13 @@ struct NexusPlugins;
 
 impl PluginGroup for NexusPlugins {
 	fn build(self) -> PluginGroupBuilder {
-		PluginGroupBuilder::start::<Self>()
-			.add(MicrophonePlugin)
-			.add(ClientPlugin {
-				server_addr: SocketAddr::new(
-					Ipv4Addr::new(45, 56, 95, 177).into(),
-					social_networking::server::DEFAULT_PORT,
-				),
-				transport: Transports::Udp,
-			})
+		PluginGroupBuilder::start::<Self>().add(ClientPlugin {
+			server_addr: SocketAddr::new(
+				Ipv4Addr::new(45, 56, 95, 177).into(),
+				social_networking::server::DEFAULT_PORT,
+			),
+			transport: Transports::Udp,
+		})
 	}
 }
 
@@ -233,14 +266,14 @@ fn nuke_standard_material(
 				// shading_toony_factor: 0.0,
 				// shading_shift_factor: 0.0,
 				// light_dir: Vec3::ZERO,
-				..Default::default()
+				..default()
 			},
 			None => MtoonMaterial {
 				rim_lighting_mix_factor: 0.0,
 				parametric_rim_color: Color::BLACK,
 				parametric_rim_lift_factor: 0.0,
 				parametric_rim_fresnel_power: 0.0,
-				..Default::default()
+				..default()
 			},
 		};
 		let handle = mtoon_shaders.add(mtoon);

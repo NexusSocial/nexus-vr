@@ -5,7 +5,6 @@ mod controllers;
 mod microphone;
 
 use bevy::app::PluginGroupBuilder;
-use bevy::asset::saver::AssetSaver;
 use bevy::asset::Handle;
 use bevy::core::Name;
 use bevy::ecs::query::{With, Without};
@@ -13,9 +12,8 @@ use bevy::hierarchy::DespawnRecursiveExt;
 use bevy::log::{error, info};
 use bevy::pbr::{AmbientLight, DirectionalLight, PointLight};
 use bevy::prelude::{
-	bevy_main, default, shape, Added, App, AssetPlugin, Assets, Camera3dBundle, Color,
-	Commands, DirectionalLightBundle, Entity, EventWriter, Gizmos, Mesh, PbrBundle,
-	PluginGroup, Quat, Query, Res, ResMut, StandardMaterial, Startup, Update, Vec2,
+	bevy_main, default, Added, App, AssetPlugin, Assets, Camera3dBundle, Color,
+	Commands, DirectionalLightBundle, Entity, EventWriter, Gizmos, PluginGroup, Quat, Query, Res, ResMut, StandardMaterial, Startup, Update, Vec2,
 	Vec3,
 };
 use bevy::scene::SceneBundle;
@@ -25,7 +23,7 @@ use bevy_mod_inverse_kinematics::InverseKinematicsPlugin;
 use bevy_oxr::input::XrInput;
 use bevy_oxr::resources::XrFrameState;
 use bevy_oxr::xr_input::oculus_touch::OculusController;
-use bevy_oxr::xr_input::trackers::{OpenXRHMD, OpenXRRightEye};
+use bevy_oxr::xr_input::trackers::OpenXRRightEye;
 use bevy_oxr::xr_input::{QuatConv, Vec3Conv};
 use bevy_oxr::DefaultXrPlugins;
 use bevy_vrm::mtoon::{MtoonMainCamera, MtoonMaterial};
@@ -270,9 +268,9 @@ fn vr_rimlight(
 /// set up a simple 3D scene
 fn setup(
 	mut cmds: Commands,
-	mut meshes: ResMut<Assets<Mesh>>,
-	mut materials: ResMut<Assets<StandardMaterial>>,
-	mut asset_server: ResMut<bevy::prelude::AssetServer>,
+	// mut meshes: ResMut<Assets<Mesh>>,
+	// mut materials: ResMut<Assets<StandardMaterial>>,
+	asset_server: ResMut<bevy::prelude::AssetServer>,
 	/*mut assign_avi_evts: EventWriter<AssignAvatar>,*/
 ) {
 	cmds.insert_resource(AmbientLight {

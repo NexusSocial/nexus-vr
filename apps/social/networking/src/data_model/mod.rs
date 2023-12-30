@@ -66,7 +66,7 @@ pub struct Avatar;
 	Reflect,
 	Default,
 )]
-pub struct ClientIdComponent(pub(crate) lightyear::netcode::ClientId);
+pub struct ClientIdComponent(pub lightyear::netcode::ClientId);
 
 pub(crate) fn register_types(app: &mut App) {
 	app.register_type::<Local>()

@@ -44,6 +44,7 @@ serde = "1.0.193"
 social-common.path = "apps/social/common"
 social-networking.path = "apps/social/networking"
 tracing = "0.1.40"
+opus = "0.3.0"
 
 [profile.dev]
 # Enable a small amount of optimization in debug mode

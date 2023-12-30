@@ -17,6 +17,7 @@ use bevy::{
 use self::{assign::AvatarSelectPlugin, loading::AvatarLoadPlugin};
 use crate::controllers::KeyboardController;
 
+use crate::custom_audio::spatial_audio::SpatialAudioListener;
 use social_common::humanoid::HumanoidPlugin;
 use social_networking::data_model::{self as dm, AvatarBundle};
 
@@ -50,6 +51,7 @@ pub struct LocalAvatar {
 	pub name: Name,
 	pub transform: TransformBundle,
 	pub keeb_controller: KeyboardController,
+	pub spatial_audio_listener: SpatialAudioListener,
 }
 
 impl Default for LocalAvatar {
@@ -58,6 +60,7 @@ impl Default for LocalAvatar {
 			name: Name::from("Local Avatar"),
 			transform: default(),
 			keeb_controller: default(),
+			spatial_audio_listener: SpatialAudioListener,
 		}
 	}
 }

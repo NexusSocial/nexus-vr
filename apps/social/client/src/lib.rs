@@ -7,6 +7,7 @@ mod microphone;
 use bevy::app::PluginGroupBuilder;
 use bevy::asset::Handle;
 use bevy::core::Name;
+use bevy::ecs::component::Component;
 use bevy::ecs::query::{With, Without};
 use bevy::hierarchy::DespawnRecursiveExt;
 use bevy::log::{error, info};
@@ -38,6 +39,7 @@ use social_networking::{ClientPlugin, Transports};
 use self::avatars::assign::AssignAvatar;
 use crate::avatars::{DmEntity, LocalAvatar, LocalEntity};
 use crate::microphone::MicrophonePlugin;
+mod avatar_selection;
 // use crate::voice_chat::VoiceChatPlugin;
 
 const ASSET_FOLDER: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../../assets/");
@@ -170,8 +172,7 @@ fn sync_datamodel(
 		let local_avi_entity = LocalEntity(cmds.spawn(dm_avi_entity).id());
 		cmds.entity(dm_avi_entity.0).insert(local_avi_entity);
 		// spawn avatar on the local avatar entity
-		// let avi_url = "https://vipe.mypinata.cloud/ipfs/QmU7QeqqVMgnMtCAqZBpAYKSwgcjD4gnx4pxFNY9LqA7KQ/default_398.vrm".to_owned();
-		let avi_url = "https://cdn.discordapp.com/attachments/1190761425396830369/1190761745426428005/MF_Robot.vrm".to_owned();
+		let avi_url = "https://vipe.mypinata.cloud/ipfs/QmU7QeqqVMgnMtCAqZBpAYKSwgcjD4gnx4pxFNY9LqA7KQ/default_398.vrm".to_owned();
 		assign_avi_evts.send(AssignAvatar {
 			avi_entity: local_avi_entity.0,
 			avi_url,
@@ -196,8 +197,8 @@ fn spawn_datamodel_avatar(mut cmds: Commands) {
 fn going_dark(
 	mut cmds: Commands,
 	cam: Query<(Entity, &Name)>,
-	dir_light: Query<Entity, With<DirectionalLight>>,
-	point_light: Query<Entity, With<PointLight>>,
+	dir_light: Query<Entity, (With<DirectionalLight>, Without<AllowedLight>)>,
+	point_light: Query<Entity, (With<PointLight>, Without<AllowedLight>)>,
 ) {
 	for e in &dir_light {
 		cmds.entity(e).despawn_recursive();
@@ -207,7 +208,6 @@ fn going_dark(
 	}
 	for (e, name) in &cam {
 		if name.as_str() == "Main Camera" {
-			info!("Cam: {:?}", e);
 			cmds.entity(e).despawn_recursive();
 		}
 	}
@@ -229,11 +229,6 @@ fn nuke_standard_material(
 				parametric_rim_color: Color::BLACK,
 				parametric_rim_lift_factor: 0.0,
 				parametric_rim_fresnel_power: 0.0,
-				// shade_color: Color::DARK_GRAY,
-				// light_color: Color::GRAY,
-				// shading_toony_factor: 0.0,
-				// shading_shift_factor: 0.0,
-				// light_dir: Vec3::ZERO,
 				..Default::default()
 			},
 			None => MtoonMaterial {
@@ -257,14 +252,15 @@ fn vr_rimlight(
 	query2: Query<Entity, With<MtoonMainCamera>>,
 ) {
 	for e in &query {
-		info!("new bevy_mtoon cam: {:?}", e);
 		cmds.entity(e).insert(MtoonMainCamera);
 		for e in &query2 {
-			info!("Murdering {:?}", e);
 			cmds.entity(e).remove::<MtoonMainCamera>();
 		}
 	}
 }
+
+#[derive(Component)]
+struct AllowedLight;
 
 /// set up a simple 3D scene
 fn setup(

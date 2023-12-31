@@ -1,5 +1,6 @@
 #![allow(clippy::type_complexity)]
 
+mod ik;
 mod avatars;
 mod controllers;
 mod microphone;
@@ -35,6 +36,7 @@ use social_common::dev_tools::DevToolsPlugins;
 use social_networking::data_model::Local;
 use social_networking::{ClientPlugin, Transports};
 
+use self::ik::IKPlugin;
 use self::avatars::assign::AssignAvatar;
 use crate::avatars::{DmEntity, LocalAvatar, LocalEntity};
 use crate::microphone::MicrophonePlugin;
@@ -53,6 +55,7 @@ pub fn main() -> Result<()> {
 			..Default::default()
 		}))
 		.add_plugins(InverseKinematicsPlugin)
+		.add_plugins(IKPlugin)
 		.add_plugins(DevToolsPlugins)
 		.add_plugins(VrmPlugin)
 		.add_plugins(NexusPlugins)

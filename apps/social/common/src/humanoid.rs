@@ -70,7 +70,7 @@ const RIGHT_LEG_UPPER: usize = 18;
 const RIGHT_LEG_LOWER: usize = 19;
 const RIGHT_ARM_UPPER: usize = 20;
 const RIGHT_ARM_LOWER: usize = 21;
-const SKELETON_ARR_LEN: usize = 22;
+pub const SKELETON_ARR_LEN: usize = 22;
 
 const SKELETON_ARR_BONE_KIND: [BoneKind; SKELETON_ARR_LEN] = [
 	BoneKind::Head,
@@ -99,30 +99,30 @@ const SKELETON_ARR_BONE_KIND: [BoneKind; SKELETON_ARR_LEN] = [
 
 #[derive(Reflect, Copy, Clone)]
 pub struct Skeleton{
-	head: Transform,
-	hips: Transform,
-	spine: Transform,
-	chest: Option<Transform>,
-	upper_chest: Option<Transform>,
-	neck: Option<Transform>,
-	left: SkeletonSide,
-	right: SkeletonSide
+	pub head: Transform,
+	pub hips: Transform,
+	pub spine: Transform,
+	pub chest: Option<Transform>,
+	pub upper_chest: Option<Transform>,
+	pub neck: Option<Transform>,
+	pub left: SkeletonSide,
+	pub right: SkeletonSide
 }
 
 #[derive(Reflect, Copy, Clone)]
 pub struct SkeletonSide {
-	shoulder: Option<Transform>,
-	eye: Transform,
-	leg: Limb,
-	arm: Limb,
-	foot: Transform,
-	hand: Transform,
+	pub shoulder: Option<Transform>,
+	pub eye: Transform,
+	pub leg: Limb,
+	pub arm: Limb,
+	pub foot: Transform,
+	pub hand: Transform,
 }
 
 #[derive(Reflect, Copy, Clone)]
 pub struct Limb {
-	upper: Transform,
-	lower: Transform
+	pub upper: Transform,
+	pub lower: Transform
 }
 
 impl Skeleton {

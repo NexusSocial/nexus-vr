@@ -19,6 +19,7 @@ use lightyear::prelude::{
 	ClientId, Io, IoConfig, LinkConditionerConfig, NetworkTarget, PingConfig,
 	Replicate, TransportConfig,
 };
+use serde::{Deserialize, Serialize};
 
 use crate::data_model::Local;
 use crate::lightyear::{MyProtocol, ServerToClientAudioMsg};
@@ -122,10 +123,14 @@ impl Plugin for ClientVoiceChat {
 	}
 }
 #[derive(Event)]
-pub struct ClientToServerVoiceMsg(pub Vec<u8>);
+pub struct ClientToServerVoiceMsg(pub Vec<u8>, pub Channels);
+
+#[derive(Clone, Copy, PartialEq, Debug, Serialize,
+Deserialize)]
+pub struct Channels(pub u16);
 
 #[derive(Event)]
-pub struct ServerToClientVoiceMsg(pub ClientId, pub Vec<u8>);
+pub struct ServerToClientVoiceMsg(pub ClientId, pub Vec<u8>, pub Channels);
 
 fn send_client_to_server_voice_msg(
 	mut client: ResMut<lightyear::client::resource::Client<MyProtocol>>,
@@ -134,7 +139,7 @@ fn send_client_to_server_voice_msg(
 	for audio_msg in event_reader.read() {
 		client
 			.send_message::<crate::lightyear::AudioChannel, _>(
-				crate::lightyear::ClientToServerAudioMsg(audio_msg.0.clone()),
+				crate::lightyear::ClientToServerAudioMsg(audio_msg.0.clone(), audio_msg.1.clone()),
 			)
 			.expect("unable to send message");
 	}
@@ -148,6 +153,6 @@ fn rec_server_voice_msgs(
 		let msg = msg.message();
 		let client_id = msg.0;
 		let audio = msg.1.clone();
-		event_writer.send(ServerToClientVoiceMsg(client_id, audio));
+		event_writer.send(ServerToClientVoiceMsg(client_id, audio, msg.2.clone()));
 	}
 }

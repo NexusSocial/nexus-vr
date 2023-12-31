@@ -40,9 +40,7 @@ use social_networking::{ClientPlugin, Transports};
 use self::avatars::assign::AssignAvatar;
 use crate::avatars::{DmEntity, LocalAvatar, LocalEntity};
 use crate::custom_audio::audio_output::AudioOutput;
-use crate::custom_audio::spatial_audio::
-	SpatialAudioSink
-;
+use crate::custom_audio::spatial_audio::SpatialAudioSink;
 
 const ASSET_FOLDER: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../../assets/");
 

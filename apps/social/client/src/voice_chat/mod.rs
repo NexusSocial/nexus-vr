@@ -1,6 +1,6 @@
 use crate::custom_audio::microphone::MicrophoneAudio;
 use crate::custom_audio::spatial_audio::SpatialAudioSink;
-use bevy::app::{App, PreUpdate};
+use bevy::app::App;
 use bevy::prelude::{
 	EventReader, EventWriter, Local, NonSendMut, Query, ResMut, Resource, Update, With,
 };
@@ -35,7 +35,7 @@ unsafe impl Sync for MicrophoneDecoder {}
 
 fn send_voice_msg(
 	mut encoder: NonSendMut<MicrophoneEncoder>,
-	mut microphone: ResMut<MicrophoneAudio>,
+	microphone: ResMut<MicrophoneAudio>,
 	mut event_writer: EventWriter<ClientToServerVoiceMsg>,
 	mut local_size: Local<Vec<f32>>,
 ) {

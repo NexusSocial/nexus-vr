@@ -21,7 +21,7 @@ use lightyear::prelude::{
 };
 
 use crate::data_model::Local;
-use crate::lightyear::{ClientToServerAudioMsg, MyProtocol, ServerToClientAudioMsg};
+use crate::lightyear::{MyProtocol, ServerToClientAudioMsg};
 use crate::{
 	data_model as dm, data_model,
 	lightyear::{protocol, shared_config},

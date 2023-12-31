@@ -1,11 +1,8 @@
 use bevy::app::App;
 use bevy::log::error;
+#[allow(deprecated)]
 use bevy::prelude::{warn, Commands, Resource, Startup};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use cpal::{
-	Device, SupportedInputConfigs, SupportedStreamConfigRange,
-	SupportedStreamConfigsError,
-};
 use std::sync::mpsc::{channel, Receiver};
 use std::sync::Mutex;
 

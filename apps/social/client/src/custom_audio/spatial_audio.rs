@@ -1,5 +1,6 @@
 use bevy::app::App;
 use bevy::ecs::query::QuerySingleError;
+#[allow(deprecated)]
 use bevy::prelude::{
 	warn, Bundle, Changed, Component, GlobalTransform, Query, SpatialBundle, Update,
 	With,
@@ -55,7 +56,7 @@ fn set_spatial_audio_sink_pos(
 		},
 	};
 	let spatial_audio_listener_translation = spatial_audio_listener.translation();
-	for (mut spatial_audio_sink, global_transform) in spatial_audio_sinks.iter_mut() {
+	for (spatial_audio_sink, global_transform) in spatial_audio_sinks.iter_mut() {
 		let spatial_audio_sink_translation = global_transform.translation();
 		let emitter_position =
 			spatial_audio_listener_translation - spatial_audio_sink_translation;

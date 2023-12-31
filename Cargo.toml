@@ -32,10 +32,15 @@ bevy_mod_raycast = "0.16.0"
 bevy_oxr = { git = "https://github.com/awtterpip/bevy_oxr", rev = "265696b", default-features = false }
 bevy_picking_core = "0.17.0"
 bevy_vrm = "0.0.7"
-bevy_web_asset = { git = "https://github.com/johanhelsing/bevy_web_asset"}
+bevy_web_asset = { git = "https://github.com/johanhelsing/bevy_web_asset" }
 clap = { version = "4.4.11", features = ["derive"] }
 color-eyre = "0.6"
-derive_more = { version = "0.99", default-features = false, features = ["add", "mul", "deref", "deref_mut"] }
+derive_more = { version = "0.99", default-features = false, features = [
+	"add",
+	"mul",
+	"deref",
+	"deref_mut",
+] }
 egui = "0.23"
 lightyear = "0.5.1"
 openxr = "0.17"
@@ -44,7 +49,7 @@ serde = "1.0.193"
 social-common.path = "apps/social/common"
 social-networking.path = "apps/social/networking"
 tracing = "0.1.40"
-opus = "0.3.0"
+opus = { git ="https://github.com/Schmarni-Dev/opus-rs", branch = "unsafe-libopus",default-features = false,features = ["unsafe-libopus-backend"] }
 
 [profile.dev]
 # Enable a small amount of optimization in debug mode

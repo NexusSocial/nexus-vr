@@ -40,6 +40,6 @@ Plug in headset to PC, allow usb debugging, and then:
 ```sh
 adb connect <device_ip> # Optional, allows wireless debugging
 x devices # ensure your device is listed
-x run --device <device_id_from_above> -p openxr-6dof --release
+x run --device <device_id_from_above> -p social-client --release
 ```
 

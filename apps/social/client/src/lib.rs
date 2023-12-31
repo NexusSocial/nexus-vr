@@ -1,5 +1,6 @@
 #![allow(clippy::type_complexity)]
 
+mod ik;
 mod avatars;
 mod controllers;
 mod custom_audio;
@@ -37,6 +38,7 @@ use social_common::dev_tools::DevToolsPlugins;
 use social_networking::data_model::{ClientIdComponent, Local};
 use social_networking::{ClientPlugin, Transports};
 
+use self::ik::IKPlugin;
 use self::avatars::assign::AssignAvatar;
 use crate::avatars::{DmEntity, LocalAvatar, LocalEntity};
 use crate::custom_audio::audio_output::AudioOutput;
@@ -55,6 +57,7 @@ pub fn main() -> Result<()> {
 			..Default::default()
 		}))
 		.add_plugins(InverseKinematicsPlugin)
+		.add_plugins(IKPlugin)
 		.add_plugins(DevToolsPlugins)
 		.add_plugins(VrmPlugin)
 		.add_plugins(NexusPlugins)
@@ -204,7 +207,7 @@ fn sync_datamodel(
 		let local_avi_entity = LocalEntity(cmds.spawn(dm_avi_entity).id());
 		cmds.entity(dm_avi_entity.0).insert(local_avi_entity);
 		// spawn avatar on the local avatar entity
-		let avi_url = "https://vipe.mypinata.cloud/ipfs/QmU7QeqqVMgnMtCAqZBpAYKSwgcjD4gnx4pxFNY9LqA7KQ/default_398.vrm".to_owned();
+		let avi_url = "https://cdn.discordapp.com/attachments/1190761425396830369/1190863195418677359/malek.vrm".to_owned();
 		assign_avi_evts.send(AssignAvatar {
 			avi_entity: local_avi_entity.0,
 			avi_url,

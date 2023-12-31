@@ -112,6 +112,7 @@ fn re_broadcast_audio(
 	for message in messages.read() {
 		let id2 = *message.context();
 		let audio = message.message().clone().0;
+		let channels = message.message().1;
 		for id in server.client_ids().collect::<Vec<_>>() {
 			if id == id2 {
 				continue;
@@ -119,7 +120,7 @@ fn re_broadcast_audio(
 			server
 				.send_message::<AudioChannel, _>(
 					id,
-					ServerToClientAudioMsg(id2, audio.clone()),
+					ServerToClientAudioMsg(id2, audio.clone(), channels),
 				)
 				.unwrap();
 		}

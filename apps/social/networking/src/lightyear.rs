@@ -26,10 +26,10 @@ protocolize! {
 }
 
 #[derive(Message, Serialize, Deserialize, Clone, Debug, PartialEq)]
-pub struct ClientToServerAudioMsg(pub Vec<u8>);
+pub struct ClientToServerAudioMsg(pub Vec<u8>, pub Channels);
 
 #[derive(Message, Serialize, Deserialize, Clone, Debug, PartialEq)]
-pub struct ServerToClientAudioMsg(pub ClientId, pub Vec<u8>);
+pub struct ServerToClientAudioMsg(pub ClientId, pub Vec<u8>, pub Channels);
 
 #[message_protocol(protocol = "MyProtocol")]
 pub enum Messages {
@@ -93,3 +93,4 @@ pub fn shared_config() -> SharedConfig {
 
 pub use lightyear::prelude::client::Interpolated;
 use lightyear::prelude::Message;
+use crate::client::Channels;

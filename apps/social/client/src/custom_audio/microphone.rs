@@ -5,6 +5,7 @@ use bevy::prelude::{warn, Commands, Resource, Startup};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use std::sync::mpsc::{channel, Receiver};
 use std::sync::Mutex;
+use bevy::prelude::info;
 
 pub struct MicrophonePlugin;
 
@@ -33,7 +34,7 @@ impl Default for MicrophoneConfig {
 }
 
 pub fn create_microphone(mut commands: Commands) {
-	let microphone_config = MicrophoneConfig::default();
+	let mut microphone_config = MicrophoneConfig::default();
 
 	// we wanna share the output from our thread loop thing in here continuously with the rest of bevy.
 	let (tx, rx) = channel();
@@ -49,11 +50,24 @@ pub fn create_microphone(mut commands: Commands) {
 			Ok(configs) => configs,
 			Err(err) => return warn!("supported stream config error, microphone functionality will be disabled, error: {}", err),
 		};
+		for config in configs {
+			warn!("supported microphone config: {:#?}", config);
+		}
+		let mut configs = match device.supported_input_configs() {
+			Ok(configs) => configs,
+			Err(err) => return warn!("supported stream config error, microphone functionality will be disabled, error: {}", err),
+		};
+
+		#[cfg(target_os = "android")]
+		{
+			microphone_config.channels = 2;
+		}
+
 		let config = match configs
             .find(|c| {
                 c.sample_format() == cpal::SampleFormat::F32 && c.channels() == microphone_config.channels
-                 && c.min_sample_rate().0 < microphone_config.sample_rate
-                 && c.max_sample_rate().0 > microphone_config.sample_rate
+                 && c.min_sample_rate().0 <= microphone_config.sample_rate
+                 && c.max_sample_rate().0 >= microphone_config.sample_rate
             })
         {
             None => return warn!("microphone config of {:?} not supported, microphone functionality will be disabled", microphone_config),

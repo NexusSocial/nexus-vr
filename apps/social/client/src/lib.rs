@@ -161,7 +161,7 @@ impl PluginGroup for NexusPlugins {
 	fn build(self) -> PluginGroupBuilder {
 		PluginGroupBuilder::start::<Self>().add(ClientPlugin {
 			server_addr: SocketAddr::new(
-				Ipv4Addr::new(45, 79, 142, 199).into(),
+				Ipv4Addr::new(45, 56, 95, 177).into(),
 				social_networking::server::DEFAULT_PORT,
 			),
 			transport: Transports::Udp,

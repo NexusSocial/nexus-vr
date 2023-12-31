@@ -1,9 +1,9 @@
 #![allow(clippy::type_complexity)]
 
-mod ik;
 mod avatars;
 mod controllers;
 mod custom_audio;
+mod ik;
 mod voice_chat;
 
 use bevy::app::PluginGroupBuilder;
@@ -38,8 +38,8 @@ use social_common::dev_tools::DevToolsPlugins;
 use social_networking::data_model::{ClientIdComponent, Local};
 use social_networking::{ClientPlugin, Transports};
 
-use self::ik::IKPlugin;
 use self::avatars::assign::AssignAvatar;
+use self::ik::IKPlugin;
 use crate::avatars::{DmEntity, LocalAvatar, LocalEntity};
 use crate::custom_audio::audio_output::AudioOutput;
 use crate::custom_audio::spatial_audio::SpatialAudioSink;
@@ -160,7 +160,7 @@ impl PluginGroup for NexusPlugins {
 	fn build(self) -> PluginGroupBuilder {
 		PluginGroupBuilder::start::<Self>().add(ClientPlugin {
 			server_addr: SocketAddr::new(
-				Ipv4Addr::new(45, 56, 95, 177).into(),
+				Ipv4Addr::new(45, 79, 142, 199).into(),
 				social_networking::server::DEFAULT_PORT,
 			),
 			transport: Transports::Udp,

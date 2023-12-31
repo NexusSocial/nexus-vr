@@ -5,8 +5,12 @@ use color_eyre::eyre;
 use eyre::eyre;
 use bevy::transform::components::{Transform, GlobalTransform};
 use social_common::humanoid::{SKELETON_ARR_LEN, HumanoidRig, BoneKind, Skeleton};
-use social_networking::data_model::PlayerPose;
 use crate::controllers::KeyboardController;
+use bevy_oxr::xr_input::oculus_touch::OculusController;
+use bevy_oxr::xr_input::{QuatConv, Vec3Conv};
+use bevy_oxr::input::XrInput;
+use bevy_oxr::resources::XrFrameState;
+use bevy_oxr::xr_input::trackers::OpenXRTrackingRoot;
 
 use bevy::prelude::*;
 
@@ -79,23 +83,51 @@ fn quat_from_vectors(plus_x: Vec3, plus_z: Vec3) -> Quat{
 
 
 fn update_ik(
-	skeleton_query: Query<(&HumanoidRig, &PlayerPose, With<KeyboardController>)>,
-	mut transforms: Query<(&mut Transform, With<BoneKind>)>,
+	avatar: Query<(Entity, With<KeyboardController>)>,
+	avatar_children: Query<&Children>,
+	skeleton_query: Query<(&HumanoidRig, &GlobalTransform)>,
+	oculus_controller: Res<OculusController>,
+	frame_state: Res<XrFrameState>,
+	xr_input: Res<XrInput>,
+	mut transforms: Query<(&mut Transform, &GlobalTransform, With<BoneKind>, Without<OpenXRTrackingRoot>)>,
+	mut tracking_root: Query<(&mut Transform, With<OpenXRTrackingRoot>)>,
 ) {
 	let mut func = || -> color_eyre::Result<()> {
-		// system should loop harmlessly until a SkeletonComponent is added
-		let mut skeleton_query_count = 0;
-		for _ in skeleton_query.iter() {
-			skeleton_query_count += 1;
+		let mut skeleton_query_opt: Option<(&HumanoidRig, &GlobalTransform)> = None;
+		for (e, _) in avatar.iter() {
+			for child in avatar_children.iter_descendants(e) {
+				if let Ok(vrm) = skeleton_query.get(child) {
+					skeleton_query_opt = Some(vrm);
+					break;
+				}
+			}
 		}
-		if skeleton_query_count == 0 {return Ok(())}
-		let skeleton_query_out = skeleton_query.single();
-        let player_pose = skeleton_query_out.1;
-		let skeleton_query_out = skeleton_query.single();
+		// system should loop harmlessly until a SkeletonComponent is added
+		let skeleton_query_out = match skeleton_query_opt {
+			Some(q) => q,
+			None => return Ok(())
+		};
+		let root = skeleton_query_out.1;
 		let skeleton_comp = skeleton_query_out.0;
 		let height_factor = skeleton_comp.height / DEFAULT_EYE_HEIGHT;
+		for mut root in tracking_root.iter_mut(){
+			root.0.scale = Vec3::ONE * height_factor;
+		}
+		let frame_state = *frame_state.lock().unwrap();
+		let headset_input = xr_input
+			.head
+			.relate(&xr_input.stage, frame_state.predicted_display_time);
+		let right_controller_input = oculus_controller
+			.grip_space.as_ref().unwrap()
+			.right
+			.relate(&xr_input.stage, frame_state.predicted_display_time);
+		let left_controller_input = oculus_controller
+			.grip_space.as_ref().unwrap()
+			.left
+			.relate(&xr_input.stage, frame_state.predicted_display_time);
 		// read the state of the skeleton from the transforms
 		let mut skeleton_transform_array: [Option<Transform>; SKELETON_ARR_LEN] = Default::default();
+		let mut skeleton_root_array: [Option<Transform>; SKELETON_ARR_LEN] = Default::default();
 		let mut found_nan: bool = false;
 		let test = true;
 		fn contains_nan(input: Vec3) -> bool {
@@ -107,6 +139,7 @@ fn update_ik(
 		for i in 0..SKELETON_ARR_LEN {
 			let entity = match skeleton_comp.entities[i] {Some(e) => e, None => continue};
 			skeleton_transform_array[i] = Some(*transforms.get(entity)?.0);
+			skeleton_root_array[i] = Some(transforms.get(entity)?.1.reparented_to(root));
 			if test {
 				match skeleton_transform_array[i] {
 					Some(t) => {
@@ -126,32 +159,80 @@ fn update_ik(
 					None => {}
 				}
 			}
+			match skeleton_root_array[i] {
+				Some(t) => if t.translation.x.is_nan() || t.translation.y.is_nan() || t.translation.z.is_nan() {
+					println!("Incoming root transform {:?} contained a NaN", i);
+					found_nan = true;
+				},
+				None => {}
+			}
 		}
 		if found_nan {
 			panic!("Found a NaN, details precede. Exiting.")
 		}
 		let mut skeleton = Skeleton::new(skeleton_transform_array)?;
+		let mut root_skeleton = Skeleton::new(skeleton_root_array)?;
 		// it's confusing to me that this is a z axis rotation? I would expect z axis to be roll. The forward vector of the hands must be fucky.
 		let flip_quat_l = Quat::from_rotation_z(PI/2.);
 		let flip_quat_r = Quat::from_rotation_z(-PI/2.);
 		// At this point, the skeleton is known to be valid; next, handle VR input
-		let final_head = Transform {
-            // the `* height_factor` should be unnecessary, but scaling the tracking root currently only scales view position and not
-            // input position
-            translation: player_pose.head.trans * height_factor,
-            rotation: player_pose.head.rot,
-            scale: skeleton.head.scale,
-        };
-		let final_left_hand = Transform {
-            translation: player_pose.hand_l.trans * height_factor,
-            rotation: player_pose.hand_l.rot,
-            scale: skeleton.left.hand.scale,
-        };
-		let final_right_hand = Transform {
-            translation: player_pose.hand_r.trans * height_factor,
-            rotation: player_pose.hand_r.rot,
-            scale: skeleton.left.hand.scale,
-        };
+		let testing_input_override = false;
+		let final_head = if testing_input_override {
+			Transform::IDENTITY.with_translation(Vec3::Y * 1.3 * height_factor)
+		} else {match headset_input {
+			Ok(input) => {
+				if (input.0.location_flags.into_raw()&0b1111)^0b1111 == 0 {
+					let head_rot = input.0.pose.orientation.to_quat();
+					let in_pos = input.0.pose.position.to_vec3() * height_factor;
+					let head_offset = (skeleton.left.eye.translation + skeleton.right.eye.translation)/2.;
+					let head_pos = in_pos - head_rot * head_offset;
+					let transform = Transform {
+						translation: head_pos,
+						rotation: head_rot,
+						scale: skeleton.head.scale,
+					};
+					transform
+				}
+				else {
+					root_skeleton.head
+				}
+			},
+			Err(_) => root_skeleton.head
+		}};
+		let final_left_hand = if testing_input_override {
+			Transform::IDENTITY.with_translation(Vec3::new(-0.4, 0.8, -0.4)*height_factor)
+		} else {match left_controller_input {
+			Ok(input) => {
+				if (input.0.location_flags.into_raw()&0b1111)^0b1111 == 0 {
+					Transform {
+						translation: input.0.pose.position.to_vec3() * height_factor,
+						rotation: input.0.pose.orientation.to_quat(),
+						scale: skeleton.left.hand.scale,
+					}
+				}
+				else {
+					root_skeleton.left.hand.with_rotation(flip_quat_l*root_skeleton.left.hand.rotation)
+				}
+			},
+			Err(_) => root_skeleton.left.hand
+		}};
+		let final_right_hand =  if testing_input_override {
+			Transform::IDENTITY.with_translation(Vec3::new(0., 0.8, -0.4)*height_factor)
+		} else {match right_controller_input {
+			Ok(input) => {
+				if (input.0.location_flags.into_raw()&0b1111)^0b1111 == 0 {
+					Transform {
+						translation: input.0.pose.position.to_vec3() * height_factor,
+						rotation: input.0.pose.orientation.to_quat(),
+						scale: skeleton.right.hand.scale,
+					}
+				}
+				else {
+					root_skeleton.right.hand.with_rotation(flip_quat_r*root_skeleton.right.hand.rotation)
+				}
+			},
+			Err(_) => root_skeleton.right.hand
+		}};
 		// now everything is set up and IK logic can begin.
 		let head_rot_euler = (skeleton_comp.root_defaults.head.rotation.inverse() * final_head.rotation).to_euler(EulerRot::YXZ);
 		let mut chest_pitch = (skeleton_comp.height - final_head.translation.y) / skeleton_comp.height;
@@ -202,7 +283,7 @@ fn update_ik(
 		// calculate position of shoulders and head relative to root
 		drop(skeleton_sides);
 		skeleton.head.rotation = skeleton_comp.defaults.head.rotation;
-		let mut root_skeleton = skeleton.recalculate_root(); // this function is likely quite expensive compared to everything else
+		root_skeleton = skeleton.recalculate_root(); // this function is likely quite expensive compared to everything else
 		let new_offset = final_head.translation - root_skeleton.head.translation;
 		skeleton.hips.translation = skeleton.hips.translation + new_offset;
 		skeleton.head.rotation = (root_skeleton.head.rotation.inverse() * final_head.rotation).normalize();

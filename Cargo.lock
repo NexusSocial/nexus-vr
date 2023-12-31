@@ -4227,6 +4227,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "num-complex"
+version = "0.4.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1ba157ca0885411de85d6ca030ba7e2a83a28636056c7c699b07c8b6f7383214"
+dependencies = [
+ "num-traits",
+]
+
+[[package]]
 name = "num-derive"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4510,6 +4519,15 @@ dependencies = [
  "cmake",
  "libc",
  "mint",
+]
+
+[[package]]
+name = "opus"
+version = "0.3.0"
+source = "git+https://github.com/Schmarni-Dev/opus-rs?branch=unsafe-libopus#9482c507ecb808879fd8e21f527a572063e5047a"
+dependencies = [
+ "cfg-if",
+ "unsafe-libopus",
 ]
 
 [[package]]
@@ -5413,6 +5431,7 @@ dependencies = [
  "jni 0.21.1",
  "ndk-context",
  "openxr",
+ "opus",
  "portpicker",
  "rodio",
  "social-common",
@@ -6053,6 +6072,16 @@ checksum = "fc1de2c688dc15305988b563c3854064043356019f97a4b46276fe734c4f07ea"
 dependencies = [
  "crypto-common",
  "subtle",
+]
+
+[[package]]
+name = "unsafe-libopus"
+version = "0.1.1"
+source = "git+https://github.com/DCNick3/unsafe-libopus#96b166741ede1d5ee42b9ac710dfa31a2321d889"
+dependencies = [
+ "arrayref",
+ "num-complex",
+ "num-traits",
 ]
 
 [[package]]

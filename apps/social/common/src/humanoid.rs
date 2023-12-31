@@ -2,9 +2,9 @@
 
 use std::str::FromStr;
 
+use bevy::transform::components::{GlobalTransform, Transform};
 use color_eyre::{eyre, eyre::bail, Result};
 use eyre::eyre;
-use bevy::transform::components::{Transform, GlobalTransform};
 
 use bevy::{
 	log::{error, warn},
@@ -16,7 +16,6 @@ use bevy::{
 	utils::HashMap,
 };
 use bevy_vrm::Vrm;
-
 
 #[derive(Default)]
 pub struct HumanoidPlugin;
@@ -94,11 +93,11 @@ const SKELETON_ARR_BONE_KIND: [BoneKind; SKELETON_ARR_LEN] = [
 	BoneKind::RightUpperLeg,
 	BoneKind::RightLowerLeg,
 	BoneKind::RightUpperArm,
-	BoneKind::RightLowerArm
+	BoneKind::RightLowerArm,
 ];
 
 #[derive(Reflect, Copy, Clone)]
-pub struct Skeleton{
+pub struct Skeleton {
 	pub head: Transform,
 	pub hips: Transform,
 	pub spine: Transform,
@@ -106,7 +105,7 @@ pub struct Skeleton{
 	pub upper_chest: Option<Transform>,
 	pub neck: Option<Transform>,
 	pub left: SkeletonSide,
-	pub right: SkeletonSide
+	pub right: SkeletonSide,
 }
 
 #[derive(Reflect, Copy, Clone)]
@@ -122,11 +121,13 @@ pub struct SkeletonSide {
 #[derive(Reflect, Copy, Clone)]
 pub struct Limb {
 	pub upper: Transform,
-	pub lower: Transform
+	pub lower: Transform,
 }
 
 impl Skeleton {
-	pub fn new(skeleton: [Option<Transform>; SKELETON_ARR_LEN]) -> color_eyre::Result<Self> {
+	pub fn new(
+		skeleton: [Option<Transform>; SKELETON_ARR_LEN],
+	) -> color_eyre::Result<Self> {
 		Ok(Self {
 			head: skeleton[HEAD].ok_or(eyre!("bad Skeleton, missing head"))?,
 			hips: skeleton[HIPS].ok_or(eyre!("bad Skeleton, missing hips"))?,
@@ -136,36 +137,49 @@ impl Skeleton {
 			neck: skeleton[NECK],
 			left: SkeletonSide {
 				shoulder: skeleton[LEFT_SHOULDER],
-				eye: skeleton[LEFT_EYE].ok_or(eyre!("bad Skeleton, missing left eye"))?,
-				foot: skeleton[LEFT_FOOT].ok_or(eyre!("bad Skeleton, missing left foot"))?,
-				hand: skeleton[LEFT_HAND].ok_or(eyre!("bad Skeleton, missing left hand"))?,
+				eye: skeleton[LEFT_EYE]
+					.ok_or(eyre!("bad Skeleton, missing left eye"))?,
+				foot: skeleton[LEFT_FOOT]
+					.ok_or(eyre!("bad Skeleton, missing left foot"))?,
+				hand: skeleton[LEFT_HAND]
+					.ok_or(eyre!("bad Skeleton, missing left hand"))?,
 				leg: Limb {
-					upper: skeleton[LEFT_LEG_UPPER].ok_or(eyre!("bad Skeleton, missing upper left leg"))?,
-					lower: skeleton[LEFT_LEG_LOWER].ok_or(eyre!("bad Skeleton, missing lower left leg"))?,
+					upper: skeleton[LEFT_LEG_UPPER]
+						.ok_or(eyre!("bad Skeleton, missing upper left leg"))?,
+					lower: skeleton[LEFT_LEG_LOWER]
+						.ok_or(eyre!("bad Skeleton, missing lower left leg"))?,
 				},
 				arm: Limb {
-					upper: skeleton[LEFT_ARM_UPPER].ok_or(eyre!("bad Skeleton, missing upper left arm"))?,
-					lower: skeleton[LEFT_ARM_LOWER].ok_or(eyre!("bad Skeleton, missing lower left leg"))?,
+					upper: skeleton[LEFT_ARM_UPPER]
+						.ok_or(eyre!("bad Skeleton, missing upper left arm"))?,
+					lower: skeleton[LEFT_ARM_LOWER]
+						.ok_or(eyre!("bad Skeleton, missing lower left leg"))?,
 				},
 			},
 			right: SkeletonSide {
 				shoulder: skeleton[RIGHT_SHOULDER],
-				eye: skeleton[RIGHT_EYE].ok_or(eyre!("bad Skeleton, missing right eye"))?,
-				foot: skeleton[RIGHT_FOOT].ok_or(eyre!("bad Skeleton, missing right foot"))?,
-				hand: skeleton[RIGHT_HAND].ok_or(eyre!("bad Skeleton, missing right hand"))?,
+				eye: skeleton[RIGHT_EYE]
+					.ok_or(eyre!("bad Skeleton, missing right eye"))?,
+				foot: skeleton[RIGHT_FOOT]
+					.ok_or(eyre!("bad Skeleton, missing right foot"))?,
+				hand: skeleton[RIGHT_HAND]
+					.ok_or(eyre!("bad Skeleton, missing right hand"))?,
 				leg: Limb {
-					upper: skeleton[RIGHT_LEG_UPPER].ok_or(eyre!("bad Skeleton, missing upper right leg"))?,
-					lower: skeleton[RIGHT_LEG_LOWER].ok_or(eyre!("bad Skeleton, missing lower right leg"))?,
+					upper: skeleton[RIGHT_LEG_UPPER]
+						.ok_or(eyre!("bad Skeleton, missing upper right leg"))?,
+					lower: skeleton[RIGHT_LEG_LOWER]
+						.ok_or(eyre!("bad Skeleton, missing lower right leg"))?,
 				},
 				arm: Limb {
-					upper: skeleton[RIGHT_ARM_UPPER].ok_or(eyre!("bad Skeleton, missing upper right arm"))?,
-					lower: skeleton[RIGHT_ARM_LOWER].ok_or(eyre!("bad Skeleton, missing lower right arm"))?,
+					upper: skeleton[RIGHT_ARM_UPPER]
+						.ok_or(eyre!("bad Skeleton, missing upper right arm"))?,
+					lower: skeleton[RIGHT_ARM_LOWER]
+						.ok_or(eyre!("bad Skeleton, missing lower right arm"))?,
 				},
-			}
+			},
 		})
 	}
-	pub fn arrayify(self) -> [Option<Transform>; SKELETON_ARR_LEN]
-	{
+	pub fn arrayify(self) -> [Option<Transform>; SKELETON_ARR_LEN] {
 		let mut skeleton: [Option<Transform>; SKELETON_ARR_LEN] = Default::default();
 		skeleton[HEAD] = Some(self.head);
 		skeleton[HIPS] = Some(self.hips);
@@ -194,53 +208,50 @@ impl Skeleton {
 	pub fn recalculate_root(mut self) -> Self {
 		self.spine = self.hips.mul_transform(self.spine);
 		let mut highest_root = self.spine;
-		match self.chest {
-			Some(t) => {
-				let result = self.spine.mul_transform(t);
-				self.chest = Some(result);
+		if let Some(t) = self.chest {
+			let result = self.spine.mul_transform(t);
+			self.chest = Some(result);
+			highest_root = result;
+			if let Some(t2) = self.upper_chest {
+				let result = highest_root.mul_transform(t2);
+				self.upper_chest = Some(result);
 				highest_root = result;
-				match self.upper_chest {
-					Some(t2) => {
-						let result = highest_root.mul_transform(t2);
-						self.upper_chest = Some(result);
-						highest_root = result;
-					},
-					None => {}
-				}
-			},
-			None => {}
+			}
 		}
 		let mut head_root = highest_root;
-		match self.neck {
-			Some(t) => {
-				let result = highest_root.mul_transform(t);
-				self.neck = Some(result);
-				head_root = result;
-			},
-			None => {}
+		if let Some(t) = self.neck {
+			let result = highest_root.mul_transform(t);
+			self.neck = Some(result);
+			head_root = result;
 		}
 		self.head = head_root.mul_transform(self.head);
-		self.left = self.left.recalculate_root(self.head, self.hips, highest_root);
-		self.right = self.right.recalculate_root(self.head, self.hips, highest_root);
+		self.left = self
+			.left
+			.recalculate_root(self.head, self.hips, highest_root);
+		self.right = self
+			.right
+			.recalculate_root(self.head, self.hips, highest_root);
 		self
 	}
 }
 
 impl SkeletonSide {
-	pub fn recalculate_root(mut self, head: Transform, hips: Transform, mut highest_root: Transform) -> Self {
+	pub fn recalculate_root(
+		mut self,
+		head: Transform,
+		hips: Transform,
+		mut highest_root: Transform,
+	) -> Self {
 		self.eye = head.mul_transform(self.eye);
-		match self.shoulder {
-			Some(t) => {
-				let result = highest_root.mul_transform(t);
-				self.shoulder = Some(result);
-				highest_root = result;
-			},
-			None => {},
+		if let Some(t) = self.shoulder {
+			let result = highest_root.mul_transform(t);
+			self.shoulder = Some(result);
+			highest_root = result;
 		}
 		self.arm = self.arm.recalculate_root(highest_root);
 		self.leg = self.leg.recalculate_root(hips);
-		self.hand = self.arm.lower.mul_transform( self.hand);
-		self.foot = self.leg.lower.mul_transform(self.foot );
+		self.hand = self.arm.lower.mul_transform(self.hand);
+		self.foot = self.leg.lower.mul_transform(self.foot);
 		self
 	}
 }
@@ -248,11 +259,10 @@ impl SkeletonSide {
 impl Limb {
 	pub fn recalculate_root(mut self, root: Transform) -> Self {
 		self.upper = root.mul_transform(self.upper);
-		self.lower = self.upper.mul_transform(self.lower) ;
+		self.lower = self.upper.mul_transform(self.lower);
 		self
 	}
 }
-
 
 /// An event that when fired, automatically inserts a [`HumanoidRig`] component with
 /// autodetected mappings.
@@ -261,7 +271,7 @@ pub struct AutoAssignRigRequest {
 	pub mesh: Entity,
 }
 
-fn autoassign (
+fn autoassign(
 	mut cmds: Commands,
 	mut evts: EventReader<AutoAssignRigRequest>,
 	vrm_handles: Query<&Handle<Vrm>>,
@@ -273,14 +283,15 @@ fn autoassign (
 	transforms: Query<(&Transform, &GlobalTransform)>,
 ) {
 	for &AutoAssignRigRequest { mesh: root_mesh } in evts.read() {
-		let found_bones_result: Result<HashMap<BoneKind, Entity>> = 
-		match vrm_handles.get(root_mesh) {
+		let found_bones_result: Result<HashMap<BoneKind, Entity>> = match vrm_handles
+			.get(root_mesh)
+		{
 			Ok(vrm_handle) => {
 				let vrm = vrm_assets
 					.get(vrm_handle)
 					.expect("should be impossible for asset to not exist");
 				autoassign_from_vrm(root_mesh, vrm, &entity_names)
-			},
+			}
 			Err(_) => {
 				if !non_vrm.contains(root_mesh) {
 					continue;
@@ -290,8 +301,7 @@ fn autoassign (
 		};
 		let found_bones = match found_bones_result {
 			Ok(m) => m,
-			Err(e) => 
-			{
+			Err(e) => {
 				error!("{e}");
 				continue;
 			}
@@ -299,9 +309,12 @@ fn autoassign (
 		for pair in found_bones.clone().into_iter() {
 			cmds.entity(pair.1).insert(pair.0);
 		}
-		let mut skel_entities: [Option<Entity>; SKELETON_ARR_LEN] = [None; SKELETON_ARR_LEN];
-		let mut skeleton_transform_array: [Option<Transform>; SKELETON_ARR_LEN] = [None; SKELETON_ARR_LEN];
-		let mut skeleton_root_array: [Option<Transform>; SKELETON_ARR_LEN] = [None; SKELETON_ARR_LEN];
+		let mut skel_entities: [Option<Entity>; SKELETON_ARR_LEN] =
+			[None; SKELETON_ARR_LEN];
+		let mut skeleton_transform_array: [Option<Transform>; SKELETON_ARR_LEN] =
+			[None; SKELETON_ARR_LEN];
+		let mut skeleton_root_array: [Option<Transform>; SKELETON_ARR_LEN] =
+			[None; SKELETON_ARR_LEN];
 		let root_t = match transforms.get(root_mesh) {
 			Ok(t) => t.1,
 			Err(e) => {
@@ -312,48 +325,49 @@ fn autoassign (
 		for i in 0..SKELETON_ARR_LEN {
 			let entity = match found_bones.get(&SKELETON_ARR_BONE_KIND[i]) {
 				Some(e) => *e,
-				None => continue
+				None => continue,
 			};
 			skel_entities[i] = Some(entity);
-			skeleton_transform_array[i] = Some( match transforms.get(entity) {
+			skeleton_transform_array[i] = Some(match transforms.get(entity) {
 				Ok(t) => *t.0,
-				Err(_) => continue
+				Err(_) => continue,
 			});
-			skeleton_root_array[i] = Some( match transforms.get(entity) {
+			skeleton_root_array[i] = Some(match transforms.get(entity) {
 				Ok(t) => t.1.reparented_to(root_t),
-				Err(_) => continue
+				Err(_) => continue,
 			});
-		};
-		let skel = match Skeleton::new(skeleton_transform_array)
-		{
+		}
+		let skel = match Skeleton::new(skeleton_transform_array) {
 			Ok(skel) => skel,
 			Err(err) => {
 				error!("Transformation to skeleton failed, {err}");
 				continue;
-			},
+			}
 		};
 		// this next thing should really never fail, that would be very odd.
-		let root_skel = match Skeleton::new(skeleton_root_array)
-		{
+		let root_skel = match Skeleton::new(skeleton_root_array) {
 			Ok(skel) => skel,
 			Err(err) => {
 				error!("GlobalTransform Transform mismatch, {err}");
 				continue;
-			},
+			}
 		};
 		let rig = HumanoidRig {
 			bone_map: BoneMap(found_bones),
 			entities: skel_entities,
-			height: ((root_skel.left.eye.translation + root_skel.right.eye.translation)/2.).length(),
+			height: ((root_skel.left.eye.translation
+				+ root_skel.right.eye.translation)
+				/ 2.)
+				.length(),
 			defaults: skel,
-			root_defaults: root_skel
+			root_defaults: root_skel,
 		};
-		if rig.height <= 0. {continue};
+		if rig.height <= 0. {
+			continue;
+		};
 		cmds.entity(root_mesh).insert(rig);
-
 	}
 }
-
 
 fn autoassign_from_vrm(
 	root_mesh: Entity,
@@ -470,7 +484,8 @@ fn autoassign_from_names(
 	// Now that we have a map of entity -> BoneKind as a list of candidates,
 	// pick winners and reverse the map to be BoneKind -> Entity.
 	// TODO: Do something smarter than just picking the last map entry.
-	let found_bones = map.into_iter()
+	let found_bones = map
+		.into_iter()
 		.map(|(entity, bone)| (bone, entity))
 		.collect();
 	Ok(found_bones)

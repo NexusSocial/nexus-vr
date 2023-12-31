@@ -2,6 +2,7 @@
 
 use std::time::Duration;
 
+use lightyear::netcode::ClientId;
 use lightyear::{
 	prelude::{
 		component_protocol, message_protocol, Channel, ChannelDirection, ChannelMode,
@@ -24,8 +25,17 @@ protocolize! {
 	Input = Inputs,
 }
 
+#[derive(Message, Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct ClientToServerAudioMsg(pub Vec<u8>);
+
+#[derive(Message, Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct ServerToClientAudioMsg(pub ClientId, pub Vec<u8>);
+
 #[message_protocol(protocol = "MyProtocol")]
-pub enum Messages {}
+pub enum Messages {
+	ClientToServerAudioMsg(ClientToServerAudioMsg),
+	ServerToClientAudioMsg(ServerToClientAudioMsg),
+}
 
 #[component_protocol(protocol = "MyProtocol")]
 pub enum Components {
@@ -82,3 +92,4 @@ pub fn shared_config() -> SharedConfig {
 }
 
 pub use lightyear::prelude::client::Interpolated;
+use lightyear::prelude::Message;

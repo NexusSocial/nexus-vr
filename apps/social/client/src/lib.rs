@@ -173,7 +173,7 @@ fn sync_datamodel(
 		let local_avi_entity = LocalEntity(cmds.spawn(dm_avi_entity).id());
 		cmds.entity(dm_avi_entity.0).insert(local_avi_entity);
 		// spawn avatar on the local avatar entity
-		let avi_url = "https://vipe.mypinata.cloud/ipfs/QmU7QeqqVMgnMtCAqZBpAYKSwgcjD4gnx4pxFNY9LqA7KQ/default_398.vrm".to_owned();
+		let avi_url = "https://cdn.discordapp.com/attachments/1190761425396830369/1190863195418677359/malek.vrm".to_owned();
 		assign_avi_evts.send(AssignAvatar {
 			avi_entity: local_avi_entity.0,
 			avi_url,

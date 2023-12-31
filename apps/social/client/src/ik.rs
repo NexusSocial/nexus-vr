@@ -10,7 +10,7 @@ use crate::controllers::KeyboardController;
 
 use bevy::prelude::*;
 
-const DEFAULT_EYE_HEIGHT: f32 = 1.69/1.15; // slightly more than the height of the average American (men and women)
+const DEFAULT_EYE_HEIGHT: f32 = 1.69/1.10; // slightly more than the height of the average American (men and women)
 const HEURISTIC_NECK_PITCH_SCALE_CONSTANT: f32 = 0.7517 * PI; // ~135.3 degrees, from [1]
 const HEURISTIC_NECK_PITCH_HEAD_CONSTANT: f32 = 0.333; // from [1]
 const HEURISTIC_CHEST_PITCH_HEAD_CONSTANT: f32 = 0.05; // I made this up, based on observation that the chest responded less to head tilt

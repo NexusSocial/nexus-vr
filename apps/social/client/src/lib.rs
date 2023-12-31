@@ -15,7 +15,7 @@ use bevy::pbr::{AmbientLight, DirectionalLight, PointLight};
 use bevy::prelude::{
 	bevy_main, default, Added, App, AssetPlugin, Assets, Camera3dBundle, Color,
 	Commands, DirectionalLightBundle, Entity, EventWriter, Gizmos, PluginGroup, Quat,
-	Query, Res, ResMut, SpatialBundle, StandardMaterial, Startup, Update, Vec2, Vec3,
+	Query, Res, ResMut, StandardMaterial, Startup, Update, Vec2, Vec3,
 };
 use bevy::scene::SceneBundle;
 use bevy::transform::components::Transform;
@@ -40,11 +40,9 @@ use social_networking::{ClientPlugin, Transports};
 use self::avatars::assign::AssignAvatar;
 use crate::avatars::{DmEntity, LocalAvatar, LocalEntity};
 use crate::custom_audio::audio_output::AudioOutput;
-use crate::custom_audio::microphone::MicrophoneAudio;
-use crate::custom_audio::spatial_audio::{
-	SpatialAudioListener, SpatialAudioListenerBundle, SpatialAudioSink,
-	SpatialAudioSinkBundle,
-};
+use crate::custom_audio::spatial_audio::
+	SpatialAudioSink
+;
 
 const ASSET_FOLDER: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../../assets/");
 
@@ -185,7 +183,7 @@ pub fn log_on_err(result: Result<()>) {
 
 fn sync_datamodel(
 	mut cmds: Commands,
-	mut audio_output: ResMut<AudioOutput>,
+	audio_output: ResMut<AudioOutput>,
 	added_avis: Query<
 		(
 			Entity,

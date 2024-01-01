@@ -158,7 +158,7 @@ fn drive_input_pose(
 		Ok(h) => h,
 		Err(_) => return,
 	};
-
+	
 	player_pose.root.trans = tracking_root.translation();
 	player_pose.root.rot = tracking_root.to_scale_rotation_translation().1;
 
@@ -168,7 +168,7 @@ fn drive_input_pose(
 	player_pose.hand_r.trans = right_controller.0.pose.position.to_vec3();
 	player_pose.hand_r.rot = right_controller.0.pose.orientation.to_quat();
 
-	player_pose.hand_l.trans = right_controller.0.pose.position.to_vec3();
-	player_pose.hand_l.rot = right_controller.0.pose.orientation.to_quat();
+	player_pose.hand_l.trans = left_controller.0.pose.position.to_vec3();
+	player_pose.hand_l.rot = left_controller.0.pose.orientation.to_quat();
 
 }

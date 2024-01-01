@@ -140,7 +140,7 @@ fn send_client_to_server_voice_msg(
 			.send_message::<crate::lightyear::AudioChannel, _>(
 				crate::lightyear::ClientToServerAudioMsg(
 					audio_msg.0.clone(),
-					audio_msg.1.clone(),
+					audio_msg.1,
 				),
 			)
 			.expect("unable to send message");
@@ -155,6 +155,6 @@ fn rec_server_voice_msgs(
 		let msg = msg.message();
 		let client_id = msg.0;
 		let audio = msg.1.clone();
-		event_writer.send(ServerToClientVoiceMsg(client_id, audio, msg.2.clone()));
+		event_writer.send(ServerToClientVoiceMsg(client_id, audio, msg.2));
 	}
 }

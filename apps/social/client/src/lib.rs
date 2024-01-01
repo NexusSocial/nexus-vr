@@ -9,7 +9,7 @@ mod voice_chat;
 
 use avatar_selection::AvatarSwitchingUI;
 use bevy::app::PluginGroupBuilder;
-use bevy::asset::Handle;
+use bevy::asset::{AssetMetaCheck, Handle};
 use bevy::core::Name;
 use bevy::ecs::component::Component;
 use bevy::ecs::query::{With, Without};
@@ -51,7 +51,7 @@ use social_common::dev_tools::DevToolsPlugins;
 use std::f32::consts::TAU;
 use std::net::{Ipv4Addr, SocketAddr};
 
-use social_networking::data_model::{ClientIdComponent, Local};
+use social_networking::data_model::{ClientIdComponent, Local, PlayerAvatarUrl};
 use social_networking::{ClientPlugin, Transports};
 
 use self::avatars::assign::AssignAvatar;
@@ -113,9 +113,14 @@ pub fn main() -> Result<()> {
 			locomotion_speed: 2.0,
 			..default()
 		})
+		.insert_resource(AssetMetaCheck::Never)
 		.add_systems(Startup, xr_picking_stuff::spawn_controllers)
 		.add_systems(XrSetup, xr_picking_stuff::setup_xr_actions)
-		.add_systems(Update, going_dark);
+		.add_systems(Update, going_dark)
+		.add_systems(
+			Update,
+			send_avatar_url_changed_event_when_avatar_url_changed,
+		);
 	// .add_systems(Startup, spawn_test_audio)
 	// .add_systems(Update, test_loopback_audio);
 
@@ -248,7 +253,6 @@ fn sync_datamodel(
 		),
 		Added<social_networking::data_model::ClientIdComponent>,
 	>,
-	mut assign_avi_evts: EventWriter<AssignAvatar>,
 ) {
 	// create our entities the local and verison, when we get a new entity from the
 	// network.
@@ -260,12 +264,18 @@ fn sync_datamodel(
 		// make sure the data model contains a mapping to the local, and vice versa
 		let local_avi_entity = LocalEntity(cmds.spawn(dm_avi_entity).id());
 		cmds.entity(dm_avi_entity.0).insert(local_avi_entity);
+
 		// spawn avatar on the local avatar entity
 		let avi_url = "https://cdn.discordapp.com/attachments/1190761425396830369/1190863195418677359/malek.vrm".to_owned();
-		assign_avi_evts.send(AssignAvatar {
+		/*assign_avi_evts.send(AssignAvatar {
 			avi_entity: local_avi_entity.0,
 			avi_url,
-		});
+		});*/
+
+		// add the url for the player avatar url to the data model entity
+		cmds.entity(dm_avi_entity.0)
+			.insert(PlayerAvatarUrl(avi_url.clone()));
+
 		if local.is_some() {
 			cmds.entity(local_avi_entity.0)
 				.insert(LocalAvatar::default());
@@ -295,6 +305,22 @@ fn sync_datamodel(
 			cmds.entity(local_avi_entity.0)
 				.insert(client_id_component.clone());
 		}
+	}
+}
+
+fn send_avatar_url_changed_event_when_avatar_url_changed(
+	dm_entities_changed_url: Query<
+		(&LocalEntity, &PlayerAvatarUrl),
+		Changed<PlayerAvatarUrl>,
+	>,
+	mut assign_avi_evts: EventWriter<AssignAvatar>,
+) {
+	for (local_entity, player_avatar_url) in dm_entities_changed_url.iter() {
+		println!("assigning avatar: {}", player_avatar_url.0);
+		assign_avi_evts.send(AssignAvatar {
+			avi_entity: local_entity.0,
+			avi_url: player_avatar_url.0.clone(),
+		})
 	}
 }
 
@@ -428,7 +454,7 @@ fn setup(
 ) {
 	cmds.insert_resource(AmbientLight {
 		color: Color::WHITE,
-		brightness: 1.,
+		brightness: 0.001,
 	});
 	cmds.spawn(SceneBundle {
 		scene: asset_server.load("https://cdn.discordapp.com/attachments/1122267109376925738/1190479732819623936/SGB_tutorial_scene_fixed.glb#Scene0"),

@@ -1,13 +1,16 @@
 //! Lightyear Client that synchronizes the data model with the server.
 
+use bevy::app::PreUpdate;
 use std::{
 	net::{Ipv4Addr, SocketAddr},
 	time::Duration,
 };
 
 use bevy::prelude::{
-	default, Added, App, Commands, Entity, Name, Plugin, Query, Update,
+	default, Added, App, Commands, Entity, EventReader, Name, Plugin, Query, ResMut,
+	Update,
 };
+use lightyear::prelude::server::MessageEvent;
 use lightyear::prelude::{NetworkTarget, Replicate};
 use lightyear::{
 	prelude::{Io, IoConfig, Key, LinkConditionerConfig, PingConfig, TransportConfig},
@@ -18,6 +21,9 @@ use lightyear::{
 };
 
 use crate::data_model::ClientIdComponent;
+use crate::lightyear::{
+	AudioChannel, ClientToServerAudioMsg, MyProtocol, ServerToClientAudioMsg,
+};
 use crate::{
 	data_model,
 	data_model::{register_types, DataModelRoot},
@@ -74,6 +80,7 @@ impl Plugin for ServerPlugin {
 			plugin_config,
 		));
 		app.add_systems(Update, add_replication_for_players);
+		app.add_plugins(ServerVoiceChat);
 	}
 }
 
@@ -88,5 +95,34 @@ fn add_replication_for_players(
 			interpolation_target: NetworkTarget::AllExcept(vec![client_id.0]),
 			..default()
 		});
+	}
+}
+
+pub struct ServerVoiceChat;
+impl Plugin for ServerVoiceChat {
+	fn build(&self, app: &mut App) {
+		app.add_systems(PreUpdate, re_broadcast_audio);
+	}
+}
+
+fn re_broadcast_audio(
+	mut messages: EventReader<MessageEvent<ClientToServerAudioMsg>>,
+	mut server: ResMut<lightyear::server::resource::Server<MyProtocol>>,
+) {
+	for message in messages.read() {
+		let id2 = *message.context();
+		let audio = message.message().clone().0;
+		let channels = message.message().1;
+		for id in server.client_ids().collect::<Vec<_>>() {
+			if id == id2 {
+				continue;
+			}
+			server
+				.send_message::<AudioChannel, _>(
+					id,
+					ServerToClientAudioMsg(id2, audio.clone(), channels),
+				)
+				.unwrap();
+		}
 	}
 }

@@ -1,14 +1,16 @@
 //! Lightyear Client that synchronizes the data model with the server.
 
+use bevy::app::App;
 use std::{
 	net::{Ipv4Addr, SocketAddr},
 	time::Duration,
 };
 
 use bevy::prelude::{
-	default, Added, Commands, Entity, Name, Plugin, Query, Res, ResMut, Resource,
-	Startup, Update, With,
+	default, Added, Commands, Entity, Event, EventReader, EventWriter, Name, Plugin,
+	Query, Res, ResMut, Resource, Startup, Update, With,
 };
+use lightyear::prelude::client::MessageEvent;
 use lightyear::prelude::{
 	client::{
 		Authentication, ClientConfig, InputConfig, InterpolationConfig,
@@ -17,9 +19,10 @@ use lightyear::prelude::{
 	ClientId, Io, IoConfig, LinkConditionerConfig, NetworkTarget, PingConfig,
 	Replicate, TransportConfig,
 };
+use serde::{Deserialize, Serialize};
 
 use crate::data_model::Local;
-use crate::lightyear::MyProtocol;
+use crate::lightyear::{MyProtocol, ServerToClientAudioMsg};
 use crate::{
 	data_model as dm, data_model,
 	lightyear::{protocol, shared_config},
@@ -81,6 +84,7 @@ impl Plugin for ClientPlugin {
 		app.insert_resource(ClientIdRes(client_id as ClientId));
 		app.add_systems(Update, data_model_add_replicated);
 		app.add_systems(Startup, connect);
+		app.add_plugins(ClientVoiceChat);
 	}
 }
 
@@ -107,4 +111,50 @@ fn data_model_add_replicated(
 
 fn connect(mut client: ResMut<lightyear::client::resource::Client<MyProtocol>>) {
 	client.connect();
+}
+
+struct ClientVoiceChat;
+impl Plugin for ClientVoiceChat {
+	fn build(&self, app: &mut App) {
+		app.add_event::<ClientToServerVoiceMsg>();
+		app.add_event::<ServerToClientVoiceMsg>();
+		app.add_systems(Update, send_client_to_server_voice_msg);
+		app.add_systems(Update, rec_server_voice_msgs);
+	}
+}
+#[derive(Event)]
+pub struct ClientToServerVoiceMsg(pub Vec<u8>, pub Channels);
+
+#[derive(Clone, Copy, PartialEq, Debug, Serialize, Deserialize)]
+pub struct Channels(pub u16);
+
+#[derive(Event)]
+pub struct ServerToClientVoiceMsg(pub ClientId, pub Vec<u8>, pub Channels);
+
+fn send_client_to_server_voice_msg(
+	mut client: ResMut<lightyear::client::resource::Client<MyProtocol>>,
+	mut event_reader: EventReader<ClientToServerVoiceMsg>,
+) {
+	for audio_msg in event_reader.read() {
+		client
+			.send_message::<crate::lightyear::AudioChannel, _>(
+				crate::lightyear::ClientToServerAudioMsg(
+					audio_msg.0.clone(),
+					audio_msg.1,
+				),
+			)
+			.expect("unable to send message");
+	}
+}
+
+fn rec_server_voice_msgs(
+	mut messages: EventReader<MessageEvent<ServerToClientAudioMsg>>,
+	mut event_writer: EventWriter<ServerToClientVoiceMsg>,
+) {
+	for msg in messages.read() {
+		let msg = msg.message();
+		let client_id = msg.0;
+		let audio = msg.1.clone();
+		event_writer.send(ServerToClientVoiceMsg(client_id, audio, msg.2));
+	}
 }

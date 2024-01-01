@@ -53,6 +53,7 @@ social-networking.path = "apps/social/networking"
 tracing = "0.1.40"
 egui-picking = { path = "./crates/egui-picking" }
 picking-xr = { path = "./crates/picking-xr" }
+opus = { git ="https://github.com/Schmarni-Dev/opus-rs", branch = "unsafe-libopus",default-features = false,features = ["unsafe-libopus-backend"] }
 
 [profile.dev]
 # Enable a small amount of optimization in debug mode

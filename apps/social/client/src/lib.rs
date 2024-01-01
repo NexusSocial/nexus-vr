@@ -1,8 +1,11 @@
 #![allow(clippy::type_complexity)]
+#![allow(clippy::too_many_arguments)]
 
 mod avatars;
 mod controllers;
-mod microphone;
+mod custom_audio;
+mod ik;
+mod voice_chat;
 
 use avatar_selection::AvatarSwitchingUI;
 use bevy::app::PluginGroupBuilder;
@@ -28,35 +31,37 @@ use bevy::transform::TransformBundle;
 use bevy_egui::EguiPlugin;
 use bevy_mod_inverse_kinematics::InverseKinematicsPlugin;
 use bevy_mod_picking::DefaultPickingPlugins;
+use bevy_oxr::DefaultXrPlugins;
 use bevy_oxr::input::XrInput;
 use bevy_oxr::resources::XrFrameState;
 use bevy_oxr::xr_init::{xr_only, XrSetup};
 use bevy_oxr::xr_input::oculus_touch::OculusController;
-use bevy_oxr::xr_input::prototype_locomotion::{
-	proto_locomotion, PrototypeLocomotionConfig,
-};
+use bevy_oxr::xr_input::prototype_locomotion::{proto_locomotion, PrototypeLocomotionConfig};
 use bevy_oxr::xr_input::trackers::OpenXRRightEye;
 use bevy_oxr::xr_input::{QuatConv, Vec3Conv};
-use bevy_oxr::DefaultXrPlugins;
-use bevy_vrm::mtoon::{MtoonMainCamera, MtoonMaterial};
 use bevy_vrm::VrmPlugin;
+use bevy_vrm::mtoon::{MtoonMainCamera, MtoonMaterial};
 use color_eyre::Result;
-use egui_picking::{PickabelEguiPlugin,WorldSpaceUI, CurrentPointers};
+use egui_picking::{WorldSpaceUI, CurrentPointers, PickabelEguiPlugin};
 use picking_xr::XrPickingPlugin;
+use social_common::dev_tools::DevToolsPlugins;
 use std::f32::consts::TAU;
+use rodio::SpatialSink;
 use std::net::{Ipv4Addr, SocketAddr};
 
-use social_common::dev_tools::DevToolsPlugins;
-use social_networking::data_model::Local;
+use social_networking::data_model::{ClientIdComponent, Local};
 use social_networking::{ClientPlugin, Transports};
 
 use self::avatars::assign::AssignAvatar;
 use crate::avatar_selection::AvatarSwitcherPlugin;
 use crate::avatars::{DmEntity, LocalAvatar, LocalEntity};
-use crate::microphone::MicrophonePlugin;
 mod avatar_selection;
 // use crate::voice_chat::VoiceChatPlugin;
 mod xr_picking_stuff;
+use crate::custom_audio::audio_output::AudioOutput;
+use crate::custom_audio::spatial_audio::SpatialAudioSink;
+use crate::ik::IKPlugin;
+
 const ASSET_FOLDER: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../../assets/");
 
 #[bevy_main]
@@ -78,6 +83,7 @@ pub fn main() -> Result<()> {
 			}),
 		)
 		.add_plugins(InverseKinematicsPlugin)
+		.add_plugins(IKPlugin)
 		.add_plugins(DevToolsPlugins)
 		.add_plugins(VrmPlugin)
 		.add_plugins(NexusPlugins)
@@ -89,6 +95,8 @@ pub fn main() -> Result<()> {
 		.add_plugins(PickabelEguiPlugin)
 		.add_plugins(AvatarSwitcherPlugin)
 		.add_plugins(bevy_oxr::xr_input::debug_gizmos::OpenXrDebugRenderer)
+		.add_plugins(self::custom_audio::CustomAudioPlugins)
+		.add_plugins(self::voice_chat::VoiceChatPlugin)
 		.add_systems(Startup, setup)
 		.add_systems(Startup, spawn_avi_swap_ui)
 		.add_systems(Startup, spawn_datamodel_avatar)
@@ -104,7 +112,10 @@ pub fn main() -> Result<()> {
 			..default()
 		})
 		.add_systems(Startup, xr_picking_stuff::spawn_controllers)
-		.add_systems(XrSetup, xr_picking_stuff::setup_xr_actions);
+		.add_systems(XrSetup, xr_picking_stuff::setup_xr_actions)
+		.add_systems(Update, going_dark);
+	// .add_systems(Startup, spawn_test_audio)
+	// .add_systems(Update, test_loopback_audio);
 
 	info!("Launching client");
 	app.run();
@@ -120,6 +131,33 @@ fn vr_ui_helper(mut gizmos: Gizmos, pointers: Query<&CurrentPointers>) {
 		}
 	}
 }
+// fn spawn_test_audio(mut commands: Commands, mut audio_output: ResMut<AudioOutput>) {
+// 	commands.spawn(SpatialAudioSinkBundle {
+// 		spatial_audio_sink: SpatialAudioSink {
+// 			sink: SpatialSink::try_new(
+// 				audio_output.stream_handle.as_ref().unwrap(),
+// 				[0.0, 0.0, 0.0],
+// 				(Vec3::X * 4.0 / -2.0).to_array(),
+// 				(Vec3::X * 4.0 / 2.0).to_array(),
+// 			)
+// 			.unwrap(),
+// 		},
+// 		spatial_bundle: SpatialBundle {
+// 			transform: Transform::from_xyz(1.0, 0.0, 0.0),
+// 			..default()
+// 		},
+// 	});
+// 	// commands.spawn(SpatialAudioListenerBundle { spatial_audio_listener: SpatialAudioListener, spatial_bundle: Default::default() });
+// }
+// fn test_loopback_audio(mut microphone: ResMut<MicrophoneAudio>, spatial_audio_sink: Query<&SpatialAudioSink>) {
+// 	let spatial_audio_sink = spatial_audio_sink.single();
+// 	while let Ok( audio) = microphone.0.lock().unwrap().try_recv() {
+// 		spatial_audio_sink.sink.append(rodio::buffer::SamplesBuffer::new(1, 44100, audio));
+// 		spatial_audio_sink.sink.set_volume(1.0);
+// 		spatial_audio_sink.sink.set_speed(1.0);
+// 		spatial_audio_sink.sink.play();
+// 	}
+// }
 
 fn try_audio_perms() {
 	#[cfg(target_os = "android")]
@@ -172,15 +210,13 @@ struct NexusPlugins;
 
 impl PluginGroup for NexusPlugins {
 	fn build(self) -> PluginGroupBuilder {
-		PluginGroupBuilder::start::<Self>()
-			.add(MicrophonePlugin)
-			.add(ClientPlugin {
-				server_addr: SocketAddr::new(
-					Ipv4Addr::new(192, 168, 2, 100).into(),
-					social_networking::server::DEFAULT_PORT,
-				),
-				transport: Transports::Udp,
-			})
+		PluginGroupBuilder::start::<Self>().add(ClientPlugin {
+			server_addr: SocketAddr::new(
+				Ipv4Addr::new(45, 56, 95, 177).into(),
+				social_networking::server::DEFAULT_PORT,
+			),
+			transport: Transports::Udp,
+		})
 	}
 }
 
@@ -200,19 +236,21 @@ pub fn log_on_err(result: Result<()>) {
 
 fn sync_datamodel(
 	mut cmds: Commands,
+	audio_output: ResMut<AudioOutput>,
 	added_avis: Query<
 		(
 			Entity,
+			&ClientIdComponent,
 			Option<&Local>,
 			Option<&social_networking::Interpolated>,
 		),
-		Added<social_networking::data_model::Avatar>,
+		Added<social_networking::data_model::ClientIdComponent>,
 	>,
 	mut assign_avi_evts: EventWriter<AssignAvatar>,
 ) {
 	// create our entities the local and verison, when we get a new entity from the
 	// network.
-	for (dm_avi_entity, local, interp) in added_avis.iter() {
+	for (dm_avi_entity, client_id_component, local, interp) in added_avis.iter() {
 		if local.is_none() && interp.is_none() {
 			continue;
 		}
@@ -221,7 +259,7 @@ fn sync_datamodel(
 		let local_avi_entity = LocalEntity(cmds.spawn(dm_avi_entity).id());
 		cmds.entity(dm_avi_entity.0).insert(local_avi_entity);
 		// spawn avatar on the local avatar entity
-		let avi_url = "https://vipe.mypinata.cloud/ipfs/QmU7QeqqVMgnMtCAqZBpAYKSwgcjD4gnx4pxFNY9LqA7KQ/default_398.vrm".to_owned();
+		let avi_url = "https://cdn.discordapp.com/attachments/1190761425396830369/1190863195418677359/malek.vrm".to_owned();
 		assign_avi_evts.send(AssignAvatar {
 			avi_entity: local_avi_entity.0,
 			avi_url,
@@ -229,9 +267,31 @@ fn sync_datamodel(
 		if local.is_some() {
 			cmds.entity(local_avi_entity.0)
 				.insert(LocalAvatar::default());
+			cmds.entity(local_avi_entity.0).insert(SpatialAudioSink {
+				sink: SpatialSink::try_new(
+					audio_output.stream_handle.as_ref().unwrap(),
+					[0.0, 0.0, 0.0],
+					(Vec3::X * 4.0 / -2.0).to_array(),
+					(Vec3::X * 4.0 / 2.0).to_array(),
+				)
+				.unwrap(),
+			});
+			cmds.entity(local_avi_entity.0)
+				.insert(client_id_component.clone());
 		} else {
 			cmds.entity(local_avi_entity.0)
 				.insert(TransformBundle::default());
+			cmds.entity(local_avi_entity.0).insert(SpatialAudioSink {
+				sink: SpatialSink::try_new(
+					audio_output.stream_handle.as_ref().unwrap(),
+					[0.0, 0.0, 0.0],
+					(Vec3::X * 4.0 / -2.0).to_array(),
+					(Vec3::X * 4.0 / 2.0).to_array(),
+				)
+				.unwrap(),
+			});
+			cmds.entity(local_avi_entity.0)
+				.insert(client_id_component.clone());
 		}
 	}
 }
@@ -323,14 +383,14 @@ fn nuke_standard_material(
 				parametric_rim_color: Color::BLACK,
 				parametric_rim_lift_factor: 0.0,
 				parametric_rim_fresnel_power: 0.0,
-				..Default::default()
+				..default()
 			},
 			None => MtoonMaterial {
 				rim_lighting_mix_factor: 0.0,
 				parametric_rim_color: Color::BLACK,
 				parametric_rim_lift_factor: 0.0,
 				parametric_rim_fresnel_power: 0.0,
-				..Default::default()
+				..default()
 			},
 		};
 		let handle = mtoon_shaders.add(mtoon);

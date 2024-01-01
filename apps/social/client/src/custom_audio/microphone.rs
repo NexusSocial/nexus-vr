@@ -1,5 +1,5 @@
 use bevy::app::App;
-use bevy::log::error;
+use bevy::log::{debug, error};
 #[allow(deprecated)]
 use bevy::prelude::{warn, Commands, Resource, Startup};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
@@ -51,7 +51,7 @@ pub fn create_microphone(mut commands: Commands) {
 			Err(err) => return warn!("supported stream config error, microphone functionality will be disabled, error: {}", err),
 		};
 		for config in configs {
-			warn!("supported microphone config: {:#?}", config);
+			debug!("supported microphone config: {:#?}", config);
 		}
 		let mut configs = match device.supported_input_configs() {
 			Ok(configs) => configs,

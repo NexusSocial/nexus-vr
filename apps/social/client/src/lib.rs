@@ -126,9 +126,7 @@ pub fn main() -> Result<()> {
 
 fn vr_ui_helper(mut gizmos: Gizmos, pointers: Query<&CurrentPointers>) {
 	for e in &pointers {
-		info!("pointer");
 		for (pos, norm) in e.pointers.values() {
-			info!("draw");
 			gizmos.circle(*pos + *norm * 0.005, *norm, 0.01, Color::LIME_GREEN);
 		}
 	}
@@ -376,7 +374,7 @@ fn nuke_standard_material(
 	query: Query<(Entity, &Handle<StandardMaterial>), Without<LegalStdMaterial>>,
 ) {
 	for (e, handle) in &query {
-		info!("Nuking: {:?}", e);
+		debug!("Nuking: {:?}", e);
 		let mtoon = match std_shaders.get(handle) {
 			Some(shader) => MtoonMaterial {
 				base_color: shader.base_color,

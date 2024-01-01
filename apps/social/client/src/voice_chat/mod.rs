@@ -28,7 +28,7 @@ impl bevy::prelude::Plugin for VoiceChatPlugin {
 		}
 		app.insert_non_send_resource(MicrophoneDecoder {
 			channels_1_decoder: Decoder::new(48_000, Channels::Mono)
-					.expect("unable to create microphone audio compressing decoder"),
+				.expect("unable to create microphone audio compressing decoder"),
 			channels_2_decoder: Decoder::new(48_000, Channels::Stereo)
 				.expect("unable to create microphone audio compressing decoder"),
 		});
@@ -54,7 +54,7 @@ fn send_voice_msg(
 	mut event_writer: EventWriter<ClientToServerVoiceMsg>,
 	mut local_size: Local<Vec<f32>>,
 ) {
-	let mut channels = 1;
+	let channels = 1;
 	#[cfg(target_os = "android")]
 	{
 		channels = 2;
@@ -69,7 +69,10 @@ fn send_voice_msg(
 		event_writer.send(ClientToServerVoiceMsg(
 			encoder
 				.0
-				.encode_vec_float(local_size.drain(0..(2880 * channels)).as_ref(), 2880 * channels)
+				.encode_vec_float(
+					local_size.drain(0..(2880 * channels)).as_ref(),
+					2880 * channels,
+				)
 				.expect("couldnt' encode audio"),
 			social_networking::client::Channels(channels as u16),
 		))
@@ -93,36 +96,34 @@ fn rec_voice_msg(
 			let mut output2 = [0.0; 2880 * 2];
 
 			match channels {
-				social_networking::client::Channels(channels) => {
-					match channels {
-						1 => {
-							microphone_decoder
-								.channels_1_decoder
-								.decode_float(audio, &mut output1, false)
-								.expect("unable to decode audio");
-						}
-						2 => {
-							microphone_decoder
-								.channels_2_decoder
-								.decode_float(audio, &mut output2, false)
-								.expect("unable to decode audio");
-						}
-						_ => panic!("wrong number of audio channels for decoding"),
+				social_networking::client::Channels(channels) => match channels {
+					1 => {
+						microphone_decoder
+							.channels_1_decoder
+							.decode_float(audio, &mut output1, false)
+							.expect("unable to decode audio");
 					}
-				}
+					2 => {
+						microphone_decoder
+							.channels_2_decoder
+							.decode_float(audio, &mut output2, false)
+							.expect("unable to decode audio");
+					}
+					_ => panic!("wrong number of audio channels for decoding"),
+				},
 			};
 			match channels.0 {
 				1 => {
-					audio_sink
-						.sink
-						.append(rodio::buffer::SamplesBuffer::new(channels.0, 48_000, output1));
+					audio_sink.sink.append(rodio::buffer::SamplesBuffer::new(
+						channels.0, 48_000, output1,
+					));
 				}
 				2 => {
-					audio_sink
-						.sink
-						.append(rodio::buffer::SamplesBuffer::new(channels.0, 48_000, output2));
+					audio_sink.sink.append(rodio::buffer::SamplesBuffer::new(
+						channels.0, 48_000, output2,
+					));
 				}
-				_ => panic!("impossible")
+				_ => panic!("impossible"),
 			}
 			audio_sink.sink.play();
 			audio_sink.sink.set_volume(1.0);

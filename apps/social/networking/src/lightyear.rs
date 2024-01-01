@@ -91,6 +91,6 @@ pub fn shared_config() -> SharedConfig {
     }
 }
 
+use crate::client::Channels;
 pub use lightyear::prelude::client::Interpolated;
 use lightyear::prelude::Message;
-use crate::client::Channels;

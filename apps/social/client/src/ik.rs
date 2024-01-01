@@ -118,7 +118,7 @@ fn update_ik(
 					return Ok(());
 				}
 			};
-			//bevy::prelude::info!("running ik for: {:?}", loc_ent.0);
+
 			let skeleton_comp = skeleton_query_out;
 			let height_factor = skeleton_comp.height / DEFAULT_EYE_HEIGHT;
 			if local_local {

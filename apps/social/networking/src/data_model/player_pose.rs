@@ -25,10 +25,19 @@ pub struct PlayerPose {
 }
 
 /// An isometry is like a `Transform`, but without scale.
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Default, Reflect)]
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Default, Reflect)]
 pub struct Isometry {
 	pub trans: Vec3,
 	pub rot: Quat,
+}
+
+impl Isometry {
+	pub fn mul_isometry(&self, other: &Isometry) -> Isometry {
+		Isometry {
+			trans: self.trans + other.trans,
+			rot: self.rot * other.rot,
+		}
+	}
 }
 
 /// Interpolates between two [`PlayerPose`]s.

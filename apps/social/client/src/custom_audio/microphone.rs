@@ -33,7 +33,8 @@ impl Default for MicrophoneConfig {
 }
 
 pub fn create_microphone(mut commands: Commands) {
-	let microphone_config = MicrophoneConfig::default();
+	#[allow(unused_mut)]
+	let mut microphone_config = MicrophoneConfig::default();
 
 	// we wanna share the output from our thread loop thing in here continuously with the rest of bevy.
 	let (tx, rx) = channel();

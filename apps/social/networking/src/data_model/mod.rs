@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 /// Data model bundle for avatars.
 #[derive(Bundle, Debug, Default)]
 pub struct AvatarBundle {
-	pub avi_url: PlayerAvatarUrl,
+	//pub avi_url: PlayerAvatarUrl,
 	pub pose: PlayerPose,
 }
 
@@ -40,7 +40,7 @@ pub struct DataModelRoot(pub Entity);
 	Reflect,
 	Default,
 )]
-pub struct PlayerAvatarUrl(pub Option<String>);
+pub struct PlayerAvatarUrl(pub String);
 
 #[derive(
 	Component,

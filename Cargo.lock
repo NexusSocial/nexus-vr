@@ -1783,7 +1783,7 @@ dependencies = [
 [[package]]
 name = "bevy_web_asset"
 version = "0.7.1"
-source = "git+https://github.com/johanhelsing/bevy_web_asset#70540e6c48d45ffe0b1c146e2b309508910e8d82"
+source = "git+https://github.com/MalekiRe/bevy_web_asset?rev=23f6670#23f6670337175c332fa3277a741c0f41df6b7892"
 dependencies = [
  "bevy",
  "js-sys",

@@ -115,14 +115,10 @@ fn update_ik(
 			let skeleton_query_out = match skeleton_query_opt {
 				Some(q) => q,
 				None => {
-					bevy::prelude::info!(
-						"no humanoid rig found for child of: {:?}",
-						loc_ent.0
-					);
 					return Ok(());
 				}
 			};
-			bevy::prelude::info!("running ik for: {:?}", loc_ent.0);
+
 			let skeleton_comp = skeleton_query_out;
 			let height_factor = skeleton_comp.height / DEFAULT_EYE_HEIGHT;
 			if local_local {

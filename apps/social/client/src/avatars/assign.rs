@@ -1,3 +1,5 @@
+use crate::avatars::loading::FullyLoadedAvatar;
+use bevy::prelude::{Children, Handle, HierarchyQueryExt, Query};
 use bevy::{
 	prelude::{
 		debug, default, AssetServer, BuildChildren, Commands, Entity, Event,
@@ -6,7 +8,8 @@ use bevy::{
 	reflect::Reflect,
 	scene::SceneBundle,
 };
-use bevy_vrm::VrmBundle;
+use bevy_vrm::{Vrm, VrmBundle};
+use social_common::humanoid::HumanoidRig;
 
 pub struct AvatarSelectPlugin;
 
@@ -28,6 +31,8 @@ pub struct AssignAvatar {
 fn on_assign(
 	mut cmds: Commands,
 	mut select_evts: EventReader<AssignAvatar>,
+	children: Query<&Children>,
+	vrms: Query<&Handle<Vrm>>,
 	asset_server: Res<AssetServer>,
 ) {
 	for evt @ AssignAvatar {
@@ -38,11 +43,31 @@ fn on_assign(
 		debug!("{evt:?}");
 		// let mut transform = Transform::from_xyz(0.0, -1.0, -4.0);
 		// transform.rotate_y(PI);
+
+		let mut already_has_vrm = false;
+
+		for child in children.iter_descendants(*player) {
+			if vrms.contains(child) {
+				let bundle = VrmBundle {
+					vrm: asset_server.load(avi_url),
+					scene_bundle: SceneBundle { ..default() },
+				};
+				cmds.entity(child).insert(bundle);
+				cmds.entity(child).remove::<HumanoidRig>();
+				cmds.entity(child).remove::<FullyLoadedAvatar>();
+				cmds.entity(child)
+					.remove::<crate::avatars::loading::RigRequestSent>();
+				already_has_vrm = true;
+				break;
+			}
+		}
+		if already_has_vrm {
+			continue;
+		}
 		let bundle = VrmBundle {
 			vrm: asset_server.load(avi_url),
 			scene_bundle: SceneBundle { ..default() },
 		};
-
 		cmds.entity(*player).with_children(|parent| {
 			parent.spawn((Name::from("Vrm"), bundle));
 		});

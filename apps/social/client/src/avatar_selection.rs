@@ -22,43 +22,39 @@ impl Plugin for AvatarSwitcherPlugin {
 		let avis = &[
 			AvatarData {
 				name: "016",
-				url: "https://cdn.discordapp.com/attachments/1190761425396830369/1190761747162873947/016.vrm",
+				url: "https://cloudcafe-executables.s3.us-west-2.amazonaws.com/016.vrm",
 			},
 			AvatarData {
 				name: "015",
-				url: "https://cdn.discordapp.com/attachments/1190761425396830369/1190761746869276794/015.vrm",
+				url: "https://cloudcafe-executables.s3.us-west-2.amazonaws.com/015.vrm",
 			},
 			AvatarData {
 				name: "010",
-				url: "https://cdn.discordapp.com/attachments/1190761425396830369/1190761746445643827/010.vrm",
+				url: "https://cloudcafe-executables.s3.us-west-2.amazonaws.com/010.vrm",
 			},
 			AvatarData {
 				name: "009",
-				url: "https://cdn.discordapp.com/attachments/1190761425396830369/1190761746126880778/009.vrm",
-			},
-			AvatarData {
-				name: "008",
-				url: "https://cdn.discordapp.com/attachments/1190761425396830369/1190761746126880778/009.vrm",
+				url: "https://cloudcafe-executables.s3.us-west-2.amazonaws.com/009.vrm",
 			},
 			AvatarData {
 				name: "MF Robot",
-				url: "https://cdn.discordapp.com/attachments/1190761425396830369/1190761745426428005/MF_Robot.vrm",
+				url: "https://cloudcafe-executables.s3.us-west-2.amazonaws.com/MF_Robot.vrm",
 			},
 			AvatarData {
 				name: "Avatar Sample F",
-				url: "https://cdn.discordapp.com/attachments/1190761425396830369/1190761747456471130/AvatarSampleF.vrm",
+				url: "https://cloudcafe-executables.s3.us-west-2.amazonaws.com/AvatarSampleF.vrm",
 			},
 			AvatarData {
 				name: "Avatar Sample G",
-				url: "https://cdn.discordapp.com/attachments/1190761425396830369/1190761747775246386/AvatarSampleG.vrm",
+				url: "https://cloudcafe-executables.s3.us-west-2.amazonaws.com/AvatarSampleG.vrm",
 			},
 			AvatarData {
 				name: "Hair Sample Male",
-				url: "https://cdn.discordapp.com/attachments/1190761425396830369/1190761748119175278/HairSampleMale.vrm",
+				url: "https://cloudcafe-executables.s3.us-west-2.amazonaws.com/HairSampleMale.vrm",
 			},
 			AvatarData {
 				name: "Malek",
-				url: "https://cdn.discordapp.com/attachments/1190761425396830369/1190863195418677359/malek.vrm",
+				url: "https://cloudcafe-executables.s3.us-west-2.amazonaws.com/malek.vrm",
 			},
 		];
 		app.insert_resource(Avatars { avis });

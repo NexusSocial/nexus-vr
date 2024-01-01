@@ -34,7 +34,7 @@ bevy_oxr = { git = "https://github.com/awtterpip/bevy_oxr", rev = "b2efa80", def
 bevy_picking_core = { package = "bevy_picking_core",git = "https://github.com/Schmarni-Dev/bevy_mod_picking", branch = "no_windows" }
 # bevy_picking_core = "0.17.0"
 bevy_vrm = "0.0.7"
-bevy_web_asset = { git = "https://github.com/johanhelsing/bevy_web_asset" }
+bevy_web_asset = { git = "https://github.com/MalekiRe/bevy_web_asset", rev = "23f6670"}
 clap = { version = "4.4.11", features = ["derive"] }
 color-eyre = "0.6"
 derive_more = { version = "0.99", default-features = false, features = [

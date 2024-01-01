@@ -3,10 +3,12 @@
 //! This behavior is initiated when a vrm is spawned. You can query for fully loaded
 //! avatars via [`FullyLoadedAvatar`].
 
+use bevy::asset::AssetServer;
+use bevy::prelude::ResMut;
 use bevy::{
 	prelude::{
-		debug, AssetEvent, Commands, Component, Entity, EventReader, EventWriter,
-		Handle, Plugin, Query, Update, With, Without,
+		debug, Commands, Component, Entity, EventWriter, Handle, Plugin, Query, Update,
+		With, Without,
 	},
 	reflect::Reflect,
 };
@@ -28,26 +30,21 @@ impl Plugin for AvatarLoadPlugin {
 #[derive(Component, Reflect)]
 pub struct FullyLoadedAvatar;
 
-fn on_vrm_asset_load(
-	mut vrm_load_evts: EventReader<AssetEvent<Vrm>>,
-	mut assign_rig_evts: EventWriter<AutoAssignRigRequest>,
-	entities_w_handle: Query<(Entity, &Handle<Vrm>)>,
-) {
-	for evt in vrm_load_evts.read() {
-		let AssetEvent::LoadedWithDependencies { id } = evt else {
-			continue;
-		};
-		let Some(entity_matching_id) = entities_w_handle
-			.iter()
-			.find_map(|(e, h)| (h.id() == *id).then_some(e))
-		else {
-			continue;
-		};
+#[derive(Component, Reflect)]
+pub struct RigRequestSent;
 
-		debug!("Requesting rig autoassignment for entity {entity_matching_id:?}");
-		assign_rig_evts.send(AutoAssignRigRequest {
-			mesh: entity_matching_id,
-		})
+fn on_vrm_asset_load(
+	assets: ResMut<AssetServer>,
+	mut cmds: Commands,
+	mut assign_rig_evts: EventWriter<AutoAssignRigRequest>,
+	entities_w_handle: Query<(Entity, &Handle<Vrm>), Without<RigRequestSent>>,
+) {
+	for (entity, vrm_handle) in entities_w_handle.iter() {
+		if assets.is_loaded_with_dependencies(vrm_handle) {
+			cmds.entity(entity).insert(RigRequestSent);
+			debug!("Requesting rig autoassignment for entity {entity:?}");
+			assign_rig_evts.send(AutoAssignRigRequest { mesh: entity })
+		}
 	}
 }
 

@@ -16,6 +16,7 @@ use bevy::{
 	utils::HashMap,
 };
 use bevy_vrm::Vrm;
+use tracing::info;
 
 #[derive(Default)]
 pub struct HumanoidPlugin;
@@ -283,6 +284,7 @@ fn autoassign(
 	transforms: Query<(&Transform, &GlobalTransform)>,
 ) {
 	for &AutoAssignRigRequest { mesh: root_mesh } in evts.read() {
+		info!("auto assign rig request received for: {:?}", root_mesh);
 		let found_bones_result: Result<HashMap<BoneKind, Entity>> = match vrm_handles
 			.get(root_mesh)
 		{
@@ -365,6 +367,7 @@ fn autoassign(
 		if rig.height <= 0. {
 			continue;
 		};
+		info!("adding humanoid rig to entity");
 		cmds.entity(root_mesh).insert(rig);
 	}
 }

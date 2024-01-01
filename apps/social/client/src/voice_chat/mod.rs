@@ -54,7 +54,8 @@ fn send_voice_msg(
 	mut event_writer: EventWriter<ClientToServerVoiceMsg>,
 	mut local_size: Local<Vec<f32>>,
 ) {
-	let channels = 1;
+	#[allow(unused_mut)]
+	let mut channels = 1;
 	#[cfg(target_os = "android")]
 	{
 		channels = 2;

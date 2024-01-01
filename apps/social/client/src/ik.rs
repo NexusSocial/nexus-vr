@@ -4,7 +4,6 @@
 use crate::avatars::LocalEntity;
 use crate::controllers::KeyboardController;
 use bevy::transform::components::{GlobalTransform, Transform};
-use bevy_oxr::xr_input::oculus_touch::OculusController;
 use bevy_oxr::xr_input::trackers::OpenXRTrackingRoot;
 use color_eyre::eyre;
 use eyre::eyre;
@@ -57,10 +56,7 @@ pub struct IKPlugin;
 
 impl Plugin for IKPlugin {
 	fn build(&self, app: &mut bevy::prelude::App) {
-		app.add_systems(
-			PreUpdate,
-			update_ik.run_if(bevy::ecs::prelude::resource_exists::<OculusController>()),
-		);
+		app.add_systems(PreUpdate, update_ik);
 	}
 }
 
@@ -118,8 +114,15 @@ fn update_ik(
 			// system should loop harmlessly until a SkeletonComponent is added
 			let skeleton_query_out = match skeleton_query_opt {
 				Some(q) => q,
-				None => return Ok(()),
+				None => {
+					bevy::prelude::info!(
+						"no humanoid rig found for child of: {:?}",
+						loc_ent.0
+					);
+					return Ok(());
+				}
 			};
+			bevy::prelude::info!("running ik for: {:?}", loc_ent.0);
 			let skeleton_comp = skeleton_query_out;
 			let height_factor = skeleton_comp.height / DEFAULT_EYE_HEIGHT;
 			if local_local {

@@ -177,7 +177,7 @@ pub fn ui_interactions(
 			Some(normal),
 		) = (inputs.get_mut(*target), position, normal)
 		{
-				info!("Moved");
+			info!("Moved");
 			current_pointers
 				.pointers
 				.insert(*pointer_id, (*position, *normal));

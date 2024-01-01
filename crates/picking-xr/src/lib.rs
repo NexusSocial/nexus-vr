@@ -21,7 +21,7 @@ pub struct XrPointer {
 	pub last_pointer_hit: XrPickLastPointerTransform,
 }
 
-#[derive(Component,Clone, Copy)]
+#[derive(Component, Clone, Copy)]
 pub struct XrPickLastPointerTransform(Transform);
 
 #[derive(Clone, Copy, Component, Debug)]

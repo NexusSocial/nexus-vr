@@ -1,15 +1,11 @@
 use bevy::prelude::*;
-use bevy_oxr::
-	xr_input::{
-		actions::{
-			ActionHandednes, ActionType, SetupActionSets, XrBinding,
-		},
-		trackers::{
-			AimPose, OpenXRController, OpenXRLeftController, OpenXRRightController,
-			OpenXRTracker,
-		},
-	}
-;
+use bevy_oxr::xr_input::{
+	actions::{ActionHandednes, ActionType, SetupActionSets, XrBinding},
+	trackers::{
+		AimPose, OpenXRController, OpenXRLeftController, OpenXRRightController,
+		OpenXRTracker,
+	},
+};
 use picking_xr::{XrActionRef, XrPointer};
 
 pub const ACTION_SET: &str = "picking-nexus";

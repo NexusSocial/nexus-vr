@@ -31,22 +31,24 @@ use bevy::transform::TransformBundle;
 use bevy_egui::EguiPlugin;
 use bevy_mod_inverse_kinematics::InverseKinematicsPlugin;
 use bevy_mod_picking::DefaultPickingPlugins;
-use bevy_oxr::DefaultXrPlugins;
 use bevy_oxr::input::XrInput;
 use bevy_oxr::resources::XrFrameState;
 use bevy_oxr::xr_init::{xr_only, XrSetup};
 use bevy_oxr::xr_input::oculus_touch::OculusController;
-use bevy_oxr::xr_input::prototype_locomotion::{proto_locomotion, PrototypeLocomotionConfig};
+use bevy_oxr::xr_input::prototype_locomotion::{
+	proto_locomotion, PrototypeLocomotionConfig,
+};
 use bevy_oxr::xr_input::trackers::OpenXRRightEye;
 use bevy_oxr::xr_input::{QuatConv, Vec3Conv};
-use bevy_vrm::VrmPlugin;
+use bevy_oxr::DefaultXrPlugins;
 use bevy_vrm::mtoon::{MtoonMainCamera, MtoonMaterial};
+use bevy_vrm::VrmPlugin;
 use color_eyre::Result;
-use egui_picking::{WorldSpaceUI, CurrentPointers, PickabelEguiPlugin};
+use egui_picking::{CurrentPointers, PickabelEguiPlugin, WorldSpaceUI};
 use picking_xr::XrPickingPlugin;
+use rodio::SpatialSink;
 use social_common::dev_tools::DevToolsPlugins;
 use std::f32::consts::TAU;
-use rodio::SpatialSink;
 use std::net::{Ipv4Addr, SocketAddr};
 
 use social_networking::data_model::{ClientIdComponent, Local};
@@ -94,7 +96,7 @@ pub fn main() -> Result<()> {
 		.add_plugins(EguiPlugin)
 		.add_plugins(PickabelEguiPlugin)
 		.add_plugins(AvatarSwitcherPlugin)
-		.add_plugins(bevy_oxr::xr_input::debug_gizmos::OpenXrDebugRenderer)
+		// .add_plugins(bevy_oxr::xr_input::debug_gizmos::OpenXrDebugRenderer)
 		.add_plugins(self::custom_audio::CustomAudioPlugins)
 		.add_plugins(self::voice_chat::VoiceChatPlugin)
 		.add_systems(Startup, setup)
@@ -124,7 +126,7 @@ pub fn main() -> Result<()> {
 
 fn vr_ui_helper(mut gizmos: Gizmos, pointers: Query<&CurrentPointers>) {
 	for e in &pointers {
-			info!("pointer");
+		info!("pointer");
 		for (pos, norm) in e.pointers.values() {
 			info!("draw");
 			gizmos.circle(*pos + *norm * 0.005, *norm, 0.01, Color::LIME_GREEN);

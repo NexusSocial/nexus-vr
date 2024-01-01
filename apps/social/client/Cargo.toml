@@ -32,7 +32,6 @@ opus.workspace = true
 # audiopus_sys = { version = "0.2.0" , features = ["static"]}
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
-bevy_oxr = {workspace = true, default-features=true} 
 egui.workspace = true
 bevy_egui.workspace = true
 bevy-inspector-egui.workspace = true

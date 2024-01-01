@@ -125,8 +125,7 @@ impl Plugin for ClientVoiceChat {
 #[derive(Event)]
 pub struct ClientToServerVoiceMsg(pub Vec<u8>, pub Channels);
 
-#[derive(Clone, Copy, PartialEq, Debug, Serialize,
-Deserialize)]
+#[derive(Clone, Copy, PartialEq, Debug, Serialize, Deserialize)]
 pub struct Channels(pub u16);
 
 #[derive(Event)]
@@ -139,7 +138,10 @@ fn send_client_to_server_voice_msg(
 	for audio_msg in event_reader.read() {
 		client
 			.send_message::<crate::lightyear::AudioChannel, _>(
-				crate::lightyear::ClientToServerAudioMsg(audio_msg.0.clone(), audio_msg.1.clone()),
+				crate::lightyear::ClientToServerAudioMsg(
+					audio_msg.0.clone(),
+					audio_msg.1.clone(),
+				),
 			)
 			.expect("unable to send message");
 	}

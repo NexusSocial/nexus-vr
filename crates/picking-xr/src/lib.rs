@@ -9,10 +9,10 @@ use bevy::{
 		schedule::IntoSystemConfigs,
 		system::{Query, Res},
 	},
-	math::Vec2,
+	math::{Vec2, Vec3},
 	prelude::default,
 	render::texture::Image,
-	utils::Uuid,
+	utils::Uuid, transform::components::Transform,
 };
 use bevy_oxr::{
 	resources::XrSession,
@@ -33,7 +33,11 @@ pub struct XrPointer {
 	pub pointer_location: PointerLocation,
 	pub pick_actions: XrPickActions,
 	pub last_action_state: XrPickLastActionState,
+	pub last_pointer_hit: XrPickLastPointerTransform,
 }
+
+#[derive(Component,Clone, Copy)]
+pub struct XrPickLastPointerTransform(Transform);
 
 #[derive(Clone, Copy, Component, Debug)]
 pub struct XrActionRef {
@@ -168,6 +172,7 @@ pub fn xr_input_handling(
 impl XrPointer {
 	pub fn new(assets: &mut Assets<Image>, actions: XrPickActions) -> Self {
 		Self {
+			last_pointer_hit: XrPickLastPointerTransform(default()),
 			xr_ray_interactor: XRRayInteractor,
 			pointer_id: PointerId::Custom(Uuid::new_v4()),
 			pointer_location: PointerLocation {

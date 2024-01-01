@@ -4,32 +4,47 @@ mod avatars;
 mod controllers;
 mod microphone;
 
+use avatar_selection::AvatarSwitchingUI;
 use bevy::app::PluginGroupBuilder;
 use bevy::asset::Handle;
 use bevy::core::Name;
 use bevy::ecs::component::Component;
+use bevy::ecs::event::EventReader;
 use bevy::ecs::query::{With, Without};
 use bevy::hierarchy::DespawnRecursiveExt;
 use bevy::log::{error, info};
-use bevy::pbr::{AmbientLight, DirectionalLight, PointLight};
+use bevy::pbr::{AmbientLight, DirectionalLight, PbrBundle, PointLight};
+use bevy::prelude::*;
 use bevy::prelude::{
 	bevy_main, default, Added, App, AssetPlugin, Assets, Camera3dBundle, Color,
 	Commands, DirectionalLightBundle, Entity, EventWriter, Gizmos, PluginGroup, Quat,
 	Query, Res, ResMut, StandardMaterial, Startup, Update, Vec2, Vec3,
 };
+use bevy::render::mesh::{shape, Mesh};
+use bevy::render::render_resource::{Extent3d, TextureUsages};
+use bevy::render::texture::Image;
 use bevy::scene::SceneBundle;
 use bevy::transform::components::Transform;
 use bevy::transform::TransformBundle;
+use bevy_egui::EguiPlugin;
 use bevy_mod_inverse_kinematics::InverseKinematicsPlugin;
+use bevy_mod_picking::DefaultPickingPlugins;
 use bevy_oxr::input::XrInput;
 use bevy_oxr::resources::XrFrameState;
+use bevy_oxr::xr_init::{xr_only, XrSetup};
 use bevy_oxr::xr_input::oculus_touch::OculusController;
+use bevy_oxr::xr_input::prototype_locomotion::{
+	proto_locomotion, PrototypeLocomotionConfig,
+};
 use bevy_oxr::xr_input::trackers::OpenXRRightEye;
 use bevy_oxr::xr_input::{QuatConv, Vec3Conv};
 use bevy_oxr::DefaultXrPlugins;
 use bevy_vrm::mtoon::{MtoonMainCamera, MtoonMaterial};
 use bevy_vrm::VrmPlugin;
 use color_eyre::Result;
+use egui_picking::{PickabelEguiPlugin,WorldSpaceUI, CurrentPointers};
+use picking_xr::XrPickingPlugin;
+use std::f32::consts::TAU;
 use std::net::{Ipv4Addr, SocketAddr};
 
 use social_common::dev_tools::DevToolsPlugins;
@@ -37,11 +52,12 @@ use social_networking::data_model::Local;
 use social_networking::{ClientPlugin, Transports};
 
 use self::avatars::assign::AssignAvatar;
+use crate::avatar_selection::AvatarSwitcherPlugin;
 use crate::avatars::{DmEntity, LocalAvatar, LocalEntity};
 use crate::microphone::MicrophonePlugin;
 mod avatar_selection;
 // use crate::voice_chat::VoiceChatPlugin;
-
+mod xr_picking_stuff;
 const ASSET_FOLDER: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../../assets/");
 
 #[bevy_main]
@@ -50,33 +66,67 @@ pub fn main() -> Result<()> {
 
 	let mut app = App::new();
 	app.add_plugins(bevy_web_asset::WebAssetPlugin)
-		.add_plugins(DefaultXrPlugins.set(AssetPlugin {
-			file_path: ASSET_FOLDER.to_string(),
-			..Default::default()
-		}))
+		.add_plugins(
+			DefaultXrPlugins {
+				app_info: bevy_oxr::graphics::XrAppInfo {
+					name: "Nexus Vr Social Client".to_string(),
+				},
+				..default()
+			}
+			.set(AssetPlugin {
+				file_path: ASSET_FOLDER.to_string(),
+				..Default::default()
+			}),
+		)
 		.add_plugins(InverseKinematicsPlugin)
 		.add_plugins(DevToolsPlugins)
 		.add_plugins(VrmPlugin)
 		.add_plugins(NexusPlugins)
 		.add_plugins(self::avatars::AvatarsPlugin)
 		.add_plugins(self::controllers::KeyboardControllerPlugin)
+		.add_plugins(DefaultPickingPlugins)
+		.add_plugins(XrPickingPlugin)
+		.add_plugins(EguiPlugin)
+		.add_plugins(PickabelEguiPlugin)
+		.add_plugins(AvatarSwitcherPlugin)
+		.add_plugins(bevy_oxr::xr_input::debug_gizmos::OpenXrDebugRenderer)
 		.add_systems(Startup, setup)
+		.add_systems(Startup, spawn_avi_swap_ui)
 		.add_systems(Startup, spawn_datamodel_avatar)
 		.add_systems(Update, sync_datamodel)
 		.add_systems(Startup, try_audio_perms)
 		.add_systems(Update, nuke_standard_material)
 		.add_systems(Update, vr_rimlight)
-		.add_systems(Update, going_dark);
+		.add_systems(Update, going_dark)
+		.add_systems(Update, vr_ui_helper)
+		.add_systems(Update, proto_locomotion.run_if(xr_only()))
+		.insert_resource(PrototypeLocomotionConfig {
+			locomotion_speed: 2.0,
+			..default()
+		})
+		.add_systems(Startup, xr_picking_stuff::spawn_controllers)
+		.add_systems(XrSetup, xr_picking_stuff::setup_xr_actions);
 
 	info!("Launching client");
 	app.run();
 	Ok(())
 }
 
+fn vr_ui_helper(mut gizmos: Gizmos, pointers: Query<&CurrentPointers>) {
+	for e in &pointers {
+			info!("pointer");
+		for (pos, norm) in e.pointers.values() {
+			info!("draw");
+			gizmos.circle(*pos + *norm * 0.005, *norm, 0.01, Color::LIME_GREEN);
+		}
+	}
+}
+
 fn try_audio_perms() {
 	#[cfg(target_os = "android")]
 	{
-		request_audio_perm();
+		use std::thread;
+		// thread::spawn(request_audio_perm);
 	}
 }
 
@@ -127,7 +177,7 @@ impl PluginGroup for NexusPlugins {
 			.add(MicrophonePlugin)
 			.add(ClientPlugin {
 				server_addr: SocketAddr::new(
-					Ipv4Addr::new(45, 56, 95, 177).into(),
+					Ipv4Addr::new(192, 168, 2, 100).into(),
 					social_networking::server::DEFAULT_PORT,
 				),
 				transport: Transports::Udp,
@@ -187,6 +237,51 @@ fn sync_datamodel(
 	}
 }
 
+#[derive(Component)]
+struct LegalStdMaterial;
+
+fn spawn_avi_swap_ui(
+	mut cmds: Commands,
+	mut images: ResMut<Assets<Image>>,
+	mut meshes: ResMut<Assets<Mesh>>,
+	mut materials: ResMut<Assets<StandardMaterial>>,
+) {
+	let output_texture = images.add({
+		let size = Extent3d {
+			width: 256,
+			height: 256,
+			depth_or_array_layers: 1,
+		};
+		let mut output_texture = Image {
+			// You should use `0` so that the pixels are transparent.
+			data: vec![0; (size.width * size.height * 4) as usize],
+			..default()
+		};
+		output_texture.texture_descriptor.usage |= TextureUsages::RENDER_ATTACHMENT;
+		output_texture.texture_descriptor.size = size;
+		output_texture
+	});
+	cmds.spawn((
+		PbrBundle {
+			mesh: meshes.add(shape::Plane::default().into()),
+			material: materials.add(StandardMaterial {
+				base_color: Color::WHITE,
+				base_color_texture: Some(Handle::clone(&output_texture)),
+				// Remove this if you want it to use the world's lighting.
+				unlit: true,
+
+				..default()
+			}),
+			transform: Transform::from_xyz(0.0, 1.5, -6.1)
+				.with_rotation(Quat::from_rotation_x(TAU / 4.0)),
+			..default()
+		},
+		WorldSpaceUI::new(output_texture, 1.0, 1.0),
+		AvatarSwitchingUI,
+		LegalStdMaterial,
+	));
+}
+
 fn spawn_datamodel_avatar(mut cmds: Commands) {
 	cmds.spawn((
 		social_networking::data_model::Avatar,
@@ -217,7 +312,7 @@ fn nuke_standard_material(
 	mut cmds: Commands,
 	std_shaders: ResMut<Assets<StandardMaterial>>,
 	mut mtoon_shaders: ResMut<Assets<MtoonMaterial>>,
-	query: Query<(Entity, &Handle<StandardMaterial>)>,
+	query: Query<(Entity, &Handle<StandardMaterial>), Without<LegalStdMaterial>>,
 ) {
 	for (e, handle) in &query {
 		info!("Nuking: {:?}", e);
@@ -271,8 +366,8 @@ fn setup(
 	/*mut assign_avi_evts: EventWriter<AssignAvatar>,*/
 ) {
 	cmds.insert_resource(AmbientLight {
-		color: Color::BLACK,
-		brightness: 0.0,
+		color: Color::WHITE,
+		brightness: 1.,
 	});
 	cmds.spawn(SceneBundle {
 		scene: asset_server.load("https://cdn.discordapp.com/attachments/1122267109376925738/1190479732819623936/SGB_tutorial_scene_fixed.glb#Scene0"),

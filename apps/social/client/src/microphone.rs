@@ -67,14 +67,15 @@ fn on_startup_add_microphone(mut commands: Commands) {
 	std::thread::spawn(move || {
 		let device = cpal::default_host().default_input_device().unwrap();
 		let mut configs = device.supported_input_configs().unwrap();
-		let config = configs
-			.find(|c| {
-				c.sample_format() == cpal::SampleFormat::F32 && c.channels() == channels
-				// && c.min_sample_rate().0 < mic_config.sample_rate
-				// && c.max_sample_rate().0 > mic_config.sample_rate
-			})
-			.unwrap()
-			.with_sample_rate(cpal::SampleRate(44_100));
+		let config = match configs.find(|c| {
+			c.sample_format() == cpal::SampleFormat::F32 && c.channels() == channels
+			// && c.min_sample_rate().0 < mic_config.sample_rate
+			// && c.max_sample_rate().0 > mic_config.sample_rate
+		}) {
+			Some(v) => v,
+			None => return,
+		}
+		.with_sample_rate(cpal::SampleRate(44_100));
 		let err_fn =
 			|err| error!("an error occurred on the output audio stream: {}", err);
 		let stream = device

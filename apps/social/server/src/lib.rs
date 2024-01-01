@@ -46,6 +46,7 @@ pub fn main() -> Result<()> {
 					..Default::default()
 				},
 			));
+			app.add_plugins(bevy_egui::EguiPlugin);
 			app.add_plugins(VrmPlugin);
 			app.add_plugins(if !args.frame_timings {
 				DevToolsPlugins.build().disable::<LogDiagnosticsPlugin>()

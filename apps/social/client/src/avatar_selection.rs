@@ -1,6 +1,7 @@
 use bevy::prelude::*;
+use bevy_egui::egui;
 
-use crate::avatars::assign::AssignAvatar;
+use crate::{avatars::assign::AssignAvatar, controllers::KeyboardController};
 #[derive(Resource)]
 pub struct Avatars {
 	avis: &'static [AvatarData],
@@ -55,6 +56,10 @@ impl Plugin for AvatarSwitcherPlugin {
 				name: "Hair Sample Male",
 				url: "https://cdn.discordapp.com/attachments/1190761425396830369/1190761748119175278/HairSampleMale.vrm",
 			},
+			AvatarData {
+				name: "Malek",
+				url: "https://cdn.discordapp.com/attachments/1190761425396830369/1190863195418677359/malek.vrm",
+			},
 		];
 		app.insert_resource(Avatars { avis });
 		app.add_systems(Update, update_switching_ui);
@@ -63,6 +68,7 @@ impl Plugin for AvatarSwitcherPlugin {
 fn update_switching_ui(
 	mut contexts: Query<&mut bevy_egui::EguiContext, With<AvatarSwitchingUI>>,
 	mut assign_avi_evts: EventWriter<AssignAvatar>,
+	local_avi: Query<Entity, With<KeyboardController>>,
 	avatars: Res<Avatars>,
 ) {
 	for mut ctx in contexts.iter_mut() {
@@ -71,9 +77,10 @@ fn update_switching_ui(
 			ui.horizontal_wrapped(|ui| {
 				for a in avatars.avis.iter() {
 					if ui.button(a.name).clicked() {
+						info!("Switching To Avatar: {}", a.name);
 						assign_avi_evts.send(AssignAvatar {
 							avi_url: a.url.to_string(),
-							avi_entity: todo!(),
+							avi_entity: local_avi.get_single().unwrap(),
 						})
 					}
 				}

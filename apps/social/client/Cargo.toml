@@ -16,7 +16,7 @@ dynlink = ["bevy/dynamic_linking"]
 
 [dependencies]
 bevy.workspace = true
-bevy_mod_inverse_kinematics.workspace = true 
+bevy_mod_inverse_kinematics.workspace = true
 bevy_oxr = { workspace = true, default-features = false }
 bevy_vrm.workspace = true
 bevy_web_asset.workspace = true
@@ -28,13 +28,21 @@ rodio = "0.17.3"
 social-common.workspace = true
 social-networking.workspace = true
 derive_more.workspace = true
+picking-xr.workspace = true
+egui-picking.workspace = true
+bevy_egui.workspace = true
+bevy_mod_picking.workspace = true
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
 egui.workspace = true
-bevy_egui.workspace = true
 bevy-inspector-egui.workspace = true
+bevy_oxr = { workspace = true, default-features = true }
 
 [target.'cfg(target_os = "android")'.dependencies]
 bevy = { workspace = true, features = [] }
+# Not needed for this fork!
+# bevy_egui = { workspace = true, default-features = false, features = [
+# 	"default_fonts",
+# ] }
 ndk-context = "0.1.1"
 jni = "0.21.1"

@@ -7,7 +7,7 @@ use bevy_oxr::{
 	xr_input::{
 		actions::{ActionHandednes, ActionType, SetupActionSets, XrBinding},
 		trackers::{
-			OpenXRController, OpenXRLeftController, OpenXRRightController,
+			AimPose, OpenXRController, OpenXRLeftController, OpenXRRightController,
 			OpenXRTracker,
 		},
 	},
@@ -17,8 +17,16 @@ use picking_xr::{XrActionRef, XrPickingPlugin, XrPointer};
 
 fn main() {
 	App::new()
-		.add_plugins(DefaultXrPlugins.set(low_latency_window_plugin()))
-		.add_systems(Startup, spawn_controllers_example)
+		.add_plugins(
+			DefaultXrPlugins {
+				app_info: bevy_oxr::graphics::XrAppInfo {
+					name: "Picking Xr Example".to_string(),
+				},
+				..default()
+			}
+			.set(low_latency_window_plugin()),
+		)
+		.add_systems(Startup, spawn_controllers)
 		// All you need to do is add the picking plugin, with your backend of choice enabled in the
 		// cargo features. By default, the bevy_mod_raycast backend is enabled via the
 		// `backend_raycast` feature.
@@ -29,9 +37,60 @@ fn main() {
 		.run();
 }
 
-const ACTION_SET: &str = "picking-xr";
-
-fn setup_xr_actions(mut action_sets: ResMut<SetupActionSets>) {
+pub const ACTION_SET: &str = "picking-xr";
+pub fn spawn_controllers(mut commands: Commands, mut assets: ResMut<Assets<Image>>) {
+	//left hand
+	commands.spawn((
+		OpenXRLeftController,
+		OpenXRController,
+		AimPose(default()),
+		XrPointer::new(
+			assets.as_mut(),
+			picking_xr::XrPickActions {
+				primary_action: XrActionRef {
+					action_name: "primary_left",
+					set_name: ACTION_SET,
+				},
+				secondary_action: XrActionRef {
+					action_name: "secondary_left",
+					set_name: ACTION_SET,
+				},
+				middle_action: XrActionRef {
+					action_name: "middle_left",
+					set_name: ACTION_SET,
+				},
+			},
+		),
+		OpenXRTracker,
+		SpatialBundle::default(),
+	));
+	//right hand
+	commands.spawn((
+		OpenXRRightController,
+		OpenXRController,
+		AimPose(default()),
+		XrPointer::new(
+			assets.as_mut(),
+			picking_xr::XrPickActions {
+				primary_action: XrActionRef {
+					action_name: "primary_right",
+					set_name: ACTION_SET,
+				},
+				secondary_action: XrActionRef {
+					action_name: "secondary_right",
+					set_name: ACTION_SET,
+				},
+				middle_action: XrActionRef {
+					action_name: "middle_right",
+					set_name: ACTION_SET,
+				},
+			},
+		),
+		OpenXRTracker,
+		SpatialBundle::default(),
+	));
+}
+pub fn setup_xr_actions(mut action_sets: ResMut<SetupActionSets>) {
 	let bindings = &[
 		XrBinding::new("primary_right", "/user/hand/right/input/trigger/value"),
 		XrBinding::new("primary_left", "/user/hand/left/input/trigger/value"),
@@ -78,60 +137,6 @@ fn setup_xr_actions(mut action_sets: ResMut<SetupActionSets>) {
 		ActionHandednes::Single,
 	);
 	set.suggest_binding("/interaction_profiles/oculus/touch_controller", bindings);
-}
-
-fn spawn_controllers_example(
-	mut commands: Commands,
-	mut assets: ResMut<Assets<Image>>,
-) {
-	//left hand
-	commands.spawn((
-		OpenXRLeftController,
-		OpenXRController,
-		XrPointer::new(
-			assets.as_mut(),
-			picking_xr::XrPickActions {
-				primary_action: XrActionRef {
-					action_name: "primary_left",
-					set_name: ACTION_SET,
-				},
-				secondary_action: XrActionRef {
-					action_name: "secondary_left",
-					set_name: ACTION_SET,
-				},
-				middle_action: XrActionRef {
-					action_name: "middle_left",
-					set_name: ACTION_SET,
-				},
-			},
-		),
-		OpenXRTracker,
-		SpatialBundle::default(),
-	));
-	//right hand
-	commands.spawn((
-		OpenXRRightController,
-		OpenXRController,
-		XrPointer::new(
-			assets.as_mut(),
-			picking_xr::XrPickActions {
-				primary_action: XrActionRef {
-					action_name: "primary_right",
-					set_name: ACTION_SET,
-				},
-				secondary_action: XrActionRef {
-					action_name: "secondary_right",
-					set_name: ACTION_SET,
-				},
-				middle_action: XrActionRef {
-					action_name: "middle_right",
-					set_name: ACTION_SET,
-				},
-			},
-		),
-		OpenXRTracker,
-		SpatialBundle::default(),
-	));
 }
 
 fn setup(

@@ -9,7 +9,6 @@ use bevy::app::PluginGroupBuilder;
 use bevy::asset::Handle;
 use bevy::core::Name;
 use bevy::ecs::component::Component;
-use bevy::ecs::event::EventReader;
 use bevy::ecs::query::{With, Without};
 use bevy::hierarchy::DespawnRecursiveExt;
 use bevy::log::{error, info};

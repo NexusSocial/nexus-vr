@@ -1,19 +1,4 @@
-use bevy::{
-	app::{First, Plugin},
-	asset::Assets,
-	ecs::{
-		bundle::Bundle,
-		component::Component,
-		event::EventWriter,
-		query::With,
-		schedule::IntoSystemConfigs,
-		system::{Query, Res},
-	},
-	math::{Vec2, Vec3},
-	prelude::default,
-	render::texture::Image,
-	utils::Uuid, transform::components::Transform,
-};
+use bevy::{prelude::*, utils::Uuid};
 use bevy_oxr::{
 	resources::XrSession,
 	xr_init::xr_only,

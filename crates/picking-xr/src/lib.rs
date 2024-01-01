@@ -1,19 +1,4 @@
-use bevy::{
-	app::{First, Plugin},
-	asset::Assets,
-	ecs::{
-		bundle::Bundle,
-		component::Component,
-		event::EventWriter,
-		query::With,
-		schedule::IntoSystemConfigs,
-		system::{Query, Res},
-	},
-	math::Vec2,
-	prelude::default,
-	render::texture::Image,
-	utils::Uuid,
-};
+use bevy::{prelude::*, utils::Uuid};
 use bevy_oxr::{
 	resources::XrSession,
 	xr_init::xr_only,
@@ -33,7 +18,11 @@ pub struct XrPointer {
 	pub pointer_location: PointerLocation,
 	pub pick_actions: XrPickActions,
 	pub last_action_state: XrPickLastActionState,
+	pub last_pointer_hit: XrPickLastPointerTransform,
 }
+
+#[derive(Component, Clone, Copy)]
+pub struct XrPickLastPointerTransform(Transform);
 
 #[derive(Clone, Copy, Component, Debug)]
 pub struct XrActionRef {
@@ -168,6 +157,7 @@ pub fn xr_input_handling(
 impl XrPointer {
 	pub fn new(assets: &mut Assets<Image>, actions: XrPickActions) -> Self {
 		Self {
+			last_pointer_hit: XrPickLastPointerTransform(default()),
 			xr_ray_interactor: XRRayInteractor,
 			pointer_id: PointerId::Custom(Uuid::new_v4()),
 			pointer_location: PointerLocation {

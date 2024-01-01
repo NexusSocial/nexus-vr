@@ -13,7 +13,12 @@ pub fn main() {
 
 	info!("Running `rvid-client`");
 	App::new()
-		.add_plugins(DefaultXrPlugins)
+		.add_plugins(DefaultXrPlugins {
+			app_info: bevy_oxr::graphics::XrAppInfo {
+				name: "rvid client".to_string(),
+			},
+			..default()
+		})
 		.add_plugins(LogDiagnosticsPlugin::default())
 		.add_plugins(FrameTimeDiagnosticsPlugin)
 		.add_systems(Startup, setup)

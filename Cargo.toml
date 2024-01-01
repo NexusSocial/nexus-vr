@@ -25,12 +25,14 @@ rust-version = "1.74.1"
 [workspace.dependencies]
 bevy = "0.12"
 bevy-inspector-egui = "0.21.0"
-bevy_egui = "0.23"
+bevy_egui = { git = "https://github.com/Schmarni-Dev/bevy_egui/", branch = "add-worldspace-egui" }
 bevy_mod_inverse_kinematics = "0.5"
-bevy_mod_picking = "0.17.0"
+bevy_mod_picking = { git = "https://github.com/Schmarni-Dev/bevy_mod_picking", branch = "no_windows" }
+# bevy_mod_picking = "0.17.0"
 bevy_mod_raycast = "0.16.0"
-bevy_oxr = { git = "https://github.com/awtterpip/bevy_oxr", rev = "265696b", default-features = false }
-bevy_picking_core = "0.17.0"
+bevy_oxr = { git = "https://github.com/awtterpip/bevy_oxr", rev = "b2efa80", default-features = false }
+bevy_picking_core = { package = "bevy_picking_core",git = "https://github.com/Schmarni-Dev/bevy_mod_picking", branch = "no_windows" }
+# bevy_picking_core = "0.17.0"
 bevy_vrm = "0.0.7"
 bevy_web_asset = { git = "https://github.com/johanhelsing/bevy_web_asset" }
 clap = { version = "4.4.11", features = ["derive"] }
@@ -49,6 +51,8 @@ serde = "1.0.193"
 social-common.path = "apps/social/common"
 social-networking.path = "apps/social/networking"
 tracing = "0.1.40"
+egui-picking = { path = "./crates/egui-picking" }
+picking-xr = { path = "./crates/picking-xr" }
 opus = { git ="https://github.com/Schmarni-Dev/opus-rs", branch = "unsafe-libopus",default-features = false,features = ["unsafe-libopus-backend"] }
 
 [profile.dev]
@@ -62,8 +66,7 @@ opt-level = 2
 
 [patch.crates-io]
 # Adds `links` support
-openxr = { git = "https://github.com/Ralith/openxrs", rev = "361b27e" }
-
+openxr = { git = "https://github.com/Ralith/openxrs", rev = "0177d2d" }
 ndk = { git = "https://github.com/Schmarni-Dev/ndk.git", branch = "070" }
 ndk-sys = { package = "ndk-sys", git = "https://github.com/Schmarni-Dev/ndk.git", branch = "070" }
 ndk-context = { package = "ndk-context", git = "https://github.com/Schmarni-Dev/ndk.git", branch = "070" }

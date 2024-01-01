@@ -1,9 +1,10 @@
-use bevy::{ecs::schedule::Condition, prelude::*};
+use bevy::{ecs::schedule::Condition, prelude::*, utils::HashMap};
 use bevy_egui::{egui::PointerButton, EguiInput, EguiRenderToTexture};
 use bevy_mod_picking::{
 	events::{Down, Move, Out, Pointer, Up},
 	focus::PickingInteraction,
 	picking_core::Pickable,
+	pointer::PointerId,
 	prelude::{ListenerInput, On},
 };
 
@@ -13,12 +14,6 @@ pub struct WorldUI {
 	pub size_y: f32,
 }
 
-// #[derive(Event, Clone, Copy, Debug)]
-// pub struct UIPointerClick {
-//     pub target: Entity,
-//     pub position: Option<Vec3>,
-//     pub button: PointerButton,
-// }
 #[derive(Event, Clone, Copy, Debug)]
 pub struct UIPointerDown {
 	pub target: Entity,
@@ -36,10 +31,13 @@ pub struct UIPointerUp {
 pub struct UIPointerMove {
 	pub target: Entity,
 	pub position: Option<Vec3>,
+	pub normal: Option<Vec3>,
+	pub pointer_id: PointerId,
 }
 #[derive(Event, Clone, Copy, Debug)]
 pub struct UIPointerLeave {
 	pub target: Entity,
+	pub pointer_id: PointerId,
 }
 
 impl From<ListenerInput<Pointer<Down>>> for UIPointerDown {
@@ -86,6 +84,8 @@ impl From<ListenerInput<Pointer<Move>>> for UIPointerMove {
 		Self {
 			target: event.target,
 			position: event.hit.position,
+			normal: event.hit.normal,
+			pointer_id: event.pointer_id,
 		}
 	}
 }
@@ -93,6 +93,7 @@ impl From<ListenerInput<Pointer<Out>>> for UIPointerLeave {
 	fn from(event: ListenerInput<Pointer<Out>>) -> Self {
 		Self {
 			target: event.target,
+			pointer_id: event.pointer_id,
 		}
 	}
 }
@@ -107,6 +108,7 @@ pub struct WorldSpaceUI {
 	pub pickable: Pickable,
 	pub interaction: PickingInteraction,
 	pub world_ui: WorldUI,
+	pub current_pointers: CurrentPointers,
 }
 impl WorldSpaceUI {
 	pub fn new(texture: Handle<Image>, size_x: f32, size_y: f32) -> Self {
@@ -119,6 +121,7 @@ impl WorldSpaceUI {
 			pickable: Pickable::default(),
 			interaction: PickingInteraction::default(),
 			world_ui: WorldUI { size_x, size_y },
+			current_pointers: CurrentPointers::default(),
 		}
 	}
 }
@@ -142,12 +145,18 @@ impl Plugin for PickabelEguiPlugin {
 	}
 }
 
+#[derive(Component, Default)]
+pub struct CurrentPointers {
+	pub pointers: HashMap<PointerId, (Vec3, Vec3)>,
+}
+
 pub fn ui_interactions(
 	mut inputs: Query<(
 		&mut EguiInput,
 		&WorldUI,
 		&GlobalTransform,
 		&EguiRenderToTexture,
+		&mut CurrentPointers,
 	)>,
 	mut move_events: EventReader<UIPointerMove>,
 	mut down_events: EventReader<UIPointerDown>,
@@ -155,20 +164,32 @@ pub fn ui_interactions(
 	mut leave_events: EventReader<UIPointerLeave>,
 	textures: Res<Assets<Image>>,
 ) {
-	for UIPointerMove { target, position } in move_events.read() {
-		if let (Ok((mut input, ui, transform, texture)), Some(position)) =
-			(inputs.get_mut(*target), position)
+	for UIPointerMove {
+		target,
+		position,
+		pointer_id,
+		normal,
+	} in move_events.read()
+	{
+		if let (
+			Ok((mut input, ui, transform, texture, mut current_pointers)),
+			Some(position),
+			Some(normal),
+		) = (inputs.get_mut(*target), position, normal)
 		{
+			info!("Moved");
+			current_pointers
+				.pointers
+				.insert(*pointer_id, (*position, *normal));
+			let local_pos = *position - transform.translation();
 			let rotated_point = transform
 				.to_scale_rotation_translation()
 				.1
 				.inverse()
-				.mul_vec3(*position);
-			let local_pos = rotated_point - transform.translation();
-			let mut uv = local_pos.xz() + Vec2::splat(0.5);
+				.mul_vec3(local_pos);
+			let mut uv = rotated_point.xz() + Vec2::splat(0.5);
 			uv.x /= ui.size_x;
 			uv.y /= ui.size_y;
-			// Whem the texture exists then it must be in the assets i think
 			let image = textures.get(texture.0.clone()).unwrap();
 			input.events.push(bevy_egui::egui::Event::PointerMoved(
 				bevy_egui::egui::Pos2 {
@@ -184,19 +205,21 @@ pub fn ui_interactions(
 		button,
 	} in down_events.read()
 	{
-		if let (Ok((mut input, ui, transform, texture)), Some(position)) =
-			(inputs.get_mut(*target), position)
+		if let (
+			Ok((mut input, ui, transform, texture, _current_pointers)),
+			Some(position),
+		) = (inputs.get_mut(*target), position)
 		{
+			let local_pos = *position - transform.translation();
 			let rotated_point = transform
 				.to_scale_rotation_translation()
 				.1
 				.inverse()
-				.mul_vec3(*position);
-			let local_pos = rotated_point - transform.translation();
-			let mut uv = local_pos.xz() + Vec2::splat(0.5);
+				.mul_vec3(local_pos);
+			let mut uv = rotated_point.xz() + Vec2::splat(0.5);
 			uv.x /= ui.size_x;
 			uv.y /= ui.size_y;
-			// Whem the texture exists then it must be in the assets i think
+
 			let image = textures.get(texture.0.clone()).unwrap();
 			input.events.push(bevy_egui::egui::Event::PointerButton {
 				pos: bevy_egui::egui::Pos2 {
@@ -215,19 +238,20 @@ pub fn ui_interactions(
 		button,
 	} in up_events.read()
 	{
-		if let (Ok((mut input, ui, transform, texture)), Some(position)) =
-			(inputs.get_mut(*target), position)
+		if let (
+			Ok((mut input, ui, transform, texture, _current_pointers)),
+			Some(position),
+		) = (inputs.get_mut(*target), position)
 		{
+			let local_pos = *position - transform.translation();
 			let rotated_point = transform
 				.to_scale_rotation_translation()
 				.1
 				.inverse()
-				.mul_vec3(*position);
-			let local_pos = rotated_point - transform.translation();
-			let mut uv = local_pos.xz() + Vec2::splat(0.5);
+				.mul_vec3(local_pos);
+			let mut uv = rotated_point.xz() + Vec2::splat(0.5);
 			uv.x /= ui.size_x;
 			uv.y /= ui.size_y;
-			// Whem the texture exists then it must be in the assets i think
 			let image = textures.get(texture.0.clone()).unwrap();
 			input.events.push(bevy_egui::egui::Event::PointerButton {
 				pos: bevy_egui::egui::Pos2 {
@@ -240,8 +264,10 @@ pub fn ui_interactions(
 			});
 		}
 	}
-	for UIPointerLeave { target } in leave_events.read() {
-		if let Ok((mut input, ..)) = inputs.get_mut(*target) {
+	for UIPointerLeave { target, pointer_id } in leave_events.read() {
+		if let Ok((mut input, _, _, _, mut current_pointers)) = inputs.get_mut(*target)
+		{
+			current_pointers.pointers.remove(pointer_id);
 			input.events.push(bevy_egui::egui::Event::PointerGone);
 		}
 	}

@@ -83,7 +83,8 @@ impl PluginGroup for DevToolsPlugins {
 		#[cfg(not(target_os = "android"))]
 		let builder = builder
 			.add(bevy_inspector_egui::DefaultInspectorConfigPlugin)
-			.add(bevy_egui::EguiPlugin)
+			// I am sorry ~Schmarni
+			// .add(bevy_egui::EguiPlugin)
 			.add(self::not_android::InspectorUiPlugin);
 		builder
 	}

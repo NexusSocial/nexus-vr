@@ -44,12 +44,12 @@ jobs:
       - name: Install bevy dependencies
         run: |
           sudo apt-get update && sudo apt-get install -y \
-            g++ pkg-config libx11-dev libasound2-dev libudev-dev libopenxr-loader1 libopenxr-dev mesa-vulkan-drivers
+            g++ pkg-config libx11-dev libasound2-dev libudev-dev libopenxr-loader1 libopenxr-dev mesa-vulkan-drivers xvfb
       - name: Cache cargo dependencies
         uses: Swatinem/rust-cache@v2
 
       - name: Test
-        run: cargo test --all --all-features --all-targets
+        run: xvfb-run cargo test --all --all-features --all-targets
 
       - name: Upload screenshots to artifacts
         uses: actions/upload-artifact@v3

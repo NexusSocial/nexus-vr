@@ -58,7 +58,9 @@ fn kill_after_frames(
 						file_path.display()
 					))
 				});
-			info!("saved image to {}", file_path.display());
+			if result.is_ok() {
+				info!("saved image to {}", file_path.display());
+			}
 			send.send(result).expect("could not send?");
 		};
 		scshot

@@ -123,10 +123,9 @@ impl Plugin for MainPlugin {
 		});
 		let xr_plugins = match &self.exec_mode {
 			ExecutionMode::Normal => xr_plugins,
-			// TODO: Testing mode doesn't work just yet.
 			ExecutionMode::Testing => xr_plugins
 				.disable::<WinitPlugin>()
-				.add(ScheduleRunnerPlugin::run_loop(Duration::from_secs(1) / 60)),
+				.add(ScheduleRunnerPlugin::run_loop(Duration::from_secs(1) / 120)),
 		};
 		app.add_plugins(xr_plugins)
 			.add_plugins(InverseKinematicsPlugin)

@@ -64,7 +64,10 @@ impl Default for LocalAvatar {
 			transform: default(),
 			keeb_controller: default(),
 			spatial_audio_listener: SpatialAudioListener,
-			aabb: Aabb {center: Vec3A::ZERO, half_extents: Vec3A::splat(2.0)},
+			aabb: Aabb {
+				center: Vec3A::ZERO,
+				half_extents: Vec3A::splat(2.0),
+			},
 		}
 	}
 }

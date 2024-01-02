@@ -48,7 +48,14 @@ jobs:
       - name: Cache cargo dependencies
         uses: Swatinem/rust-cache@v2
 
-      - name: Run wgpu-info
-        run: cargo install wgpu-info && wgpu-info
       - name: Test
         run: cargo test --all --all-features --all-targets
+
+      - name: Upload screenshots to artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          path: "**/tests/screnshots"
+          name: screenshots
+          retention-days: 1
+
+

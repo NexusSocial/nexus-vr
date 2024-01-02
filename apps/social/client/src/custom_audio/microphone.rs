@@ -82,16 +82,17 @@ pub fn create_microphone(mut commands: Commands) {
 			.build_input_stream(
 				&config.into(),
 				move |d: &[f32], _| {
-					tx.send(d.to_vec()).unwrap();
+					// sending errors imply the receiver is dropped.
+					tx.send(d.to_vec()).ok();
 				},
 				err_fn,
 				None,
 			)
-			.unwrap();
+			.expect("failed to build audio input stream");
 
 		// we play the stream, and then in order to not drop the stuff we have here, to continue to play it continously
 		// we have to loop, we sleep for 100 seconds so this thread rarely ever does anything.
-		stream.play().unwrap();
+		stream.play().expect("failed to play audio stream");
 		loop {
 			std::thread::sleep(std::time::Duration::from_secs(100));
 		}

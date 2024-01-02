@@ -34,6 +34,7 @@ bevy_egui.workspace = true
 bevy_mod_picking.workspace = true
 opus.workspace = true
 egui.workspace = true
+clap.workspace = true
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
 bevy-inspector-egui.workspace = true
@@ -47,3 +48,7 @@ bevy = { workspace = true, features = [] }
 ndk-context = "0.1.1"
 jni = "0.21.1"
 
+[[test]]
+name = "render_test"
+path = "tests/render_test.rs"
+harness = false

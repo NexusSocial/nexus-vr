@@ -5513,6 +5513,7 @@ dependencies = [
  "bevy_oxr",
  "bevy_vrm",
  "bevy_web_asset",
+ "clap",
  "color-eyre",
  "cpal",
  "derive_more",

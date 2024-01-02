@@ -1,14 +1,16 @@
 #![allow(clippy::type_complexity)]
 #![allow(clippy::too_many_arguments)]
 
+mod avatar_selection;
 mod avatars;
 mod controllers;
 mod custom_audio;
 mod ik;
 mod voice_chat;
+mod xr_picking_stuff;
 
 use avatar_selection::AvatarSwitchingUI;
-use bevy::app::PluginGroupBuilder;
+use bevy::app::ScheduleRunnerPlugin;
 use bevy::asset::{AssetMetaCheck, Handle};
 use bevy::core::Name;
 use bevy::ecs::component::Component;
@@ -28,6 +30,7 @@ use bevy::render::texture::Image;
 use bevy::scene::SceneBundle;
 use bevy::transform::components::Transform;
 use bevy::transform::TransformBundle;
+use bevy::winit::WinitPlugin;
 use bevy_egui::EguiPlugin;
 use bevy_mod_inverse_kinematics::InverseKinematicsPlugin;
 use bevy_mod_picking::DefaultPickingPlugins;
@@ -43,13 +46,15 @@ use bevy_oxr::xr_input::{QuatConv, Vec3Conv};
 use bevy_oxr::DefaultXrPlugins;
 use bevy_vrm::mtoon::{MtoonMainCamera, MtoonMaterial};
 use bevy_vrm::VrmPlugin;
+use clap::Parser;
 use color_eyre::Result;
 use egui_picking::{CurrentPointers, PickabelEguiPlugin, WorldSpaceUI};
 use picking_xr::XrPickingPlugin;
 use rodio::SpatialSink;
 use social_common::dev_tools::DevToolsPlugins;
 use std::f32::consts::TAU;
-use std::net::{Ipv4Addr, SocketAddr};
+use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
+use std::time::Duration;
 
 use social_networking::data_model::{ClientIdComponent, Local, PlayerAvatarUrl};
 use social_networking::{ClientPlugin, Transports};
@@ -57,9 +62,7 @@ use social_networking::{ClientPlugin, Transports};
 use self::avatars::assign::AssignAvatar;
 use crate::avatar_selection::AvatarSwitcherPlugin;
 use crate::avatars::{DmEntity, LocalAvatar, LocalEntity};
-mod avatar_selection;
 // use crate::voice_chat::VoiceChatPlugin;
-mod xr_picking_stuff;
 use crate::custom_audio::audio_output::AudioOutput;
 use crate::custom_audio::spatial_audio::SpatialAudioSink;
 use crate::ik::IKPlugin;
@@ -70,63 +73,105 @@ const ASSET_FOLDER: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../../assets
 pub fn main() -> Result<()> {
 	color_eyre::install()?;
 
-	let mut app = App::new();
-	app.add_plugins(bevy_web_asset::WebAssetPlugin)
-		.add_plugins(
-			DefaultXrPlugins {
-				app_info: bevy_oxr::graphics::XrAppInfo {
-					name: "Nexus Vr Social Client".to_string(),
-				},
-				..default()
-			}
-			.set(AssetPlugin {
-				file_path: ASSET_FOLDER.to_string(),
-				..Default::default()
-			}),
-		)
-		.add_plugins(InverseKinematicsPlugin)
-		.add_plugins(IKPlugin)
-		.add_plugins(DevToolsPlugins)
-		.add_plugins(VrmPlugin)
-		.add_plugins(NexusPlugins)
-		.add_plugins(self::avatars::AvatarsPlugin)
-		.add_plugins(self::controllers::KeyboardControllerPlugin)
-		.add_plugins(DefaultPickingPlugins)
-		.add_plugins(XrPickingPlugin)
-		.add_plugins(EguiPlugin)
-		.add_plugins(PickabelEguiPlugin)
-		.add_plugins(AvatarSwitcherPlugin)
-		// .add_plugins(bevy_oxr::xr_input::debug_gizmos::OpenXrDebugRenderer)
-		.add_plugins(self::custom_audio::CustomAudioPlugins)
-		.add_plugins(self::voice_chat::VoiceChatPlugin)
-		.add_systems(Startup, setup)
-		.add_systems(Startup, spawn_avi_swap_ui)
-		.add_systems(Startup, spawn_datamodel_avatar)
-		.add_systems(Update, sync_datamodel)
-		.add_systems(Startup, try_audio_perms)
-		.add_systems(Update, nuke_standard_material)
-		.add_systems(Update, vr_rimlight)
-		.add_systems(Update, going_dark)
-		.add_systems(Update, vr_ui_helper)
-		.add_systems(Update, proto_locomotion.run_if(xr_only()))
-		.insert_resource(PrototypeLocomotionConfig {
-			locomotion_speed: 2.0,
-			..default()
-		})
-		.insert_resource(AssetMetaCheck::Never)
-		.add_systems(Startup, xr_picking_stuff::spawn_controllers)
-		.add_systems(XrSetup, xr_picking_stuff::setup_xr_actions)
-		.add_systems(Update, going_dark)
-		.add_systems(
-			Update,
-			send_avatar_url_changed_event_when_avatar_url_changed,
-		);
-	// .add_systems(Startup, spawn_test_audio)
-	// .add_systems(Update, test_loopback_audio);
+	let cli = Cli::parse();
 
-	info!("Launching client");
-	app.run();
+	let server_addr = cli.server_addr.unwrap_or(
+		SocketAddrV4::new(Ipv4Addr::LOCALHOST, social_networking::server::DEFAULT_PORT)
+			.into(),
+	);
+
+	App::new()
+		.add_plugins(MainPlugin {
+			exec_mode: ExecutionMode::Normal,
+			server_addr: Some(server_addr),
+		})
+		.run();
 	Ok(())
+}
+
+#[derive(Parser, Debug)]
+struct Cli {
+	#[clap(long)]
+	server_addr: Option<SocketAddr>,
+}
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub enum ExecutionMode {
+	Normal,
+	Testing,
+}
+
+/// Add this to an `App` to get the game logic.
+#[derive(Debug)]
+pub struct MainPlugin {
+	pub exec_mode: ExecutionMode,
+	pub server_addr: Option<SocketAddr>,
+}
+
+impl Plugin for MainPlugin {
+	fn build(&self, app: &mut App) {
+		app.add_plugins(bevy_web_asset::WebAssetPlugin);
+		let xr_plugins = DefaultXrPlugins {
+			app_info: bevy_oxr::graphics::XrAppInfo {
+				name: "Nexus Vr Social Client".to_string(),
+			},
+			..default()
+		}
+		.set(AssetPlugin {
+			file_path: ASSET_FOLDER.to_string(),
+			..Default::default()
+		});
+		let xr_plugins = match &self.exec_mode {
+			ExecutionMode::Normal => xr_plugins,
+			ExecutionMode::Testing => xr_plugins
+				.disable::<WinitPlugin>()
+				.add(ScheduleRunnerPlugin::run_loop(Duration::from_secs(1) / 120)),
+		};
+		app.add_plugins(xr_plugins)
+			.add_plugins(InverseKinematicsPlugin)
+			.add_plugins(IKPlugin)
+			.add_plugins(DevToolsPlugins)
+			.add_plugins(VrmPlugin);
+		if let Some(server_addr) = self.server_addr {
+			app.add_plugins(ClientPlugin {
+				server_addr,
+				transport: Transports::Udp,
+			})
+			.add_plugins(self::voice_chat::VoiceChatPlugin);
+		}
+		app.add_plugins(self::avatars::AvatarsPlugin)
+			.add_plugins(self::controllers::KeyboardControllerPlugin)
+			.add_plugins(DefaultPickingPlugins)
+			.add_plugins(XrPickingPlugin)
+			.add_plugins(EguiPlugin)
+			.add_plugins(PickabelEguiPlugin)
+			.add_plugins(AvatarSwitcherPlugin)
+			// .add_plugins(bevy_oxr::xr_input::debug_gizmos::OpenXrDebugRenderer)
+			.add_plugins(self::custom_audio::CustomAudioPlugins)
+			.add_systems(Startup, setup)
+			.add_systems(Startup, spawn_avi_swap_ui)
+			.add_systems(Startup, spawn_datamodel_avatar)
+			.add_systems(Update, sync_datamodel)
+			.add_systems(Startup, try_audio_perms)
+			.add_systems(Update, nuke_standard_material)
+			.add_systems(Update, vr_rimlight)
+			.add_systems(Update, going_dark)
+			.add_systems(Update, vr_ui_helper)
+			.add_systems(Update, proto_locomotion.run_if(xr_only()))
+			.insert_resource(PrototypeLocomotionConfig {
+				locomotion_speed: 2.0,
+				..default()
+			})
+			.insert_resource(AssetMetaCheck::Never)
+			.add_systems(Startup, xr_picking_stuff::spawn_controllers)
+			.add_systems(XrSetup, xr_picking_stuff::setup_xr_actions)
+			.add_systems(Update, going_dark)
+			.add_systems(
+				Update,
+				send_avatar_url_changed_event_when_avatar_url_changed,
+			);
+		info!("built main app with config: {self:#?}");
+	}
 }
 
 fn vr_ui_helper(mut gizmos: Gizmos, pointers: Query<&CurrentPointers>) {
@@ -209,22 +254,6 @@ fn request_audio_perm() {
 		],
 	)
 	.unwrap();
-}
-
-/// Plugins implemented specifically for this game.
-#[derive(Default)]
-struct NexusPlugins;
-
-impl PluginGroup for NexusPlugins {
-	fn build(self) -> PluginGroupBuilder {
-		PluginGroupBuilder::start::<Self>().add(ClientPlugin {
-			server_addr: SocketAddr::new(
-				Ipv4Addr::new(45, 56, 95, 177).into(),
-				social_networking::server::DEFAULT_PORT,
-			),
-			transport: Transports::Udp,
-		})
-	}
 }
 
 pub fn ignore_on_err(_result: Result<()>) {}

@@ -3,7 +3,11 @@
 
 use crate::avatars::LocalEntity;
 use crate::controllers::KeyboardController;
-use bevy::transform::components::{GlobalTransform, Transform};
+use bevy::{
+	math::Vec3A,
+	render::primitives::Aabb,
+	transform::components::{GlobalTransform, Transform},
+};
 use bevy_oxr::xr_input::trackers::OpenXRTrackingRoot;
 use color_eyre::eyre;
 use eyre::eyre;
@@ -92,8 +96,8 @@ fn quat_from_vectors(plus_x: Vec3, plus_z: Vec3) -> Quat {
 
 fn update_ik(
 	input_query: Query<(&PlayerPose, &LocalEntity)>,
-	mut local_avi_transform: Query<
-		&mut Transform,
+	mut local_avi_data: Query<
+		(&mut Transform, Option<&mut Aabb>),
 		(Without<OpenXRTrackingRoot>, Without<BoneKind>),
 	>,
 	local_local_avatar: Query<Entity, With<KeyboardController>>,
@@ -108,9 +112,13 @@ fn update_ik(
 	for (pose, loc_ent) in input_query.iter() {
 		let mut func = || -> color_eyre::Result<()> {
 			// set the Avatar Root, to the root from the pose
-			if let Ok(mut local_transform) = local_avi_transform.get_mut(loc_ent.0) {
+			if let Ok((mut local_transform, aabb)) = local_avi_data.get_mut(loc_ent.0) {
 				local_transform.translation = pose.root.trans;
 				local_transform.rotation = pose.root.rot;
+				if let Some(mut aabb) = aabb {
+					aabb.center = pose.head.trans.into();
+					aabb.half_extents = Vec3A::splat(2.0);
+				};
 			}
 			let local_local = local_local_avatar.contains(loc_ent.0);
 			let mut skeleton_query_opt: Option<&HumanoidRig> = None;

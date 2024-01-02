@@ -3,7 +3,10 @@
 
 use crate::avatars::LocalEntity;
 use crate::controllers::KeyboardController;
-use bevy::transform::components::{GlobalTransform, Transform};
+use bevy::{
+	render::primitives::Aabb,
+	transform::components::{GlobalTransform, Transform},
+};
 use bevy_oxr::xr_input::trackers::OpenXRTrackingRoot;
 use color_eyre::eyre;
 use eyre::eyre;
@@ -92,6 +95,10 @@ fn quat_from_vectors(plus_x: Vec3, plus_z: Vec3) -> Quat {
 
 fn update_ik(
 	input_query: Query<(&PlayerPose, &LocalEntity)>,
+	mut local_avi_data: Query<
+		(&mut Transform, Option<&mut Aabb>),
+		(Without<OpenXRTrackingRoot>, Without<BoneKind>),
+	>,
 	local_local_avatar: Query<Entity, With<KeyboardController>>,
 	avatar_children: Query<&Children>,
 	skeleton_query: Query<&HumanoidRig>,
@@ -103,6 +110,14 @@ fn update_ik(
 ) {
 	for (pose, loc_ent) in input_query.iter() {
 		let mut func = || -> color_eyre::Result<()> {
+			// set the Avatar Root, to the root from the pose
+			if let Ok((mut local_transform, aabb)) = local_avi_data.get_mut(loc_ent.0) {
+				local_transform.translation = pose.root.trans;
+				local_transform.rotation = pose.root.rot;
+				if let Some(mut aabb) = aabb {
+					aabb.center = pose.head.trans.into();
+				};
+			}
 			let local_local = local_local_avatar.contains(loc_ent.0);
 			let mut skeleton_query_opt: Option<&HumanoidRig> = None;
 			for child in avatar_children.iter_descendants(loc_ent.0) {
@@ -123,7 +138,7 @@ fn update_ik(
 			let height_factor = skeleton_comp.height / DEFAULT_EYE_HEIGHT;
 			if local_local {
 				for mut root in tracking_root.iter_mut() {
-					root.scale = Vec3::ONE * height_factor;
+					root.scale = Vec3::splat(height_factor);
 				}
 			}
 			// read the state of the skeleton from the transforms
@@ -179,22 +194,18 @@ fn update_ik(
 			// it's confusing to me that this is a z axis rotation? I would expect z axis to be roll. The forward vector of the hands must be fucky.
 			let flip_quat_l = Quat::from_rotation_z(PI / 2.);
 			let flip_quat_r = Quat::from_rotation_z(-PI / 2.);
+			let head_offset =
+				(skeleton.left.eye.translation + skeleton.right.eye.translation) / 2.;
+			let mut head_pose = pose.head.clone();
+			head_pose.trans = pose.head.trans - (pose.head.rot * head_offset);
+
 			// At this point, the skeleton is known to be valid; next, handle VR input
-			let final_head = iso_to_transform(
-				&pose
-					.root
-					.mul_isometry(pose.head.scale_translation(pose.root_scale)),
-			);
-			let final_left_hand = iso_to_transform(
-				&pose
-					.root
-					.mul_isometry(pose.hand_l.scale_translation(pose.root_scale)),
-			);
-			let final_right_hand = iso_to_transform(
-				&pose
-					.root
-					.mul_isometry(pose.hand_r.scale_translation(pose.root_scale)),
-			);
+			let final_head =
+				iso_to_transform(&head_pose.scale_translation(pose.root_scale));
+			let final_left_hand =
+				iso_to_transform(&pose.hand_l.scale_translation(pose.root_scale));
+			let final_right_hand =
+				iso_to_transform(&pose.hand_r.scale_translation(pose.root_scale));
 			// now everything is set up and IK logic can begin.
 			let head_rot_euler = (skeleton_comp.root_defaults.head.rotation.inverse()
 				* final_head.rotation)

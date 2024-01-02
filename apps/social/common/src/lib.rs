@@ -3,7 +3,6 @@
 pub mod dev_tools;
 pub mod humanoid;
 pub mod macro_utils;
-pub mod test_scaffold;
 
 use serde::{Deserialize, Serialize};
 

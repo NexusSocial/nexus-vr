@@ -3,12 +3,11 @@
 //! This behavior is initiated when a vrm is spawned. You can query for fully loaded
 //! avatars via [`FullyLoadedAvatar`].
 
-use bevy::asset::AssetServer;
-use bevy::prelude::ResMut;
 use bevy::{
+	asset::AssetServer,
 	prelude::{
-		debug, Commands, Component, Entity, EventWriter, Handle, Plugin, Query, Update,
-		With, Without,
+		debug, Commands, Component, Entity, EventWriter, Handle, Plugin, Query, ResMut,
+		Update, With, Without,
 	},
 	reflect::Reflect,
 };
@@ -60,15 +59,17 @@ fn check_for_fully_loaded(
 
 #[cfg(test)]
 mod test {
-	use super::*;
-	use social_common::test_scaffold::{make_test_app, HeadlessRenderPlugins};
+	use crate::MainPlugin;
+
+	use bevy::prelude::App;
 
 	#[test]
 	fn test_vrm_load() {
-		let mut app = make_test_app(|_app| {});
-		app.add_plugins(HeadlessRenderPlugins)
-			.add_plugins(bevy_vrm::VrmPlugin)
-			.add_plugins(AvatarLoadPlugin);
+		let mut app = App::new();
+		app.add_plugins(MainPlugin {
+			exec_mode: crate::ExecutionMode::Testing,
+			server_addr: None,
+		});
 		app.run();
 	}
 }

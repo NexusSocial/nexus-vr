@@ -49,6 +49,6 @@ ndk-context = "0.1.1"
 jni = "0.21.1"
 
 [[test]]
-name = "smoke_test"
-path = "tests/smoke_test.rs"
+name = "render_test"
+path = "tests/render_test.rs"
 harness = false

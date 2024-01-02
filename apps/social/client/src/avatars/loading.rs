@@ -57,3 +57,18 @@ fn check_for_fully_loaded(
 		debug!("Fully loaded entity: {e:?}");
 	}
 }
+
+#[cfg(test)]
+mod test {
+	use super::*;
+	use social_common::test_scaffold::{make_test_app, HeadlessRenderPlugins};
+
+	#[test]
+	fn test_vrm_load() {
+		let mut app = make_test_app(|_app| {});
+		app.add_plugins(HeadlessRenderPlugins)
+			.add_plugins(bevy_vrm::VrmPlugin)
+			.add_plugins(AvatarLoadPlugin);
+		app.run();
+	}
+}

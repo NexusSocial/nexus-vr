@@ -66,10 +66,7 @@ use crate::ik::IKPlugin;
 
 const ASSET_FOLDER: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../../assets/");
 
-#[bevy_main]
-pub fn main() -> Result<()> {
-	color_eyre::install()?;
-
+pub fn build_app() -> App {
 	let mut app = App::new();
 	app.add_plugins(bevy_web_asset::WebAssetPlugin)
 		.add_plugins(
@@ -121,11 +118,15 @@ pub fn main() -> Result<()> {
 			Update,
 			send_avatar_url_changed_event_when_avatar_url_changed,
 		);
-	// .add_systems(Startup, spawn_test_audio)
-	// .add_systems(Update, test_loopback_audio);
+	app
+}
+
+#[bevy_main]
+pub fn main() -> Result<()> {
+	color_eyre::install()?;
 
 	info!("Launching client");
-	app.run();
+	build_app().run();
 	Ok(())
 }
 

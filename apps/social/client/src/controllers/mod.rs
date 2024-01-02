@@ -169,7 +169,7 @@ fn drive_input_pose(
 	player_pose.root.trans = tracking_root.translation();
 	player_pose.root.rot = tracking_root.to_scale_rotation_translation().1;
 
-	player_pose.head.trans =  headset_input.0.pose.position.to_vec3();
+	player_pose.head.trans = headset_input.0.pose.position.to_vec3();
 	player_pose.head.rot = headset_input.0.pose.orientation.to_quat();
 
 	player_pose.hand_r.trans = right_controller.0.pose.position.to_vec3();

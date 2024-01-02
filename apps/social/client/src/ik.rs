@@ -180,11 +180,21 @@ fn update_ik(
 			let flip_quat_l = Quat::from_rotation_z(PI / 2.);
 			let flip_quat_r = Quat::from_rotation_z(-PI / 2.);
 			// At this point, the skeleton is known to be valid; next, handle VR input
-			let final_head = iso_to_transform(&pose.root.mul_isometry(&pose.head));
-			let final_left_hand =
-				iso_to_transform(&pose.root.mul_isometry(&pose.hand_l));
-			let final_right_hand =
-				iso_to_transform(&pose.root.mul_isometry(&pose.hand_r));
+			let final_head = iso_to_transform(
+				&pose
+					.root
+					.mul_isometry(pose.head.scale_translation(pose.root_scale)),
+			);
+			let final_left_hand = iso_to_transform(
+				&pose
+					.root
+					.mul_isometry(pose.hand_l.scale_translation(pose.root_scale)),
+			);
+			let final_right_hand = iso_to_transform(
+				&pose
+					.root
+					.mul_isometry(pose.hand_r.scale_translation(pose.root_scale)),
+			);
 			// now everything is set up and IK logic can begin.
 			let head_rot_euler = (skeleton_comp.root_defaults.head.rotation.inverse()
 				* final_head.rotation)

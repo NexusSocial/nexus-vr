@@ -165,6 +165,7 @@ fn drive_input_pose(
 		Err(_) => return,
 	};
 
+	player_pose.root_scale = tracking_root.to_scale_rotation_translation().0;
 	player_pose.root.trans = tracking_root.translation();
 	player_pose.root.rot = tracking_root.to_scale_rotation_translation().1;
 

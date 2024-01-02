@@ -110,7 +110,7 @@ pub fn main() -> Result<()> {
 		.add_systems(Update, vr_ui_helper)
 		.add_systems(Update, proto_locomotion.run_if(xr_only()))
 		.insert_resource(PrototypeLocomotionConfig {
-			locomotion_speed: 0.0,
+			locomotion_speed: 2.0,
 			..default()
 		})
 		.insert_resource(AssetMetaCheck::Never)

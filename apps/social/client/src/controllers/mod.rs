@@ -8,11 +8,11 @@ use bevy::{
 };
 
 use bevy::prelude::GlobalTransform;
+use bevy_oxr::input::XrInput;
 use bevy_oxr::resources::XrFrameState;
 use bevy_oxr::xr_input::oculus_touch::OculusController;
 use bevy_oxr::xr_input::trackers::OpenXRTrackingRoot;
 use bevy_oxr::xr_input::{QuatConv, Vec3Conv};
-use bevy_oxr::{input::XrInput, resources::XrSession};
 use social_networking::data_model::Local;
 
 use crate::pose_gizmo;
@@ -115,11 +115,9 @@ fn move_controlled_entities(
 }
 
 fn drive_input_pose(
-	mut gizmos: Gizmos,
 	oculus_controller: Option<Res<OculusController>>,
 	frame_state: Option<Res<XrFrameState>>,
 	xr_input: Option<Res<XrInput>>,
-	xr_session: Option<Res<XrSession>>,
 	tracking_root: Query<&GlobalTransform, &OpenXRTrackingRoot>,
 	mut player_pose: Query<&mut social_networking::data_model::PlayerPose, With<Local>>,
 ) {
@@ -130,10 +128,6 @@ fn drive_input_pose(
 	let tracking_root = match tracking_root.get_single() {
 		Ok(tracking_root) => tracking_root,
 		Err(_) => return,
-	};
-	let session = match xr_session {
-		Some(session) => session,
-		None => return,
 	};
 	let (oculus_controller, frame_state, xr_input) =
 		match (oculus_controller, frame_state, xr_input) {
@@ -163,31 +157,24 @@ fn drive_input_pose(
 		Err(_) => return,
 	};
 
-	use openxr as xr;
-	let headset_input = match session
-		.create_reference_space(xr::ReferenceSpaceType::VIEW, xr::Posef::IDENTITY)
-		.unwrap()
+	let headset_input = match xr_input
+		.head
 		.relate(&xr_input.stage, frame_state.predicted_display_time)
 	{
 		Ok(h) => h,
 		Err(_) => return,
 	};
-	let root = tracking_root.compute_transform().with_scale(Vec3::ONE);
 
+	player_pose.root_scale = tracking_root.to_scale_rotation_translation().0;
 	player_pose.root.trans = tracking_root.translation();
 	player_pose.root.rot = tracking_root.to_scale_rotation_translation().1;
 
-	player_pose.head.trans =
-		root.transform_point(headset_input.0.pose.position.to_vec3());
-	player_pose.head.rot = tracking_root.to_scale_rotation_translation().1
-		* headset_input.0.pose.orientation.to_quat();
-	player_pose.hand_r.trans =
-		root.transform_point(right_controller.0.pose.position.to_vec3());
-	player_pose.hand_r.rot = tracking_root.to_scale_rotation_translation().1
-		* right_controller.0.pose.orientation.to_quat();
+	player_pose.head.trans =  headset_input.0.pose.position.to_vec3();
+	player_pose.head.rot = headset_input.0.pose.orientation.to_quat();
 
-	player_pose.hand_l.trans =
-		root.transform_point(left_controller.0.pose.position.to_vec3());
-	player_pose.hand_l.rot = tracking_root.to_scale_rotation_translation().1
-		* left_controller.0.pose.orientation.to_quat();
+	player_pose.hand_r.trans = right_controller.0.pose.position.to_vec3();
+	player_pose.hand_r.rot = right_controller.0.pose.orientation.to_quat();
+
+	player_pose.hand_l.trans = left_controller.0.pose.position.to_vec3();
+	player_pose.hand_l.rot = left_controller.0.pose.orientation.to_quat();
 }

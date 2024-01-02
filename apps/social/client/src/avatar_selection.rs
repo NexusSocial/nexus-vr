@@ -1,7 +1,8 @@
 use bevy::prelude::*;
 use bevy_egui::egui;
+use social_networking::data_model::PlayerAvatarUrl;
 
-use crate::{avatars::assign::AssignAvatar, controllers::KeyboardController};
+use crate::controllers::KeyboardController;
 #[derive(Resource)]
 pub struct Avatars {
 	avis: &'static [AvatarData],
@@ -63,8 +64,8 @@ impl Plugin for AvatarSwitcherPlugin {
 }
 fn update_switching_ui(
 	mut contexts: Query<&mut bevy_egui::EguiContext, With<AvatarSwitchingUI>>,
-	mut assign_avi_evts: EventWriter<AssignAvatar>,
-	local_avi: Query<Entity, With<KeyboardController>>,
+	local_avi: Query<&crate::avatars::DmEntity, With<KeyboardController>>,
+	mut avatar_urls: Query<&mut PlayerAvatarUrl>,
 	avatars: Res<Avatars>,
 ) {
 	for mut ctx in contexts.iter_mut() {
@@ -74,10 +75,12 @@ fn update_switching_ui(
 				for a in avatars.avis.iter() {
 					if ui.button(a.name).clicked() {
 						info!("Switching To Avatar: {}", a.name);
-						assign_avi_evts.send(AssignAvatar {
-							avi_url: a.url.to_string(),
-							avi_entity: local_avi.get_single().unwrap(),
-						})
+						for avi in local_avi.iter() {
+							avatar_urls
+								.get_mut(avi.0)
+								.expect("expected dm entity to contain avatar url")
+								.0 = a.url.to_string();
+						}
 					}
 				}
 			});

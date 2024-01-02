@@ -19,6 +19,7 @@ use serde::{Deserialize, Serialize};
 pub struct PlayerPose {
 	/// The root of the avatar. Everything else is relative to this.
 	pub root: Isometry,
+	pub root_scale: Vec3,
 	pub head: Isometry,
 	pub hand_l: Isometry,
 	pub hand_r: Isometry,
@@ -32,10 +33,16 @@ pub struct Isometry {
 }
 
 impl Isometry {
-	pub fn mul_isometry(&self, other: &Isometry) -> Isometry {
+	pub fn mul_isometry(&self, other: Isometry) -> Isometry {
 		Isometry {
 			trans: self.trans + other.trans,
 			rot: self.rot * other.rot,
+		}
+	}
+	pub fn scale_translation(&self, scale: Vec3) -> Isometry {
+		Isometry {
+			trans: self.trans * scale,
+			rot: self.rot,
 		}
 	}
 }

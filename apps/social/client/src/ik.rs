@@ -4,7 +4,6 @@
 use crate::avatars::LocalEntity;
 use crate::controllers::KeyboardController;
 use bevy::{
-	math::Vec3A,
 	render::primitives::Aabb,
 	transform::components::{GlobalTransform, Transform},
 };
@@ -117,7 +116,6 @@ fn update_ik(
 				local_transform.rotation = pose.root.rot;
 				if let Some(mut aabb) = aabb {
 					aabb.center = pose.head.trans.into();
-					aabb.half_extents = Vec3A::splat(2.0);
 				};
 			}
 			let local_local = local_local_avatar.contains(loc_ent.0);

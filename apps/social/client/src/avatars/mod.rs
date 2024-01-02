@@ -3,7 +3,9 @@
 pub mod assign;
 mod loading;
 
+use bevy::math::Vec3A;
 use bevy::prelude::With;
+use bevy::render::primitives::Aabb;
 use bevy::{
 	prelude::{
 		default, Added, App, BuildChildren, Bundle, Changed, Commands, Component,
@@ -52,6 +54,7 @@ pub struct LocalAvatar {
 	pub transform: TransformBundle,
 	pub keeb_controller: KeyboardController,
 	pub spatial_audio_listener: SpatialAudioListener,
+	pub aabb: Aabb,
 }
 
 impl Default for LocalAvatar {
@@ -61,6 +64,7 @@ impl Default for LocalAvatar {
 			transform: default(),
 			keeb_controller: default(),
 			spatial_audio_listener: SpatialAudioListener,
+			aabb: Aabb {center: Vec3A::ZERO, half_extents: Vec3A::splat(2.0)},
 		}
 	}
 }

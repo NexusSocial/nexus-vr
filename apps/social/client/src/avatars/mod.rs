@@ -35,7 +35,7 @@ impl Plugin for AvatarsPlugin {
 
 		if app.is_plugin_added::<social_networking::ClientPlugin>() {
 			app.add_systems(PreUpdate, (added_dm_entity, removed_dm_entity))
-				.add_systems(Update, (write_pose, read_pose).chain());
+				.add_systems(Update, read_pose);
 		}
 	}
 }
@@ -80,8 +80,8 @@ fn added_dm_entity(
 ) {
 	for dm_entity in added.iter() {
 		/*cmds.entity(dm_entity.0)
-			.set_parent(dm_root.0);*/
-			//.insert(AvatarBundle::default());
+		.set_parent(dm_root.0);*/
+		//.insert(AvatarBundle::default());
 	}
 }
 
@@ -92,7 +92,7 @@ fn removed_dm_entity(
 	// TODO: despawn the entry in the data model?
 }
 
-fn write_pose(
+/*fn write_pose(
 	mut poses: Query<&mut dm::PlayerPose>,
 	local_root_transforms: Query<
 		(&Transform, &DmEntity),
@@ -104,7 +104,7 @@ fn write_pose(
 		pose.root.trans = t.translation;
 		pose.root.rot = t.rotation;
 	}
-}
+}*/
 
 fn read_pose(
 	mut local_root_transforms: Query<&mut Transform, With<DmEntity>>,

@@ -56,7 +56,9 @@ use std::f32::consts::TAU;
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
 use std::time::Duration;
 
-use social_networking::data_model::{ClientIdComponent, Local, PlayerAvatarUrl, PlayerPose};
+use social_networking::data_model::{
+	ClientIdComponent, Local, PlayerAvatarUrl, PlayerPose,
+};
 use social_networking::{ClientPlugin, Transports};
 
 use self::avatars::assign::AssignAvatar;
@@ -75,10 +77,16 @@ pub fn main() -> Result<()> {
 
 	let cli = Cli::parse();
 
-	let server_addr = cli.server_addr.unwrap_or(
+	//#[deny(unused_mut)]
+	let mut server_addr = cli.server_addr.unwrap_or(
 		SocketAddrV4::new(Ipv4Addr::LOCALHOST, social_networking::server::DEFAULT_PORT)
 			.into(),
 	);
+
+	#[cfg(target_os = "android")]
+	{
+		server_addr.set_ip(std::net::IpAddr::from(Ipv4Addr::new(45, 56, 95, 177)));
+	}
 
 	App::new()
 		.add_plugins(MainPlugin {
@@ -184,7 +192,6 @@ fn vr_ui_helper(mut gizmos: Gizmos, pointers: Query<&CurrentPointers>) {
 	}
 }
 
-
 fn try_audio_perms() {
 	#[cfg(target_os = "android")]
 	{
@@ -204,7 +211,7 @@ fn request_audio_perm() {
 
 	let class_manifest_perm = env.find_class("android/Manifest$permission").unwrap();
 	let lid_perm = env
-		.get_static_field(it addclass_manifest_perm, "RECORD_AUDIO", "Ljava/lang/String;")
+		.get_static_field(class_manifest_perm, "RECORD_AUDIO", "Ljava/lang/String;")
 		.unwrap()
 		.l()
 		.unwrap();
@@ -254,7 +261,10 @@ fn sync_datamodel(
 			Option<&Local>,
 			Option<&social_networking::Interpolated>,
 		),
-		(Added<social_networking::data_model::ClientIdComponent>, With<social_networking::data_model::Avatar>),
+		(
+			Added<social_networking::data_model::ClientIdComponent>,
+			With<social_networking::data_model::Avatar>,
+		),
 	>,
 ) {
 	// create our entities the local and verison, when we get a new entity from the
@@ -280,8 +290,7 @@ fn sync_datamodel(
 		// add the url for the player avatar url to the data model entity
 		cmds.entity(dm_avi_entity.0)
 			.insert(PlayerAvatarUrl(avi_url.clone()));
-		cmds.entity(dm_avi_entity.0)
-			.insert(PlayerPose::default());
+		cmds.entity(dm_avi_entity.0).insert(PlayerPose::default());
 
 		if local.is_some() {
 			cmds.entity(local_avi_entity.0)
@@ -536,9 +545,10 @@ fn _hands(
 	Ok(())
 }
 
-fn pose_gizmo(gizmos: &mut Gizmos, t: &Transform, color: Color) {
-	gizmos.ray(t.translation, t.local_x() * 0.1, Color::RED);
-	gizmos.ray(t.translation, t.local_y() * 0.1, Color::GREEN);
-	gizmos.ray(t.translation, t.local_z() * 0.1, Color::BLUE);
-	gizmos.sphere(t.translation, Quat::IDENTITY, 0.1, color);
+fn pose_gizmo(gizmos: &mut Gizmos, t: &Vec3, color: Color) {
+	let t2 = Transform::from_xyz(t.x, t.y, t.z);
+	gizmos.ray(*t, t2.local_x() * 0.1, Color::RED);
+	gizmos.ray(*t, t2.local_y() * 0.1, Color::GREEN);
+	gizmos.ray(*t, t2.local_z() * 0.1, Color::BLUE);
+	gizmos.sphere(*t, Quat::IDENTITY, 0.1, color);
 }

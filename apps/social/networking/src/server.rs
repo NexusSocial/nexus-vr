@@ -6,9 +6,15 @@ use std::{
 	time::Duration,
 };
 
-use bevy::prelude::{default, Added, App, Commands, Entity, EventReader, Name, Plugin, Query, ResMut, Update, IntoSystemConfigs};
+use bevy::prelude::{
+	default, Added, App, Commands, Entity, EventReader, IntoSystemConfigs, Name,
+	Plugin, Query, ResMut, Update,
+};
 use lightyear::prelude::server::MessageEvent;
-use lightyear::prelude::{NetworkTarget};
+use lightyear::prelude::MainSet::ClientReplication;
+use lightyear::prelude::NetworkTarget;
+use lightyear::server::resource::Server;
+use lightyear::shared::replication::components::Replicate;
 use lightyear::{
 	prelude::{Io, IoConfig, Key, LinkConditionerConfig, PingConfig, TransportConfig},
 	server::{
@@ -16,9 +22,6 @@ use lightyear::{
 		plugin::PluginConfig,
 	},
 };
-use lightyear::prelude::MainSet::ClientReplication;
-use lightyear::server::resource::Server;
-use lightyear::shared::replication::components::Replicate;
 use tracing::info;
 
 use crate::data_model::ClientIdComponent;
@@ -80,7 +83,10 @@ impl Plugin for ServerPlugin {
 		app.add_plugins(::lightyear::server::plugin::ServerPlugin::new(
 			plugin_config,
 		));
-		app.add_systems(PreUpdate, add_replication_for_players.in_set(ClientReplication));
+		app.add_systems(
+			PreUpdate,
+			add_replication_for_players.in_set(ClientReplication),
+		);
 		app.add_plugins(ServerVoiceChat);
 	}
 }

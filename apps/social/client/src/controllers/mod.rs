@@ -101,16 +101,17 @@ fn direction_from_keys(
 fn move_controlled_entities(
 	direction: Res<Direction>,
 	time: Res<Time>,
-	mut trans: Query<&mut Transform, With<KeyboardController>>,
+	mut player_pose: Query<&mut social_networking::data_model::PlayerPose, With<Local>>,
 	mut gizmos: Gizmos,
 ) {
-	for mut t in trans.iter_mut() {
+	for mut t in player_pose.iter_mut() {
 		let local_vel = direction.velocity() * SPEED * time.delta_seconds();
-		let parent_vel = (t.local_x() * local_vel.x)
-			+ (t.local_y() * local_vel.y)
-			+ (t.local_z() * local_vel.z);
-		t.translation += parent_vel;
-		pose_gizmo(&mut gizmos, &t, Color::GRAY);
+		let t2 = Transform::from_xyz(t.root.trans.x, t.root.trans.y, t.root.trans.z);
+		let parent_vel = (t2.local_x() * local_vel.x)
+			+ (t2.local_y() * local_vel.y)
+			+ (t2.local_z() * local_vel.z);
+		t.root.trans += parent_vel;
+		pose_gizmo(&mut gizmos, &t.root.trans, Color::GRAY);
 	}
 }
 

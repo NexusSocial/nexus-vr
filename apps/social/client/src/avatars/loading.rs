@@ -3,6 +3,7 @@
 //! This behavior is initiated when a vrm is spawned. You can query for fully loaded
 //! avatars via [`FullyLoadedAvatar`].
 
+use bevy::prelude::{info, Name};
 use bevy::{
 	asset::AssetServer,
 	prelude::{
@@ -20,6 +21,7 @@ impl Plugin for AvatarLoadPlugin {
 	fn build(&self, app: &mut bevy::prelude::App) {
 		assert!(app.is_plugin_added::<HumanoidPlugin>());
 		app.register_type::<FullyLoadedAvatar>()
+			.register_type::<RigRequestSent>()
 			.add_systems(Update, on_vrm_asset_load)
 			.add_systems(Update, check_for_fully_loaded);
 	}
@@ -50,11 +52,21 @@ fn on_vrm_asset_load(
 
 fn check_for_fully_loaded(
 	mut cmds: Commands,
-	required_components: Query<Entity, (With<HumanoidRig>, Without<FullyLoadedAvatar>)>,
+	required_components: Query<
+		(Entity, Option<&Name>),
+		(With<HumanoidRig>, Without<FullyLoadedAvatar>),
+	>,
 ) {
-	for e in required_components.iter() {
+	for (e, name) in required_components.iter() {
 		cmds.entity(e).insert(FullyLoadedAvatar);
-		debug!("Fully loaded entity: {e:?}");
+		if let Some(name) = name {
+			info!(
+				"Fully loaded humanoid avatar entity: {:?} name: {}",
+				e, name
+			);
+		} else {
+			info!("Fully loaded entity: {e:?}");
+		}
 	}
 }
 

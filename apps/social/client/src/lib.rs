@@ -204,7 +204,7 @@ fn request_audio_perm() {
 
 	let class_manifest_perm = env.find_class("android/Manifest$permission").unwrap();
 	let lid_perm = env
-		.get_static_field(class_manifest_perm, "RECORD_AUDIO", "Ljava/lang/String;")
+		.get_static_field(it addclass_manifest_perm, "RECORD_AUDIO", "Ljava/lang/String;")
 		.unwrap()
 		.l()
 		.unwrap();

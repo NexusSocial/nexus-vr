@@ -17,8 +17,9 @@ use lightyear::prelude::{
 		InterpolationDelay, PluginConfig, PredictionConfig, SyncConfig,
 	},
 	ClientId, Io, IoConfig, LinkConditionerConfig, NetworkTarget, PingConfig,
-	Replicate, TransportConfig,
+	TransportConfig,
 };
+use lightyear::shared::replication::components::Replicate;
 use serde::{Deserialize, Serialize};
 use tracing::info;
 
@@ -63,7 +64,7 @@ impl Plugin for ClientPlugin {
 			Transports::Udp => TransportConfig::UdpSocket(client_addr),
 		};
 		let io = Io::from_config(
-			&IoConfig::from_transport(transport).with_conditioner(link_conditioner),
+			IoConfig::from_transport(transport).with_conditioner(link_conditioner),
 		);
 		let config = ClientConfig {
 			shared: shared_config().clone(),
@@ -101,9 +102,9 @@ fn data_model_add_replicated(
 	for added_player in added_players.iter() {
 		info!("adding replication target for client_id: {:?}", client_id.0);
 		cmds.entity(added_player).insert((
-			Replicate {
-				replication_target: NetworkTarget::None,
-				interpolation_target: NetworkTarget::None,
+			Replicate::<MyProtocol> {
+				replication_target: NetworkTarget::All,
+				interpolation_target: NetworkTarget::AllExcept(vec![client_id.0]),
 				..default()
 			},
 			data_model::ClientIdComponent(client_id.0),

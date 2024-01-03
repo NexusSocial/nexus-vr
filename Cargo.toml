@@ -44,7 +44,8 @@ derive_more = { version = "0.99", default-features = false, features = [
 	"deref_mut",
 ] }
 egui = "0.23"
-lightyear = "0.5.1"
+#lightyear = "0.5.1"
+lightyear = { git = "https://github.com/cBournhonesque/lightyear", rev = "b16ae27"}
 openxr = "0.17"
 random-number = "0.1.8"
 serde = "1.0.193"

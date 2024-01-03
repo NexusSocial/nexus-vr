@@ -8,7 +8,7 @@ use std::{
 
 use bevy::prelude::{default, Added, App, Commands, Entity, EventReader, Name, Plugin, Query, ResMut, Update, IntoSystemConfigs};
 use lightyear::prelude::server::MessageEvent;
-use lightyear::prelude::{NetworkTarget, Replicate};
+use lightyear::prelude::{NetworkTarget};
 use lightyear::{
 	prelude::{Io, IoConfig, Key, LinkConditionerConfig, PingConfig, TransportConfig},
 	server::{
@@ -18,6 +18,7 @@ use lightyear::{
 };
 use lightyear::prelude::MainSet::ClientReplication;
 use lightyear::server::resource::Server;
+use lightyear::shared::replication::components::Replicate;
 use tracing::info;
 
 use crate::data_model::ClientIdComponent;
@@ -68,7 +69,7 @@ impl Plugin for ServerPlugin {
 			Transports::Udp => TransportConfig::UdpSocket(server_addr),
 		};
 		let io = Io::from_config(
-			&IoConfig::from_transport(transport).with_conditioner(link_conditioner),
+			IoConfig::from_transport(transport).with_conditioner(link_conditioner),
 		);
 		let config = ServerConfig {
 			shared: shared_config().clone(),
@@ -92,10 +93,10 @@ fn add_replication_for_players(
 	//info!("server client ids: {:#?}", server.client_ids().collect::<Vec<_>>());
 	for (entity, client_id) in added_player.iter() {
 		info!("replicate client id: {:?}", client_id);
-		cmds.entity(entity).insert(Replicate {
-			replication_target: NetworkTarget::None,
+		cmds.entity(entity).insert(Replicate::<MyProtocol> {
+			replication_target: NetworkTarget::AllExcept(vec![client_id.0]),
 			// we want the other clients to apply interpolation for the cursor
-			interpolation_target: NetworkTarget::None,
+			interpolation_target: NetworkTarget::AllExcept(vec![client_id.0]),
 			..default()
 		});
 	}

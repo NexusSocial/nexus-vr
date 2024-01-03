@@ -6,10 +6,7 @@ use std::{
 	time::Duration,
 };
 
-use bevy::prelude::{
-	default, Added, App, Commands, Entity, EventReader, Name, Plugin, Query, ResMut,
-	Update,
-};
+use bevy::prelude::{default, Added, App, Commands, Entity, EventReader, Name, Plugin, Query, ResMut, Update, IntoSystemConfigs};
 use lightyear::prelude::server::MessageEvent;
 use lightyear::prelude::{NetworkTarget, Replicate};
 use lightyear::{
@@ -19,6 +16,9 @@ use lightyear::{
 		plugin::PluginConfig,
 	},
 };
+use lightyear::prelude::MainSet::ClientReplication;
+use lightyear::server::resource::Server;
+use tracing::info;
 
 use crate::data_model::ClientIdComponent;
 use crate::lightyear::{
@@ -79,7 +79,7 @@ impl Plugin for ServerPlugin {
 		app.add_plugins(::lightyear::server::plugin::ServerPlugin::new(
 			plugin_config,
 		));
-		app.add_systems(Update, add_replication_for_players);
+		app.add_systems(PreUpdate, add_replication_for_players.in_set(ClientReplication));
 		app.add_plugins(ServerVoiceChat);
 	}
 }
@@ -87,12 +87,15 @@ impl Plugin for ServerPlugin {
 fn add_replication_for_players(
 	mut cmds: Commands,
 	added_player: Query<(Entity, &ClientIdComponent), Added<data_model::Avatar>>,
+	server: ResMut<Server<MyProtocol>>,
 ) {
+	//info!("server client ids: {:#?}", server.client_ids().collect::<Vec<_>>());
 	for (entity, client_id) in added_player.iter() {
+		info!("replicate client id: {:?}", client_id);
 		cmds.entity(entity).insert(Replicate {
-			replication_target: NetworkTarget::AllExcept(vec![client_id.0]),
+			replication_target: NetworkTarget::None,
 			// we want the other clients to apply interpolation for the cursor
-			interpolation_target: NetworkTarget::AllExcept(vec![client_id.0]),
+			interpolation_target: NetworkTarget::None,
 			..default()
 		});
 	}

@@ -56,7 +56,7 @@ use std::f32::consts::TAU;
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
 use std::time::Duration;
 
-use social_networking::data_model::{ClientIdComponent, Local, PlayerAvatarUrl};
+use social_networking::data_model::{ClientIdComponent, Local, PlayerAvatarUrl, PlayerPose};
 use social_networking::{ClientPlugin, Transports};
 
 use self::avatars::assign::AssignAvatar;
@@ -183,33 +183,7 @@ fn vr_ui_helper(mut gizmos: Gizmos, pointers: Query<&CurrentPointers>) {
 		}
 	}
 }
-// fn spawn_test_audio(mut commands: Commands, mut audio_output: ResMut<AudioOutput>) {
-// 	commands.spawn(SpatialAudioSinkBundle {
-// 		spatial_audio_sink: SpatialAudioSink {
-// 			sink: SpatialSink::try_new(
-// 				audio_output.stream_handle.as_ref().unwrap(),
-// 				[0.0, 0.0, 0.0],
-// 				(Vec3::X * 4.0 / -2.0).to_array(),
-// 				(Vec3::X * 4.0 / 2.0).to_array(),
-// 			)
-// 			.unwrap(),
-// 		},
-// 		spatial_bundle: SpatialBundle {
-// 			transform: Transform::from_xyz(1.0, 0.0, 0.0),
-// 			..default()
-// 		},
-// 	});
-// 	// commands.spawn(SpatialAudioListenerBundle { spatial_audio_listener: SpatialAudioListener, spatial_bundle: Default::default() });
-// }
-// fn test_loopback_audio(mut microphone: ResMut<MicrophoneAudio>, spatial_audio_sink: Query<&SpatialAudioSink>) {
-// 	let spatial_audio_sink = spatial_audio_sink.single();
-// 	while let Ok( audio) = microphone.0.lock().unwrap().try_recv() {
-// 		spatial_audio_sink.sink.append(rodio::buffer::SamplesBuffer::new(1, 44100, audio));
-// 		spatial_audio_sink.sink.set_volume(1.0);
-// 		spatial_audio_sink.sink.set_speed(1.0);
-// 		spatial_audio_sink.sink.play();
-// 	}
-// }
+
 
 fn try_audio_perms() {
 	#[cfg(target_os = "android")]
@@ -280,13 +254,15 @@ fn sync_datamodel(
 			Option<&Local>,
 			Option<&social_networking::Interpolated>,
 		),
-		Added<social_networking::data_model::ClientIdComponent>,
+		(Added<social_networking::data_model::ClientIdComponent>, With<social_networking::data_model::Avatar>),
 	>,
 ) {
 	// create our entities the local and verison, when we get a new entity from the
 	// network.
 	for (dm_avi_entity, client_id_component, local, interp) in added_avis.iter() {
+		info!("went here once: {:?}", dm_avi_entity);
 		if local.is_none() && interp.is_none() {
+			info!("not local and not interp");
 			continue;
 		}
 		let dm_avi_entity = DmEntity(dm_avi_entity);
@@ -304,6 +280,8 @@ fn sync_datamodel(
 		// add the url for the player avatar url to the data model entity
 		cmds.entity(dm_avi_entity.0)
 			.insert(PlayerAvatarUrl(avi_url.clone()));
+		cmds.entity(dm_avi_entity.0)
+			.insert(PlayerPose::default());
 
 		if local.is_some() {
 			cmds.entity(local_avi_entity.0)

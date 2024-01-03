@@ -1,5 +1,5 @@
 use crate::avatars::loading::FullyLoadedAvatar;
-use bevy::prelude::{Children, Handle, HierarchyQueryExt, Query};
+use bevy::prelude::{info, Children, Handle, HierarchyQueryExt, Query};
 use bevy::{
 	prelude::{
 		debug, default, AssetServer, BuildChildren, Commands, Entity, Event,
@@ -40,7 +40,7 @@ fn on_assign(
 		avi_url,
 	} in select_evts.read()
 	{
-		debug!("{evt:?}");
+		info!("assign avatar event: {evt:?}");
 		// let mut transform = Transform::from_xyz(0.0, -1.0, -4.0);
 		// transform.rotate_y(PI);
 
@@ -58,6 +58,7 @@ fn on_assign(
 				cmds.entity(child)
 					.remove::<crate::avatars::loading::RigRequestSent>();
 				already_has_vrm = true;
+				info!("already has vrm, so replacing bundle, removing: [HumanoidRig, FullyLoadedAvatar, RigRequestSent]");
 				break;
 			}
 		}
@@ -68,6 +69,7 @@ fn on_assign(
 			vrm: asset_server.load(avi_url),
 			scene_bundle: SceneBundle { ..default() },
 		};
+		info!("New VRM, spawning child");
 		cmds.entity(*player).with_children(|parent| {
 			parent.spawn((Name::from("Vrm"), bundle));
 		});

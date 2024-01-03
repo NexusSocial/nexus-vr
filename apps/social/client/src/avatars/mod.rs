@@ -79,9 +79,9 @@ fn added_dm_entity(
 	dm_root: Res<dm::DataModelRoot>,
 ) {
 	for dm_entity in added.iter() {
-		cmds.entity(dm_entity.0)
-			.set_parent(dm_root.0)
-			.insert(AvatarBundle::default());
+		/*cmds.entity(dm_entity.0)
+			.set_parent(dm_root.0);*/
+			//.insert(AvatarBundle::default());
 	}
 }
 

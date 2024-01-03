@@ -20,6 +20,7 @@ use lightyear::prelude::{
 	Replicate, TransportConfig,
 };
 use serde::{Deserialize, Serialize};
+use tracing::info;
 
 use crate::data_model::Local;
 use crate::lightyear::{MyProtocol, ServerToClientAudioMsg};
@@ -98,10 +99,11 @@ fn data_model_add_replicated(
 	client_id: Res<ClientIdRes>,
 ) {
 	for added_player in added_players.iter() {
+		info!("adding replication target for client_id: {:?}", client_id.0);
 		cmds.entity(added_player).insert((
 			Replicate {
-				replication_target: NetworkTarget::All,
-				interpolation_target: NetworkTarget::AllExcept(vec![client_id.0]),
+				replication_target: NetworkTarget::None,
+				interpolation_target: NetworkTarget::None,
 				..default()
 			},
 			data_model::ClientIdComponent(client_id.0),

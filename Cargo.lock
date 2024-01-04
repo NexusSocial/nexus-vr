@@ -1886,8 +1886,7 @@ dependencies = [
 [[package]]
 name = "bitcode_lightyear_patch"
 version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8e567895f171f8b2e8baa85692dbe4a15e4c2d24413dd6bf82f029aca14a3f83"
+source = "git+https://github.com/cBournhonesque/lightyear?rev=b16ae27#b16ae2702287ad56de27e188b8f3bb36241ec11a"
 dependencies = [
  "bitcode_derive",
  "bitintr",
@@ -3962,8 +3961,7 @@ dependencies = [
 [[package]]
 name = "lightyear"
 version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4f7de71f9b69aee1618ee17e4bfac2564600c6ad9ac38204e70a68bb951b968e"
+source = "git+https://github.com/cBournhonesque/lightyear?rev=b16ae27#b16ae2702287ad56de27e188b8f3bb36241ec11a"
 dependencies = [
  "anyhow",
  "bevy",
@@ -3992,8 +3990,7 @@ dependencies = [
 [[package]]
 name = "lightyear_macros"
 version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "384295f6b5e3e20bda56c3fc5fb99a2c9fe12eac68fb2963e9b653a56d30cbba"
+source = "git+https://github.com/cBournhonesque/lightyear?rev=b16ae27#b16ae2702287ad56de27e188b8f3bb36241ec11a"
 dependencies = [
  "anyhow",
  "darling",
@@ -5513,6 +5510,7 @@ dependencies = [
  "bevy_oxr",
  "bevy_vrm",
  "bevy_web_asset",
+ "clap",
  "color-eyre",
  "cpal",
  "derive_more",

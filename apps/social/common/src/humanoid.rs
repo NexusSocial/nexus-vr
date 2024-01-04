@@ -292,7 +292,7 @@ fn autoassign(
 				let vrm = vrm_assets
 					.get(vrm_handle)
 					.expect("should be impossible for asset to not exist");
-				autoassign_from_vrm(root_mesh, vrm, &entity_names)
+				autoassign_from_vrm(root_mesh, vrm, &children, &entity_names)
 			}
 			Err(_) => {
 				if !non_vrm.contains(root_mesh) {
@@ -375,6 +375,7 @@ fn autoassign(
 fn autoassign_from_vrm(
 	root_mesh: Entity,
 	vrm: &Vrm,
+	children: &Query<&Children>,
 	entity_names: &Query<(Entity, &Name)>,
 ) -> Result<HashMap<BoneKind, Entity>> {
 	let (vrm_kind, nodes_result) =
@@ -417,13 +418,22 @@ fn autoassign_from_vrm(
 			panic!("no gltf node exists at the index {}", idx.0);
 		};
 
-		let Some(entity) = entity_names.iter().find_map(|(entity, entity_name)| {
+		for child in children.iter_descendants(root_mesh) {
+			if let Ok((entity, name)) = entity_names.get(child) {
+				if name.as_str() == node_name {
+					found_bones.insert(bone, entity);
+				}
+			}
+
+		}
+
+		/*let Some(entity) = entity_names.iter().find_map(|(entity, entity_name)| {
 			(entity_name.as_str() == node_name).then_some(entity)
 		}) else {
 			panic!("no entity with the same name as the node ({node_name}) exists");
-		};
+		};*/
 
-		found_bones.insert(bone, entity);
+		//found_bones.insert(bone, entity);
 	}
 	Ok(found_bones)
 }

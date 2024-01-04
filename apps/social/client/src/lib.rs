@@ -6,6 +6,7 @@ mod controllers;
 mod custom_audio;
 mod ik;
 mod voice_chat;
+mod pose_entities;
 
 use avatar_selection::AvatarSwitchingUI;
 use bevy::app::PluginGroupBuilder;

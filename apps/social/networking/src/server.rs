@@ -8,7 +8,7 @@ use std::{
 
 use bevy::prelude::{
 	default, Added, App, Commands, Entity, EventReader, IntoSystemConfigs, Name,
-	Plugin, Query, ResMut, Update,
+	Plugin, Query, ResMut,
 };
 use lightyear::prelude::server::MessageEvent;
 use lightyear::prelude::MainSet::ClientReplication;
@@ -94,7 +94,7 @@ impl Plugin for ServerPlugin {
 fn add_replication_for_players(
 	mut cmds: Commands,
 	added_player: Query<(Entity, &ClientIdComponent), Added<data_model::Avatar>>,
-	server: ResMut<Server<MyProtocol>>,
+	_server: ResMut<Server<MyProtocol>>,
 ) {
 	//info!("server client ids: {:#?}", server.client_ids().collect::<Vec<_>>());
 	for (entity, client_id) in added_player.iter() {

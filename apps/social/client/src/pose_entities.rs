@@ -1,4 +1,10 @@
-use crate::avatars::DmEntity;
+use crate::{
+	avatars::DmEntity,
+	custom_audio::{
+		audio_output::AudioOutput,
+		spatial_audio::{self, SpatialAudioListener},
+	},
+};
 use bevy::prelude::*;
 use derive_more::Display;
 use social_networking::data_model::{Isometry, PlayerPose};
@@ -8,6 +14,40 @@ impl Plugin for PoseEntitiesPlugin {
 	fn build(&self, app: &mut App) {
 		app.add_systems(PreUpdate, sync_with_avatar);
 		app.add_systems(PreUpdate, setup_pose_roots);
+		app.add_systems(PreUpdate, move_audio_sinks);
+	}
+}
+
+fn move_audio_sinks(
+	mut cmds: Commands,
+	local_avi_query: Query<
+		(Entity, Has<SpatialAudioListener>),
+		(With<Root>, With<spatial_audio::SpatialAudioSink>),
+	>,
+	audio_output: Res<AudioOutput>,
+	avatar_children: Query<&Children>,
+	head_query: Query<Entity, With<Head>>,
+) {
+	for (root, listener) in &local_avi_query {
+		for child in avatar_children.iter_descendants(root) {
+			if let Ok(head) = head_query.get(child) {
+				cmds.entity(root)
+					.remove::<spatial_audio::SpatialAudioSink>();
+				cmds.entity(head).insert(spatial_audio::SpatialAudioSink {
+					sink: rodio::SpatialSink::try_new(
+						audio_output.stream_handle.as_ref().unwrap(),
+						[0.0, 0.0, 0.0],
+						(Vec3::X * 4.0 / -2.0).to_array(),
+						(Vec3::X * 4.0 / 2.0).to_array(),
+					)
+					.unwrap(),
+				});
+				if listener {
+					cmds.entity(root).remove::<SpatialAudioListener>();
+					cmds.entity(head).insert(SpatialAudioListener);
+				}
+			}
+		}
 	}
 }
 
@@ -65,9 +105,10 @@ fn sync_with_avatar(
 fn setup_pose_roots(mut cmds: Commands, roots: Query<Entity, With<SetupRoot>>) {
 	for e in &roots {
 		cmds.entity(e).insert(Root);
-		let head = cmds.spawn(Head).id();
-		let left_hand = cmds.spawn(LeftHand).id();
-		let right_hand = cmds.spawn(RightHand).id();
+		cmds.entity(e).remove::<SetupRoot>();
+		let head = cmds.spawn(Head).insert(GlobalTransform::default()).insert(Name::new("Head")).id();
+		let left_hand = cmds.spawn(LeftHand).insert(GlobalTransform::default()).insert(Name::new("Left Hand")).id();
+		let right_hand = cmds.spawn(RightHand).insert(GlobalTransform::default()).insert(Name::new("Right Hand")).id();
 		cmds.entity(e).push_children(&[head, left_hand, right_hand]);
 	}
 }

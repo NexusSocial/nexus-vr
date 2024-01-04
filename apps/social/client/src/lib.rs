@@ -157,6 +157,7 @@ impl Plugin for MainPlugin {
 			.add_plugins(AvatarSwitcherPlugin)
 			// .add_plugins(bevy_oxr::xr_input::debug_gizmos::OpenXrDebugRenderer)
 			.add_plugins(self::custom_audio::CustomAudioPlugins)
+			.add_plugins(self::pose_entities::PoseEntitiesPlugin)
 			.add_systems(Startup, setup)
 			.add_systems(Startup, spawn_avi_swap_ui)
 			.add_systems(Startup, spawn_datamodel_avatar)

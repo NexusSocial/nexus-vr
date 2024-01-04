@@ -20,6 +20,7 @@ use self::{assign::AvatarSelectPlugin, loading::AvatarLoadPlugin};
 use crate::controllers::KeyboardController;
 
 use crate::custom_audio::spatial_audio::SpatialAudioListener;
+use crate::pose_entities::SetupRoot;
 use social_common::humanoid::HumanoidPlugin;
 use social_networking::data_model::{self as dm, AvatarBundle};
 
@@ -55,6 +56,7 @@ pub struct LocalAvatar {
 	pub keeb_controller: KeyboardController,
 	pub spatial_audio_listener: SpatialAudioListener,
 	pub aabb: Aabb,
+	pub root_setup: SetupRoot,
 }
 
 impl Default for LocalAvatar {
@@ -68,6 +70,7 @@ impl Default for LocalAvatar {
 				center: Vec3A::ZERO,
 				half_extents: Vec3A::splat(2.0),
 			},
+			root_setup: SetupRoot,
 		}
 	}
 }

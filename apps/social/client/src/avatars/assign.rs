@@ -1,9 +1,10 @@
 use crate::avatars::loading::FullyLoadedAvatar;
-use bevy::prelude::{info, Children, Handle, HierarchyQueryExt, Query};
+use bevy::log::info;
+use bevy::prelude::{Children, Handle, HierarchyQueryExt, Query};
 use bevy::{
 	prelude::{
-		debug, default, AssetServer, BuildChildren, Commands, Entity, Event,
-		EventReader, Name, Plugin, Res, Update,
+		default, AssetServer, BuildChildren, Commands, Entity, Event, EventReader,
+		Name, Plugin, Res, Update,
 	},
 	reflect::Reflect,
 	scene::SceneBundle,

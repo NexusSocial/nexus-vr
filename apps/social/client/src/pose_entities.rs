@@ -7,7 +7,7 @@ use crate::{
 };
 use bevy::prelude::*;
 use derive_more::Display;
-use social_networking::data_model::{Isometry, PlayerPose};
+use social_networking::data_model::PlayerPose;
 
 pub struct PoseEntitiesPlugin;
 impl Plugin for PoseEntitiesPlugin {
@@ -56,15 +56,15 @@ fn sync_with_avatar(
 	local_avi_query: Query<(Entity, &DmEntity), With<Root>>,
 	avatar_children: Query<&Children>,
 	mut left_hand_transform: Query<
-		(&mut Transform, &mut GlobalPose),
+		&mut Transform,
 		(With<LeftHand>, Without<RightHand>, Without<Head>),
 	>,
 	mut right_hand_transform: Query<
-		(&mut Transform, &mut GlobalPose),
+		&mut Transform,
 		(Without<LeftHand>, With<RightHand>, Without<Head>),
 	>,
 	mut head_transform: Query<
-		(&mut Transform, &mut GlobalPose),
+		&mut Transform,
 		(Without<LeftHand>, Without<RightHand>, With<Head>),
 	>,
 ) {
@@ -74,29 +74,17 @@ fn sync_with_avatar(
 			Err(_) => continue,
 		};
 		for e in avatar_children.iter_descendants(avi_entity) {
-			if let Ok((mut transform, mut global_pose)) = left_hand_transform.get_mut(e)
-			{
+			if let Ok(mut transform) = left_hand_transform.get_mut(e) {
 				transform.translation = pose.hand_l.trans;
 				transform.rotation = pose.hand_l.rot;
-				**global_pose = pose
-					.root
-					.mul_isometry(pose.hand_l.scale_translation(pose.root_scale));
 			}
-			if let Ok((mut transform, mut global_pose)) =
-				right_hand_transform.get_mut(e)
-			{
+			if let Ok(mut transform) = right_hand_transform.get_mut(e) {
 				transform.translation = pose.hand_r.trans;
 				transform.rotation = pose.hand_r.rot;
-				**global_pose = pose
-					.root
-					.mul_isometry(pose.hand_r.scale_translation(pose.root_scale));
 			}
-			if let Ok((mut transform, mut global_pose)) = head_transform.get_mut(e) {
+			if let Ok(mut transform) = head_transform.get_mut(e) {
 				transform.translation = pose.head.trans;
 				transform.rotation = pose.head.rot;
-				**global_pose = pose
-					.root
-					.mul_isometry(pose.head.scale_translation(pose.root_scale));
 			}
 		}
 	}
@@ -106,15 +94,24 @@ fn setup_pose_roots(mut cmds: Commands, roots: Query<Entity, With<SetupRoot>>) {
 	for e in &roots {
 		cmds.entity(e).insert(Root);
 		cmds.entity(e).remove::<SetupRoot>();
-		let head = cmds.spawn(Head).insert(GlobalTransform::default()).insert(Name::new("Head")).id();
-		let left_hand = cmds.spawn(LeftHand).insert(GlobalTransform::default()).insert(Name::new("Left Hand")).id();
-		let right_hand = cmds.spawn(RightHand).insert(GlobalTransform::default()).insert(Name::new("Right Hand")).id();
+		let head = cmds
+			.spawn(Head)
+			.insert(SpatialBundle::default())
+			.insert(Name::new("Head"))
+			.id();
+		let left_hand = cmds
+			.spawn(LeftHand)
+			.insert(SpatialBundle::default())
+			.insert(Name::new("Left Hand"))
+			.id();
+		let right_hand = cmds
+			.spawn(RightHand)
+			.insert(SpatialBundle::default())
+			.insert(Name::new("Right Hand"))
+			.id();
 		cmds.entity(e).push_children(&[head, left_hand, right_hand]);
 	}
 }
-
-#[derive(Clone, Copy, Component, Debug, Deref, DerefMut)]
-pub struct GlobalPose(Isometry);
 
 #[derive(Component, Clone, Copy, Debug, Default, Display)]
 pub struct SetupRoot;

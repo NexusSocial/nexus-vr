@@ -3,7 +3,8 @@
 //! This behavior is initiated when a vrm is spawned. You can query for fully loaded
 //! avatars via [`FullyLoadedAvatar`].
 
-use bevy::prelude::{info, Name};
+use bevy::log::info;
+use bevy::prelude::Name;
 use bevy::{
 	asset::AssetServer,
 	prelude::{

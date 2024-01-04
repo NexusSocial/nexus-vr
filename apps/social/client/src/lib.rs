@@ -6,8 +6,8 @@ mod avatars;
 mod controllers;
 mod custom_audio;
 mod ik;
-mod voice_chat;
 mod pose_entities;
+mod voice_chat;
 mod xr_picking_stuff;
 
 use avatar_selection::AvatarSwitchingUI;

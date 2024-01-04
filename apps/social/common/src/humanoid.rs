@@ -424,7 +424,6 @@ fn autoassign_from_vrm(
 					found_bones.insert(bone, entity);
 				}
 			}
-
 		}
 
 		/*let Some(entity) = entity_names.iter().find_map(|(entity, entity_name)| {

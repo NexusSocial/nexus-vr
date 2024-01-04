@@ -6,6 +6,7 @@ mod avatars;
 mod controllers;
 mod custom_audio;
 mod ik;
+mod pose_entities;
 mod voice_chat;
 mod xr_picking_stuff;
 
@@ -156,6 +157,7 @@ impl Plugin for MainPlugin {
 			.add_plugins(AvatarSwitcherPlugin)
 			// .add_plugins(bevy_oxr::xr_input::debug_gizmos::OpenXrDebugRenderer)
 			.add_plugins(self::custom_audio::CustomAudioPlugins)
+			.add_plugins(self::pose_entities::PoseEntitiesPlugin)
 			.add_systems(Startup, setup)
 			.add_systems(Startup, spawn_avi_swap_ui)
 			.add_systems(Startup, spawn_datamodel_avatar)

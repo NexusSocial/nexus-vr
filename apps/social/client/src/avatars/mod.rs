@@ -8,9 +8,8 @@ use bevy::prelude::With;
 use bevy::render::primitives::Aabb;
 use bevy::{
 	prelude::{
-		default, Added, App, BuildChildren, Bundle, Changed, Commands, Component,
-		Entity, IntoSystemConfigs, Name, Plugin, PreUpdate, Query, RemovedComponents,
-		Res, Transform, Update,
+		default, Added, App, Bundle, Changed, Commands, Component, Entity, Name,
+		Plugin, PreUpdate, Query, RemovedComponents, Res, Transform, Update,
 	},
 	reflect::Reflect,
 	transform::TransformBundle,
@@ -20,8 +19,9 @@ use self::{assign::AvatarSelectPlugin, loading::AvatarLoadPlugin};
 use crate::controllers::KeyboardController;
 
 use crate::custom_audio::spatial_audio::SpatialAudioListener;
+use crate::pose_entities::SetupRoot;
 use social_common::humanoid::HumanoidPlugin;
-use social_networking::data_model::{self as dm, AvatarBundle};
+use social_networking::data_model as dm;
 
 /// Plugins for the [`avatars`](self) module.
 #[derive(Default)]
@@ -55,6 +55,7 @@ pub struct LocalAvatar {
 	pub keeb_controller: KeyboardController,
 	pub spatial_audio_listener: SpatialAudioListener,
 	pub aabb: Aabb,
+	pub root_setup: SetupRoot,
 }
 
 impl Default for LocalAvatar {
@@ -68,17 +69,18 @@ impl Default for LocalAvatar {
 				center: Vec3A::ZERO,
 				half_extents: Vec3A::splat(2.0),
 			},
+			root_setup: SetupRoot,
 		}
 	}
 }
 
 /// Updates data model mapping.
 fn added_dm_entity(
-	mut cmds: Commands,
+	mut _cmds: Commands,
 	added: Query<&DmEntity, Added<DmEntity>>,
-	dm_root: Res<dm::DataModelRoot>,
+	_dm_root: Res<dm::DataModelRoot>,
 ) {
-	for dm_entity in added.iter() {
+	for _dm_entity in added.iter() {
 		/*cmds.entity(dm_entity.0)
 		.set_parent(dm_root.0);*/
 		//.insert(AvatarBundle::default());

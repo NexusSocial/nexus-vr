@@ -36,11 +36,10 @@ opus.workspace = true
 egui.workspace = true
 clap.workspace = true
 
-[target.'cfg(not(target_os = "android"))'.dependencies]
+# [target.'cfg(not(target_os = "android"))'.dependencies]
 bevy-inspector-egui.workspace = true
 
 [target.'cfg(target_os = "android")'.dependencies]
-bevy = { workspace = true, features = [] }
 # Not needed for this fork!
 # bevy_egui = { workspace = true, default-features = false, features = [
 # 	"default_fonts",

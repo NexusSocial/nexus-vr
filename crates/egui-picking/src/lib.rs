@@ -19,12 +19,14 @@ pub struct UIPointerDown {
 	pub target: Entity,
 	pub position: Option<Vec3>,
 	pub button: PointerButton,
+	pub pointer_id: PointerId,
 }
 #[derive(Event, Clone, Copy, Debug)]
 pub struct UIPointerUp {
 	pub target: Entity,
 	pub position: Option<Vec3>,
 	pub button: PointerButton,
+	pub pointer_id: PointerId,
 }
 
 #[derive(Event, Clone, Copy, Debug)]
@@ -56,6 +58,7 @@ impl From<ListenerInput<Pointer<Down>>> for UIPointerDown {
 					PointerButton::Middle
 				}
 			},
+			pointer_id: event.pointer_id,
 		}
 	}
 }
@@ -75,6 +78,7 @@ impl From<ListenerInput<Pointer<Up>>> for UIPointerUp {
 					PointerButton::Middle
 				}
 			},
+			pointer_id: event.pointer_id,
 		}
 	}
 }
@@ -109,6 +113,7 @@ pub struct WorldSpaceUI {
 	pub interaction: PickingInteraction,
 	pub world_ui: WorldUI,
 	pub current_pointers: CurrentPointers,
+	pub current_pointer_interaction: CurrentPointerInteraction,
 }
 impl WorldSpaceUI {
 	pub fn new(texture: Handle<Image>, size_x: f32, size_y: f32) -> Self {
@@ -122,6 +127,7 @@ impl WorldSpaceUI {
 			interaction: PickingInteraction::default(),
 			world_ui: WorldUI { size_x, size_y },
 			current_pointers: CurrentPointers::default(),
+			current_pointer_interaction: CurrentPointerInteraction::default(),
 		}
 	}
 }
@@ -149,6 +155,10 @@ impl Plugin for PickabelEguiPlugin {
 pub struct CurrentPointers {
 	pub pointers: HashMap<PointerId, (Vec3, Vec3)>,
 }
+#[derive(Component, Default, DerefMut, Deref)]
+pub struct CurrentPointerInteraction {
+	pub pointer: Option<PointerId>,
+}
 
 pub fn ui_interactions(
 	mut inputs: Query<(
@@ -157,6 +167,7 @@ pub fn ui_interactions(
 		&GlobalTransform,
 		&EguiRenderToTexture,
 		&mut CurrentPointers,
+		&mut CurrentPointerInteraction,
 	)>,
 	mut move_events: EventReader<UIPointerMove>,
 	mut down_events: EventReader<UIPointerDown>,
@@ -172,7 +183,14 @@ pub fn ui_interactions(
 	} in move_events.read()
 	{
 		if let (
-			Ok((mut input, ui, transform, texture, mut current_pointers)),
+			Ok((
+				mut input,
+				ui,
+				transform,
+				texture,
+				mut current_pointers,
+				current_interaction,
+			)),
 			Some(position),
 			Some(normal),
 		) = (inputs.get_mut(*target), position, normal)
@@ -180,6 +198,11 @@ pub fn ui_interactions(
 			current_pointers
 				.pointers
 				.insert(*pointer_id, (*position, *normal));
+			match **current_interaction {
+				Some(pointer) if pointer == *pointer_id => (),
+				None => (),
+				Some(_) => continue,
+			}
 			let local_pos = *position - transform.translation();
 			let rotated_point = transform
 				.to_scale_rotation_translation()
@@ -202,13 +225,25 @@ pub fn ui_interactions(
 		target,
 		position,
 		button,
+		pointer_id,
 	} in down_events.read()
 	{
 		if let (
-			Ok((mut input, ui, transform, texture, _current_pointers)),
+			Ok((
+				mut input,
+				ui,
+				transform,
+				texture,
+				_current_pointers,
+				mut current_interaction,
+			)),
 			Some(position),
 		) = (inputs.get_mut(*target), position)
 		{
+			match **current_interaction {
+				Some(_) => continue,
+				None => **current_interaction = Some(*pointer_id),
+			}
 			let local_pos = *position - transform.translation();
 			let rotated_point = transform
 				.to_scale_rotation_translation()
@@ -220,6 +255,13 @@ pub fn ui_interactions(
 			uv.y /= ui.size_y;
 
 			let image = textures.get(texture.0.clone()).unwrap();
+			input.events.push(bevy_egui::egui::Event::PointerGone);
+			input.events.push(bevy_egui::egui::Event::PointerMoved(
+				bevy_egui::egui::Pos2 {
+					x: uv.x * image.width() as f32,
+					y: uv.y * image.height() as f32,
+				},
+			));
 			input.events.push(bevy_egui::egui::Event::PointerButton {
 				pos: bevy_egui::egui::Pos2 {
 					x: uv.x * image.width() as f32,
@@ -235,13 +277,26 @@ pub fn ui_interactions(
 		target,
 		position,
 		button,
+		pointer_id,
 	} in up_events.read()
 	{
 		if let (
-			Ok((mut input, ui, transform, texture, _current_pointers)),
+			Ok((
+				mut input,
+				ui,
+				transform,
+				texture,
+				_current_pointers,
+				mut current_interaction,
+			)),
 			Some(position),
 		) = (inputs.get_mut(*target), position)
 		{
+			match **current_interaction {
+				Some(pointer) if pointer == *pointer_id => **current_interaction = None,
+				None => (),
+				Some(_) => continue,
+			}
 			let local_pos = *position - transform.translation();
 			let rotated_point = transform
 				.to_scale_rotation_translation()
@@ -264,9 +319,15 @@ pub fn ui_interactions(
 		}
 	}
 	for UIPointerLeave { target, pointer_id } in leave_events.read() {
-		if let Ok((mut input, _, _, _, mut current_pointers)) = inputs.get_mut(*target)
+		if let Ok((mut input, _, _, _, mut current_pointers, mut current_interaction)) =
+			inputs.get_mut(*target)
 		{
 			current_pointers.pointers.remove(pointer_id);
+			match **current_interaction {
+				Some(pointer) if pointer == *pointer_id => **current_interaction = None,
+				None => (),
+				Some(_) => continue,
+			}
 			input.events.push(bevy_egui::egui::Event::PointerGone);
 		}
 	}

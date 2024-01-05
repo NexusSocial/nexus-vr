@@ -77,7 +77,6 @@ pub fn update_hits(
 			.cast_ray(ray, &settings)
 			.iter()
 			.map(|(entity, hit)| {
-				info!("{}", hit.position());
 				let hit_data = HitData::new(
 					pointer_entity,
 					hit.distance(),

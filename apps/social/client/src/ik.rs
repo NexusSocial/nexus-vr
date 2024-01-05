@@ -344,7 +344,7 @@ fn update_ik(
 				let foot_knee_angle =
 					cos_law(upper_leg_length, foot_hip_dist, lower_leg_length);
 				if foot_knee_angle.is_nan() {
-					panic!("leg cos law failed")
+					color_eyre::eyre::bail!("leg cos law failed")
 				}
 				let target_knee_pos = Quat::from_axis_angle(
 					skeleton.hips.forward().cross(foot_hip_vec),
@@ -357,7 +357,7 @@ fn update_ik(
 					target_knee_pos,
 				);
 				if uleg_rot.x.is_nan() {
-					panic!("knee rotation calculation failed")
+					color_eyre::eyre::bail!("knee rotation calculation failed")
 				}
 				skeleton_sides[i].leg.upper.rotation =
 					(skeleton.hips.rotation.inverse() * uleg_rot).normalize();
@@ -570,7 +570,7 @@ fn update_ik(
 				let hand_upper_arm_angle =
 					cos_law(upper_arm_length, shoulder_hand_length, forearm_length);
 				if hand_upper_arm_angle.is_nan() {
-					panic!(
+					color_eyre::eyre::bail!(
 						"arm cos law failed. (a, b, c) = {:?}",
 						(upper_arm_length, shoulder_hand_length, forearm_length)
 					)
@@ -604,7 +604,7 @@ fn update_ik(
 					.mul_transform(skeleton_sides[i].arm.lower)
 					.translation;
 				//let mut dislocation = curr_root_lower_arm - (new_elbow_pos*upper_arm_length + updated_root_upper_arm.translation);
-				//if dislocation.length() > 0.01 {panic!("Ur arm math broke lol, dislocation  = {:?}", dislocation)}
+				//if dislocation.length() > 0.01 {color_eyre::eyre::bail!("Ur arm math broke lol, dislocation  = {:?}", dislocation)}
 				//println!("Checking things: {:?}", (curr_root_lower_arm.translation, updated_root_upper_arm.translation, new_elbow_pos*upper_arm_length + updated_root_upper_arm.translation));
 				let target_hand_rel_elbow =
 					final_hands[i].translation - curr_root_lower_arm;
@@ -627,7 +627,7 @@ fn update_ik(
 
 				let new_lower_arm_rot =
 					(forearm_rotation_global * larm_rot_base).normalize();
-				//if new_lower_arm_rot.x.is_nan() {panic!("lower arm rotation calculation failed")}
+				//if new_lower_arm_rot.x.is_nan() {color_eyre::eyre::bail!("lower arm rotation calculation failed")}
 				skeleton_sides[i].arm.lower.rotation =
 					(updated_root_upper_arm.rotation.inverse() * new_lower_arm_rot)
 						.normalize();
@@ -640,11 +640,11 @@ fn update_ik(
 				);
 				//dislocation = curr_root_hand.translation - (target_hand_rel_elbow.normalize()*forearm_length + updated_root_lower_arm.translation);
 				/*if dislocation.length() > 0.05 {
-					panic!("Ur hand math (3) broke lol, dislocation  = {:?}", dislocation)
+					color_eyre::eyre::bail!("Ur hand math (3) broke lol, dislocation  = {:?}", dislocation)
 				}
 				dislocation = final_hands[i].translation - (target_hand_rel_elbow + updated_root_lower_arm.translation);
 				if dislocation.length() > 0.05 {
-					panic!("Ur hand math (2) broke lol, dislocation  = {:?}", dislocation)
+					color_eyre::eyre::bail!("Ur hand math (2) broke lol, dislocation  = {:?}", dislocation)
 				}*/
 				skeleton_sides[i].hand.rotation = (curr_root_hand.rotation.inverse()
 					* (final_hands[i].rotation * flip_quat_sides[i]))

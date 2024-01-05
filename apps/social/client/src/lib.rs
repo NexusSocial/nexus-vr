@@ -6,6 +6,7 @@ mod avatars;
 mod controllers;
 mod custom_audio;
 mod ik;
+mod in_world_inspector;
 mod pose_entities;
 mod voice_chat;
 mod xr_picking_stuff;
@@ -69,6 +70,7 @@ use crate::avatars::{DmEntity, LocalAvatar, LocalEntity};
 use crate::custom_audio::audio_output::AudioOutput;
 use crate::custom_audio::spatial_audio::SpatialAudioSink;
 use crate::ik::IKPlugin;
+use crate::in_world_inspector::InWorldInspectorPlugin;
 
 const ASSET_FOLDER: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../../assets/");
 
@@ -155,6 +157,7 @@ impl Plugin for MainPlugin {
 			.add_plugins(EguiPlugin)
 			.add_plugins(PickabelEguiPlugin)
 			.add_plugins(AvatarSwitcherPlugin)
+			.add_plugins(InWorldInspectorPlugin)
 			// .add_plugins(bevy_oxr::xr_input::debug_gizmos::OpenXrDebugRenderer)
 			.add_plugins(self::custom_audio::CustomAudioPlugins)
 			.add_plugins(self::pose_entities::PoseEntitiesPlugin)

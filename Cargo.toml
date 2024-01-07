@@ -4,9 +4,10 @@ members = [
 	"apps/rvid/client",
 	"apps/rvid/server",
 	"apps/social/client",
+	"apps/social/common",
 	"apps/social/networking",
 	"apps/social/server",
-	"apps/social/common",
+	"apps/social/server2",
 
 	"crates/nexus-voicechat",
 	"crates/universal-capture",

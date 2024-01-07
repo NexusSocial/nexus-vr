@@ -1,0 +1,27 @@
+[package]
+name = "social-server2"
+version.workspace = true
+license.workspace = true
+repository.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description = "A server for the social vr bevy demo"
+
+[features]
+default = []
+
+[dependencies]
+clap.workspace = true
+color-eyre.workspace = true
+futures-lite = "2.1.0"
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+tracing.workspace = true
+axum = "0.7.3"
+
+[dependencies.tokio]
+version = "1.35.1"
+features = [
+	"rt",
+	"rt-multi-thread",
+	"macros"
+]

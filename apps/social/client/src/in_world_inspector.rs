@@ -76,9 +76,9 @@ fn handle_toggle(
 
 	if now_pressed && !*last_pressed {
 		if !in_world_inspectors.is_empty() {
-			info!("Inspector Exitst");
+			// info!("Inspector Exitst");
 			for e in &in_world_inspectors {
-				info!("Despawing Inspector: {:?}", e);
+				// info!("Despawing Inspector: {:?}", e);
 				cmds.entity(e).despawn();
 			}
 		} else {

@@ -37,7 +37,6 @@ fn new_inspector_texture(mut cmds: Commands, mut images: ResMut<Assets<Image>>) 
 			depth_or_array_layers: 1,
 		};
 		let mut output_texture = Image {
-			// You should use `0` so that the pixels are transparent.
 			data: vec![0; (size.width * size.height * 4) as usize],
 			..default()
 		};
@@ -76,9 +75,7 @@ fn handle_toggle(
 
 	if now_pressed && !*last_pressed {
 		if !in_world_inspectors.is_empty() {
-			// info!("Inspector Exitst");
 			for e in &in_world_inspectors {
-				// info!("Despawing Inspector: {:?}", e);
 				cmds.entity(e).despawn();
 			}
 		} else {

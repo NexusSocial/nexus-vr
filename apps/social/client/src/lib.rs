@@ -466,13 +466,7 @@ fn vr_rimlight(
 struct AllowedLight;
 
 /// set up a simple 3D scene
-fn setup(
-	mut cmds: Commands,
-	// mut meshes: ResMut<Assets<Mesh>>,
-	// mut materials: ResMut<Assets<StandardMaterial>>,
-	asset_server: ResMut<bevy::prelude::AssetServer>,
-	/*mut assign_avi_evts: EventWriter<AssignAvatar>,*/
-) {
+fn setup(mut cmds: Commands, asset_server: ResMut<bevy::prelude::AssetServer>) {
 	cmds.insert_resource(AmbientLight {
 		color: Color::WHITE,
 		brightness: 0.001,
@@ -481,29 +475,6 @@ fn setup(
 		scene: asset_server.load("https://cdn.discordapp.com/attachments/1122267109376925738/1190479732819623936/SGB_tutorial_scene_fixed.glb#Scene0"),
 		..default()
 	});
-	// // plane
-	// cmds.spawn(PbrBundle {
-	// 	mesh: meshes.add(shape::Plane::from_size(5.0).into()),
-	// 	material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
-	// 	..default()
-	// });
-	// // cube
-	// cmds.spawn(PbrBundle {
-	// 	mesh: meshes.add(Mesh::from(shape::Cube { size: 0.1 })),
-	// 	material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
-	// 	transform: Transform::from_xyz(0.0, 0.5, 0.0),
-	// 	..default()
-	// });
-	// light
-	/*cmds.spawn(PointLightBundle {
-		point_light: PointLight {
-			intensity: 1500.0,
-			shadows_enabled: true,
-			..default()
-		},
-		transform: Transform::from_xyz(4.0, 8.0, 4.0),
-		..default()
-	});*/
 
 	cmds.spawn(DirectionalLightBundle::default());
 	// camera

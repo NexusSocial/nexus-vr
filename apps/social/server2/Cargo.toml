@@ -17,6 +17,7 @@ futures-lite = "2.1.0"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 tracing.workspace = true
 axum = "0.7.3"
+axum-macros = "0.4.0"
 
 [dependencies.tokio]
 version = "1.35.1"

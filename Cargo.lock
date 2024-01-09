@@ -626,6 +626,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "axum-macros"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5a2edad600410b905404c594e2523549f1bcd4bded1e252c8f74524ccce0b867"
+dependencies = [
+ "heck",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.44",
+]
+
+[[package]]
 name = "backtrace"
 version = "0.3.69"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5636,6 +5648,7 @@ name = "social-server2"
 version = "0.0.0"
 dependencies = [
  "axum",
+ "axum-macros",
  "clap",
  "color-eyre",
  "futures-lite 2.1.0",

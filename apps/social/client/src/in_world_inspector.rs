@@ -1,3 +1,6 @@
+/// This module is responsible for displaying an Entity Inspector in the world, so Vr Users can
+/// interact with it. this inspector is not synced over the network, and only one can exist at a
+/// time.
 use std::f32::consts::{PI, TAU};
 
 use bevy::{
@@ -15,17 +18,22 @@ use bevy_oxr::{
 	},
 };
 use egui_picking::WorldSpaceUI;
-use social_common::dev_tools::InspectorUiTarget;
+use social_common::dev_tools::InspectorUiRenderTarget;
 
 use crate::LegalStdMaterial;
+use bevy_inspector_egui::{
+	inspector_options::ReflectInspectorOptions, InspectorOptions,
+};
 
 #[derive(Default)]
 pub struct InWorldInspectorPlugin;
 impl Plugin for InWorldInspectorPlugin {
 	fn build(&self, app: &mut App) {
 		app.add_systems(XrSetup, setup_xr_actions);
-		app.add_systems(Update, handle_toggle.run_if(xr_only()));
+		app.add_systems(Update, toggle_inspector.run_if(xr_only()));
 		app.add_systems(Startup, new_inspector_texture);
+		app.register_type::<InWorldInspector>();
+		app.register_type::<InWorldInspectorTexture>();
 	}
 }
 
@@ -47,14 +55,17 @@ fn new_inspector_texture(mut cmds: Commands, mut images: ResMut<Assets<Image>>) 
 	cmds.insert_resource(InWorldInspectorTexture(output_texture));
 }
 
-#[derive(Default, Clone, Copy, Debug, Component)]
+#[derive(Default, Clone, Copy, Debug, Component, Reflect, InspectorOptions)]
+#[reflect(InspectorOptions)]
 pub struct InWorldInspector;
-#[derive(Default, Clone, Debug, Resource)]
+
+#[derive(Default, Clone, Debug, Resource, Reflect, InspectorOptions)]
+#[reflect(InspectorOptions)]
 pub struct InWorldInspectorTexture(Handle<Image>);
 
-pub const ACTION_SET: &str = "inspector";
+const ACTION_SET: &str = "inspector";
 // TODO: Make work with keyboard/gamepad
-fn handle_toggle(
+fn toggle_inspector(
 	mut cmds: Commands,
 	in_world_inspectors: Query<Entity, With<InWorldInspector>>,
 	texture: Res<InWorldInspectorTexture>,
@@ -68,9 +79,9 @@ fn handle_toggle(
 ) {
 	let now_pressed = action_sets
 		.get_action_bool(ACTION_SET, "toggle")
-		.unwrap()
+		.expect("Action has to exist and be of the correct type")
 		.state(&session, openxr::Path::NULL)
-		.unwrap()
+		.expect("Something went horribly wrong, the actionset is not attached")
 		.current_state;
 
 	if now_pressed && !*last_pressed {
@@ -100,7 +111,7 @@ fn handle_toggle(
 					..default()
 				},
 				WorldSpaceUI::new(Handle::clone(&texture.0), 1.0, 1.0),
-				InspectorUiTarget,
+				InspectorUiRenderTarget,
 				InWorldInspector,
 				LegalStdMaterial,
 				Name::new("Inspector"),
@@ -110,7 +121,7 @@ fn handle_toggle(
 	*last_pressed = now_pressed;
 }
 
-pub fn setup_xr_actions(mut action_sets: ResMut<SetupActionSets>) {
+fn setup_xr_actions(mut action_sets: ResMut<SetupActionSets>) {
 	let bindings = &[XrBinding::new("toggle", "/user/hand/left/input/menu/click")];
 	let set = action_sets.add_action_set(ACTION_SET, "In World Inspector".into(), 0);
 	set.new_action(

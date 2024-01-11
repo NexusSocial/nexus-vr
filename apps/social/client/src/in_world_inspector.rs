@@ -1,6 +1,7 @@
-/// This module is responsible for displaying an Entity Inspector in the world, so Vr Users can
-/// interact with it. this inspector is not synced over the network, and only one can exist at a
-/// time.
+//! This module is responsible for displaying an Entity Inspector in the world, so Vr Users can
+//! interact with it. this inspector is not synced over the network, and only one can exist at a
+//! time.
+
 use std::f32::consts::{PI, TAU};
 
 use bevy::{

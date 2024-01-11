@@ -18,6 +18,7 @@ tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 tracing.workspace = true
 axum = "0.7.3"
 axum-macros = "0.4.0"
+serde.workspace = true
 
 [dependencies.tokio]
 version = "1.35.1"

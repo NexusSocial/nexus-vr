@@ -49,7 +49,7 @@ egui = "0.23"
 lightyear = { git = "https://github.com/cBournhonesque/lightyear", rev = "b16ae27" }
 openxr = "0.17"
 random-number = "0.1.8"
-serde = "1.0.193"
+serde = { version = "1.0.193", features = ["derive"] }
 social-common.path = "apps/social/common"
 social-networking.path = "apps/social/networking"
 tracing = "0.1.40"

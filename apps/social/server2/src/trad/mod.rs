@@ -3,8 +3,9 @@
 //! Major versions of the api are under v*, so that we can continue to support
 //! old apis while the old servers migrate to the new api.
 //!
-//! For now, we are keeping all code on v0, since we don't want to commit to stability
-//! but we have broken it into a separate module to indicate the intent.
+//! For now, we are keeping all code on v0, since we don't want to commit to stability,
+//! but we have broken it into a separate module to indicate that we should design with
+//! the expectation that more versions will be added in the future.
 
 mod v0;
 
@@ -16,15 +17,24 @@ use tracing::info;
 
 use crate::Args;
 
-pub async fn launch_http_server(args: Args) -> Result<()> {
+pub async fn launch_http_server(
+	instance_manager: crate::instance_manager::Handle,
+	args: Args,
+) -> Result<()> {
 	let port = args.port.unwrap_or(0);
 	let sock_addr = SocketAddr::new(Ipv4Addr::UNSPECIFIED.into(), port);
+
 	let app = Router::new()
-		.nest("/api/v0", self::v0::router())
+		.nest(
+			"/api/v0",
+			v0::router().with_state(v0::ApiState { instance_manager }),
+		)
 		.route("/", get(root));
 
 	// run our app with hyper, listening globally on port 3000
-	let listener = tokio::net::TcpListener::bind(sock_addr).await.unwrap();
+	let listener = tokio::net::TcpListener::bind(sock_addr)
+		.await
+		.wrap_err("Failed to create tcp listener")?;
 	let sock_addr = listener.local_addr()?;
 
 	info!("starting http server at address {sock_addr}");

@@ -1,5 +1,6 @@
-/// This module is Responsible for rendering the Entity Inspector to every EguiCtx where a
-/// InspectorUiRenderTarget also exists
+//! This module is Responsible for rendering the Entity Inspector to every [`EguiContext`] where a
+//! [`InspectorUiRenderTarget`] also exists.
+
 use bevy::prelude::*;
 use bevy_egui::EguiContext;
 use bevy_inspector_egui::bevy_inspector::hierarchy::SelectedEntities;

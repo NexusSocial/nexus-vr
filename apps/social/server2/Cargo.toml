@@ -19,6 +19,11 @@ tracing.workspace = true
 axum = "0.7.3"
 axum-macros = "0.4.0"
 serde.workspace = true
+uuid = { version = "1.6.1", features = ["v4", "serde"] }
+bytes = "1.5.0"
+dashmap = "5.5.3"
+wtransport = "0.1.10"
+base64 = "0.21.7"
 
 [dependencies.tokio]
 version = "1.35.1"

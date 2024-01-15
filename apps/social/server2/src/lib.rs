@@ -1,13 +1,17 @@
 #![warn(clippy::option_unwrap_used)]
 
 mod chad;
-mod instance_manager;
+mod instance;
 mod trad;
 
+use std::sync::Arc;
+
 use clap::Parser;
-use color_eyre::{eyre::Context, Result};
+use color_eyre::Result;
 use futures_lite::FutureExt;
 use tracing_subscriber::{filter::LevelFilter, EnvFilter};
+
+use crate::instance::InstanceManager;
 
 /// Runs a nexus server.
 #[derive(Parser, Debug, Clone)]
@@ -35,15 +39,16 @@ pub async fn main(args: Args) -> Result<()> {
 		.with_env_filter(env_filter)
 		.init();
 
-	let (im_handle, im_join) = crate::instance_manager::spawn();
-	let im_join = async {
-		Ok(im_join
-			.await
-			.wrap_err("instance_manager task failed to join")?
-			.wrap_err("instance_manager task terminated with error")?)
-	};
-	let chad_fut = crate::chad::launch_webtransport_server(args.clone());
-	let trad_fut = crate::trad::launch_http_server(im_handle, args.clone());
+	let im = Arc::new(InstanceManager::default());
 
-	chad_fut.race(trad_fut).race(im_join).await
+	// let im_join = async {
+	// 	Ok(im_join
+	// 		.await
+	// 		.wrap_err("instance_manager task failed to join")?
+	// 		.wrap_err("instance_manager task terminated with error")?)
+	// };
+	let chad_fut = crate::chad::launch_webtransport_server(args.clone(), im.clone());
+	let trad_fut = crate::trad::launch_http_server(args.clone(), im.clone());
+
+	chad_fut.race(trad_fut).await
 }

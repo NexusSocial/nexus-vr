@@ -9,26 +9,23 @@
 
 mod v0;
 
-use std::net::{Ipv4Addr, SocketAddr};
+use std::{
+	net::{Ipv4Addr, SocketAddr},
+	sync::Arc,
+};
 
 use axum::{routing::get, Router};
 use color_eyre::{eyre::Context, Result};
 use tracing::info;
 
-use crate::Args;
+use crate::{instance::InstanceManager, Args};
 
-pub async fn launch_http_server(
-	instance_manager: crate::instance_manager::Handle,
-	args: Args,
-) -> Result<()> {
+pub async fn launch_http_server(args: Args, im: Arc<InstanceManager>) -> Result<()> {
 	let port = args.port.unwrap_or(0);
 	let sock_addr = SocketAddr::new(Ipv4Addr::UNSPECIFIED.into(), port);
 
 	let app = Router::new()
-		.nest(
-			"/api/v0",
-			v0::router().with_state(v0::ApiState { instance_manager }),
-		)
+		.nest("/api/v0", v0::router().with_state(v0::ApiState { im }))
 		.route("/", get(root));
 
 	// run our app with hyper, listening globally on port 3000

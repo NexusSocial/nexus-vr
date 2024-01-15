@@ -2,6 +2,7 @@
 
 pub mod dev_tools;
 pub mod humanoid;
+pub mod inspector;
 pub mod macro_utils;
 
 use serde::{Deserialize, Serialize};

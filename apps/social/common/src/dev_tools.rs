@@ -3,71 +3,42 @@
 use bevy::{
 	app::PluginGroupBuilder,
 	diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
-	prelude::{App, Local, Plugin, PluginGroup, PostUpdate, With, World},
+	prelude::{App, Plugin, PluginGroup, With},
 	window::PrimaryWindow,
 };
 
+use crate::inspector::InspectorUiPlugin;
+pub use crate::inspector::InspectorUiRenderTarget;
+
 #[cfg(not(target_os = "android"))]
 mod not_android {
+	use bevy::{
+		app::Startup,
+		ecs::{
+			entity::Entity,
+			query::Without,
+			system::{Commands, Query},
+		},
+	};
+
+	use crate::inspector::InspectorUiRenderTarget;
+
 	use super::*;
-
-	use bevy_egui::EguiContext;
-	use bevy_inspector_egui::bevy_inspector::hierarchy::SelectedEntities;
-
 	#[derive(Default)]
-	pub struct InspectorUiPlugin;
-
-	impl Plugin for InspectorUiPlugin {
+	pub struct PcWindowInspectorPlugin;
+	impl Plugin for PcWindowInspectorPlugin {
 		fn build(&self, app: &mut App) {
-			app.add_systems(PostUpdate, inspector_ui);
+			app.add_systems(Startup, attach_inspector_to_primary_windows);
 		}
 	}
 
-	fn inspector_ui(world: &mut World, mut selected_entities: Local<SelectedEntities>) {
-		let mut egui_context = world
-			.query_filtered::<&mut EguiContext, With<PrimaryWindow>>()
-			.single(world)
-			.clone();
-
-		egui::SidePanel::left("hierarchy")
-			.default_width(200.0)
-			.show(egui_context.get_mut(), |ui| {
-				egui::ScrollArea::vertical().show(ui, |ui| {
-					ui.heading("Hierarchy");
-
-					bevy_inspector_egui::bevy_inspector::hierarchy::hierarchy_ui(
-						world,
-						ui,
-						&mut selected_entities,
-					);
-
-					ui.label("Press escape to toggle UI");
-					ui.allocate_space(ui.available_size());
-				});
-			});
-
-		egui::SidePanel::right("inspector")
-			.default_width(250.0)
-			.show(egui_context.get_mut(), |ui| {
-				egui::ScrollArea::vertical().show(ui, |ui| {
-					ui.heading("Inspector");
-
-					match selected_entities.as_slice() {
-						&[entity] => {
-							bevy_inspector_egui::bevy_inspector::ui_for_entity(
-								world, entity, ui,
-							);
-						}
-						entities => {
-							bevy_inspector_egui::bevy_inspector::ui_for_entities_shared_components(
-							world, entities, ui,
-						);
-						}
-					}
-
-					ui.allocate_space(ui.available_size());
-				});
-			});
+	fn attach_inspector_to_primary_windows(
+		mut cmds: Commands,
+		window: Query<Entity, (With<PrimaryWindow>, Without<InspectorUiRenderTarget>)>,
+	) {
+		if let Ok(window) = window.get_single() {
+			cmds.entity(window).insert(InspectorUiRenderTarget);
+		}
 	}
 }
 
@@ -79,13 +50,11 @@ impl PluginGroup for DevToolsPlugins {
 		let builder = PluginGroupBuilder::start::<Self>()
 			.add(LogDiagnosticsPlugin::default())
 			.disable::<LogDiagnosticsPlugin>()
-			.add(FrameTimeDiagnosticsPlugin);
-		#[cfg(not(target_os = "android"))]
-		let builder = builder
+			.add(FrameTimeDiagnosticsPlugin)
 			.add(bevy_inspector_egui::DefaultInspectorConfigPlugin)
-			// I am sorry ~Schmarni
-			// .add(bevy_egui::EguiPlugin)
-			.add(self::not_android::InspectorUiPlugin);
+			.add(InspectorUiPlugin);
+		#[cfg(not(target_os = "android"))]
+		let builder = builder.add(self::not_android::PcWindowInspectorPlugin);
 		builder
 	}
 }

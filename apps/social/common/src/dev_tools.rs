@@ -11,7 +11,7 @@ use crate::inspector::InspectorUiPlugin;
 pub use crate::inspector::InspectorUiRenderTarget;
 
 #[cfg(not(target_os = "android"))]
-mod not_android {
+pub mod not_android {
 	use bevy::{
 		app::Startup,
 		ecs::{

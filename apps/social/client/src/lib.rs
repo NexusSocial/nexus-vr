@@ -4,9 +4,11 @@
 mod avatar_selection;
 mod avatars;
 mod controllers;
+mod cursor_lock;
 mod custom_audio;
 mod ik;
 mod in_world_inspector;
+mod movement;
 mod pose_entities;
 mod voice_chat;
 mod xr_picking_stuff;
@@ -21,11 +23,6 @@ use bevy::hierarchy::DespawnRecursiveExt;
 use bevy::log::{error, info};
 use bevy::pbr::{AmbientLight, DirectionalLight, PbrBundle, PointLight};
 use bevy::prelude::*;
-use bevy::prelude::{
-	bevy_main, default, Added, App, AssetPlugin, Assets, Camera3dBundle, Color,
-	Commands, DirectionalLightBundle, Entity, EventWriter, Gizmos, PluginGroup, Quat,
-	Query, Res, ResMut, StandardMaterial, Startup, Update, Vec2, Vec3,
-};
 use bevy::render::mesh::{shape, Mesh};
 use bevy::render::render_resource::{Extent3d, TextureUsages};
 use bevy::render::texture::Image;
@@ -38,14 +35,15 @@ use bevy_mod_inverse_kinematics::InverseKinematicsPlugin;
 use bevy_mod_picking::DefaultPickingPlugins;
 use bevy_oxr::input::XrInput;
 use bevy_oxr::resources::XrFrameState;
-use bevy_oxr::xr_init::{xr_only, XrSetup};
+use bevy_oxr::xr_init::XrSetup;
 use bevy_oxr::xr_input::oculus_touch::OculusController;
-use bevy_oxr::xr_input::prototype_locomotion::{
-	proto_locomotion, PrototypeLocomotionConfig,
-};
 use bevy_oxr::xr_input::trackers::OpenXRRightEye;
 use bevy_oxr::xr_input::{QuatConv, Vec3Conv};
 use bevy_oxr::DefaultXrPlugins;
+use bevy_schminput::mouse::motion::MouseMotionBindingProvider;
+use bevy_schminput::prelude::{
+	KeyboardBindingProvider, MouseBindingProvider, OXRBindingProvider, SchminputPlugin,
+};
 use bevy_vrm::mtoon::{MtoonMainCamera, MtoonMaterial};
 use bevy_vrm::VrmPlugin;
 use clap::Parser;
@@ -141,7 +139,16 @@ impl Plugin for MainPlugin {
 		app.add_plugins(xr_plugins)
 			.add_plugins(InverseKinematicsPlugin)
 			.add_plugins(IKPlugin)
-			.add_plugins(DevToolsPlugins)
+			.add_plugins({
+				#[cfg(not(target_os = "android"))]
+				let b = DevToolsPlugins
+					.build()
+					.disable::<social_common::dev_tools::not_android::PcWindowInspectorPlugin>(
+				);
+				#[cfg(target_os = "android")]
+				let b = DevToolsPlugins.build();
+				b
+			})
 			.add_plugins(VrmPlugin);
 		if let Some(server_addr) = self.server_addr {
 			app.add_plugins(ClientPlugin {
@@ -155,10 +162,16 @@ impl Plugin for MainPlugin {
 			.add_plugins(DefaultPickingPlugins)
 			.add_plugins(XrPickingPlugin)
 			.add_plugins(EguiPlugin)
+			.add_plugins((
+				SchminputPlugin,
+				MouseBindingProvider,
+				MouseMotionBindingProvider,
+				KeyboardBindingProvider,
+				OXRBindingProvider,
+			))
 			.add_plugins(PickabelEguiPlugin)
 			.add_plugins(AvatarSwitcherPlugin)
 			.add_plugins(InWorldInspectorPlugin)
-			// .add_plugins(bevy_oxr::xr_input::debug_gizmos::OpenXrDebugRenderer)
 			.add_plugins(self::custom_audio::CustomAudioPlugins)
 			.add_plugins(self::pose_entities::PoseEntitiesPlugin)
 			.add_systems(Startup, setup)
@@ -170,11 +183,8 @@ impl Plugin for MainPlugin {
 			.add_systems(Update, vr_rimlight)
 			.add_systems(Update, going_dark)
 			.add_systems(Update, vr_ui_helper)
-			.add_systems(Update, proto_locomotion.run_if(xr_only()))
-			.insert_resource(PrototypeLocomotionConfig {
-				locomotion_speed: 2.0,
-				..default()
-			})
+			.add_plugins(movement::MovementPugin)
+			.add_plugins(cursor_lock::CursorLockingPlugin)
 			.insert_resource(AssetMetaCheck::Never)
 			.add_systems(Startup, xr_picking_stuff::spawn_controllers)
 			.add_systems(XrSetup, xr_picking_stuff::setup_xr_actions)
@@ -478,14 +488,18 @@ fn setup(mut cmds: Commands, asset_server: ResMut<bevy::prelude::AssetServer>) {
 
 	cmds.spawn(DirectionalLightBundle::default());
 	// camera
-	cmds.spawn((
-		Camera3dBundle {
-			transform: Transform::from_xyz(-2.0, 2.5, 5.0)
-				.looking_at(Vec3::ZERO, Vec3::Y),
-			..default()
-		},
-		bevy_vrm::mtoon::MtoonMainCamera,
-	));
+	// cmds.spawn((
+	// 	Camera3dBundle {
+	// 		transform: Transform::from_xyz(-2.0, 2.5, 5.0)
+	// 			.looking_at(Vec3::ZERO, Vec3::Y),
+	// 		..default()
+	// 	},
+	// 	bevy_vrm::mtoon::MtoonMainCamera,
+	// 	movement::MovementControlled,
+	// 	movement::MovementRotate,
+	// 	movement::MovementRotatePitch,
+	// 	movement::MovementRotateYaw,
+	// ));
 }
 
 fn _hands(
@@ -521,10 +535,10 @@ fn _hands(
 	Ok(())
 }
 
-fn pose_gizmo(gizmos: &mut Gizmos, t: &Vec3, color: Color) {
-	let t2 = Transform::from_xyz(t.x, t.y, t.z);
-	gizmos.ray(*t, t2.local_x() * 0.1, Color::RED);
-	gizmos.ray(*t, t2.local_y() * 0.1, Color::GREEN);
-	gizmos.ray(*t, t2.local_z() * 0.1, Color::BLUE);
-	gizmos.sphere(*t, Quat::IDENTITY, 0.1, color);
-}
+// fn pose_gizmo(gizmos: &mut Gizmos, t: &Vec3, color: Color) {
+// 	let t2 = Transform::from_xyz(t.x, t.y, t.z);
+// 	gizmos.ray(*t, t2.local_x() * 0.1, Color::RED);
+// 	gizmos.ray(*t, t2.local_y() * 0.1, Color::GREEN);
+// 	gizmos.ray(*t, t2.local_z() * 0.1, Color::BLUE);
+// 	gizmos.sphere(*t, Quat::IDENTITY, 0.1, color);
+// }

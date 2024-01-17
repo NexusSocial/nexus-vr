@@ -29,19 +29,21 @@ impl Plugin for AvatarSwitcherPlugin {
 				name: "015",
 				url: "https://cloudcafe-executables.s3.us-west-2.amazonaws.com/015.vrm",
 			},
-			AvatarData {
-				name: "010",
-				url: "https://cloudcafe-executables.s3.us-west-2.amazonaws.com/010.vrm",
-			},
+			// Currentlly broken
+			// AvatarData {
+			// 	name: "010",
+			// 	url: "https://cloudcafe-executables.s3.us-west-2.amazonaws.com/010.vrm",
+			// },
 			// Currentlly broken
 			// AvatarData {
 			// 	name: "009",
 			// 	url: "https://cloudcafe-executables.s3.us-west-2.amazonaws.com/009.vrm",
 			// },
-			AvatarData {
-				name: "MF Robot",
-				url: "https://cloudcafe-executables.s3.us-west-2.amazonaws.com/MF_Robot.vrm",
-			},
+			// Currentlly broken
+			// AvatarData {
+			// 	name: "MF Robot",
+			// 	url: "https://cloudcafe-executables.s3.us-west-2.amazonaws.com/MF_Robot.vrm",
+			// },
 			AvatarData {
 				name: "Avatar Sample F",
 				url: "https://cloudcafe-executables.s3.us-west-2.amazonaws.com/AvatarSampleF.vrm",

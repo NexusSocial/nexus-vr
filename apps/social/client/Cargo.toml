@@ -31,10 +31,17 @@ derive_more.workspace = true
 picking-xr.workspace = true
 egui-picking.workspace = true
 bevy_egui.workspace = true
-bevy_mod_picking.workspace = true
+bevy_mod_picking = { workspace = true, default-features = false, features = [
+	"backend_raycast",
+	"backend_bevy_ui",
+	"backend_sprite",
+	"selection",
+	"highlight",
+] }
 opus.workspace = true
 egui.workspace = true
 clap.workspace = true
+bevy_schminput = { workspace = true, features = ["xr"] }
 
 # [target.'cfg(not(target_os = "android"))'.dependencies]
 bevy-inspector-egui.workspace = true

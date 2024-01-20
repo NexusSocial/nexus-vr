@@ -139,16 +139,7 @@ impl Plugin for MainPlugin {
 		app.add_plugins(xr_plugins)
 			.add_plugins(InverseKinematicsPlugin)
 			.add_plugins(IKPlugin)
-			.add_plugins({
-				#[cfg(not(target_os = "android"))]
-				let b = DevToolsPlugins
-					.build()
-					.disable::<social_common::dev_tools::not_android::PcWindowInspectorPlugin>(
-				);
-				#[cfg(target_os = "android")]
-				let b = DevToolsPlugins.build();
-				b
-			})
+			.add_plugins(DevToolsPlugins)
 			.add_plugins(VrmPlugin);
 		if let Some(server_addr) = self.server_addr {
 			app.add_plugins(ClientPlugin {

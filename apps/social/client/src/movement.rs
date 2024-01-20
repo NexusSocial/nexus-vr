@@ -4,7 +4,12 @@ use bevy::prelude::*;
 use bevy_inspector_egui::{
 	inspector_options::ReflectInspectorOptions, InspectorOptions,
 };
-use bevy_oxr::xr_input::trackers::OpenXRTrackingRoot;
+use bevy_oxr::{
+	input::XrInput,
+	resources::XrFrameState,
+	xr_init::xr_only,
+	xr_input::{trackers::OpenXRTrackingRoot, QuatConv, Vec3Conv},
+};
 use bevy_schminput::{mouse::MouseBindings, mouse_action, prelude::*, ActionTrait};
 use bevy_vrm::mtoon::MtoonMainCamera;
 
@@ -27,7 +32,29 @@ impl Plugin for MovementPugin {
 		app.add_systems(Update, drive_non_xr_input_pose);
 		app.add_systems(Update, rotate_entities.before(move_entities));
 		app.add_systems(Startup, setup_actions);
-		app.add_systems(Startup, spawn_player);
+		app.add_systems(Update, spawn_player.run_if(run_once()));
+		app.add_systems(Update, vr_player_head_update.run_if(xr_only()));
+	}
+}
+
+fn vr_player_head_update(
+	mut player_heads: Query<(&Parent, &mut Transform), With<PlayerHead>>,
+	root: Query<Has<OpenXRTrackingRoot>>,
+	frame_state: Res<XrFrameState>,
+	xr_input: Res<XrInput>,
+) {
+	for (parent, mut transform) in &mut player_heads {
+		if let Ok(true) = root.get(parent.get()) {
+			let t = match xr_input.head.relate(
+				&xr_input.stage,
+				frame_state.lock().unwrap().predicted_display_time,
+			) {
+				Ok(t) => t,
+				Err(_) => continue,
+			};
+			transform.translation = t.0.pose.position.to_vec3();
+			transform.rotation = t.0.pose.orientation.to_quat();
+		};
 	}
 }
 
@@ -36,8 +63,27 @@ fn spawn_player(
 	root_query: Query<Entity, With<OpenXRTrackingRoot>>,
 ) {
 	if let Ok(root) = root_query.get_single() {
-		cmds.entity(root)
-			.insert((MovementRotateYaw, MovementControlled, PlayerRoot));
+		let e = cmds
+			.spawn((
+				PlayerHead,
+				Camera3dBundle {
+					projection: Projection::Perspective(PerspectiveProjection {
+						fov: TAU / 6.0,
+						..default()
+					}),
+					..default()
+				},
+			))
+			.id();
+		cmds.entity(root).push_children(&[e]);
+		cmds.entity(root).insert((
+			MovementRotateYaw,
+			MovementControlled,
+			PlayerRoot,
+			MovementRotate,
+			MovementRotateAround(e),
+			MovementForwardRef(e),
+		));
 	} else {
 		let cam = cmds
 			.spawn((
@@ -73,9 +119,11 @@ fn spawn_player(
 
 fn rotate_entities(
 	action_query: Query<&ViewAction>,
+	global_transforms: Query<&GlobalTransform>,
 	mut query: Query<
 		(
 			&mut Transform,
+			Option<&MovementRotateAround>,
 			Has<MovementRotatePitch>,
 			Has<MovementRotateYaw>,
 		),
@@ -83,16 +131,26 @@ fn rotate_entities(
 	>,
 	time: Res<Time>,
 ) {
-	for (mut transform, pitch, yaw) in &mut query {
+	for (mut transform, around, pitch, yaw) in &mut query {
 		let action = match action_query.get_single() {
 			Ok(v) => v,
 			Err(_) => continue,
 		};
 		if yaw {
-			transform.rotate_y(-action.get_value().y * TAU * time.delta_seconds());
+			match around.and_then(|e| global_transforms.get(e.0).ok()) {
+				Some(around) => transform.rotate_around(
+					around.translation(),
+					Quat::from_rotation_y(
+						-action.get_value().x * TAU * time.delta_seconds(),
+					),
+				),
+				None => transform
+					.rotate_y(-action.get_value().x * TAU * time.delta_seconds()),
+			};
 		}
 		if pitch {
-			transform.rotate_local_x(action.get_value().x * TAU * time.delta_seconds());
+			transform
+				.rotate_local_x(-action.get_value().y * TAU * time.delta_seconds());
 			let (pitch, _yaw, _roll) = transform.rotation.to_euler(EulerRot::XYZ);
 			if pitch > TAU / 4.0 {
 				transform.rotate_local_x(-(pitch - TAU / 4.0) - 0.00001)
@@ -201,11 +259,12 @@ fn move_entities(
 		}
 		.get_value();
 
-		transform.translation += forward_quat.mul_vec3(
-			Vec3::new(input_vec.y, 0.0, -input_vec.x).normalize_or_zero()
-				* time.delta_seconds()
-				* 2.0,
-		);
+		let mut in_vec = Vec3::new(input_vec.x, 0.0, -input_vec.y);
+		if in_vec.length() > 1.0 {
+			in_vec = in_vec.normalize_or_zero();
+		}
+		transform.translation +=
+			forward_quat.mul_vec3(in_vec * time.delta_seconds() * 4.0);
 	}
 }
 
@@ -230,6 +289,9 @@ pub struct MovementRotatePitch;
 #[derive(Component, Clone, Copy, Debug, Reflect, InspectorOptions)]
 #[reflect(InspectorOptions)]
 pub struct MovementRotateYaw;
+#[derive(Component, Clone, Copy, Debug, Reflect, InspectorOptions)]
+#[reflect(InspectorOptions)]
+pub struct MovementRotateAround(Entity);
 
 fn drive_non_xr_input_pose(
 	tracking_root: Query<(&GlobalTransform, Entity), With<PlayerRoot>>,

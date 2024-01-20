@@ -27,10 +27,10 @@ bevy = "0.12"
 bevy-inspector-egui = { git = "https://github.com/Schmarni-Dev/bevy-inspector-egui", branch = "0210" }
 bevy_egui = { git = "https://github.com/Schmarni-Dev/bevy_egui/", branch = "add-worldspace-egui" }
 bevy_mod_inverse_kinematics = "0.5"
-bevy_mod_picking = { git = "https://github.com/Schmarni-Dev/bevy_mod_picking", branch = "no_windows", default-features = false}
+bevy_mod_picking = { git = "https://github.com/Schmarni-Dev/bevy_mod_picking", branch = "no_windows", default-features = false }
 # bevy_mod_picking = "0.17.0"
 bevy_mod_raycast = "0.16.0"
-bevy_oxr = { git = "https://github.com/awtterpip/bevy_oxr", rev = "b2efa80", default-features = false }
+bevy_oxr = { git = "https://github.com/awtterpip/bevy_oxr", rev = "53af86b" }
 bevy_picking_core = { package = "bevy_picking_core", git = "https://github.com/Schmarni-Dev/bevy_mod_picking", branch = "no_windows" }
 # bevy_picking_core = "0.17.0"
 bevy_vrm = "0.0.7"
@@ -57,7 +57,7 @@ picking-xr = { path = "./crates/picking-xr" }
 opus = { git = "https://github.com/Schmarni-Dev/opus-rs", branch = "unsafe-libopus", default-features = false, features = [
 	"unsafe-libopus-backend",
 ] }
-bevy_schminput = { git = "https://github.com/Schmarni-Dev/Schminput", rev = "b112432" }
+bevy_schminput = { git = "https://github.com/Schmarni-Dev/Schminput", rev = "b345419" }
 
 [profile.dev]
 # Enable a small amount of optimization in debug mode

@@ -5,12 +5,13 @@ use bevy::{
 	prelude::*,
 	window::{CursorGrabMode, PrimaryWindow},
 };
+use bevy_oxr::xr_init::XrEnableStatus;
 use bevy_schminput::mouse::{motion::MouseMotionAction, MouseBindings};
 
 pub struct CursorLockingPlugin;
 impl Plugin for CursorLockingPlugin {
 	fn build(&self, app: &mut App) {
-		app.insert_resource(MouseLocked(true));
+		app.add_systems(Startup, init_cursor_lock);
 		app.add_systems(
 			Update,
 			toggle_mouse_lock.run_if(input_just_pressed(KeyCode::Tab)),
@@ -20,7 +21,6 @@ impl Plugin for CursorLockingPlugin {
 			apply_mouse_lock_toggle
 				.run_if(resource_exists_and_changed::<MouseLocked>()),
 		);
-		// #[cfg(target_os = "windows")]
 		app.add_systems(
 			Update,
 			cursor_recenter
@@ -28,9 +28,20 @@ impl Plugin for CursorLockingPlugin {
 		);
 	}
 }
-// #[cfg(target_os = "windows")]
+
+fn init_cursor_lock(mut cmds: Commands, xr_enabled: Option<Res<XrEnableStatus>>) {
+	if xr_enabled.is_some_and(|e| *e == XrEnableStatus::Enabled) {
+		cmds.insert_resource(MouseLocked(false));
+	} else {
+		cmds.insert_resource(MouseLocked(true));
+	}
+}
+
 fn cursor_recenter(mut q_windows: Query<&mut Window, With<PrimaryWindow>>) {
-	let mut primary_window = q_windows.single_mut();
+	let mut primary_window = match q_windows.get_single_mut() {
+		Ok(v) => v,
+		Err(_) => return,
+	};
 	let center = Vec2::new(primary_window.width() / 2.0, primary_window.height() / 2.0);
 	primary_window.set_cursor_position(Some(center));
 }

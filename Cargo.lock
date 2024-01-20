@@ -1215,23 +1215,7 @@ dependencies = [
 [[package]]
 name = "bevy_oxr"
 version = "0.1.0"
-source = "git+https://github.com/awtterpip/bevy_oxr?rev=b2efa80#b2efa802cb2370cc6e67fa171f260df3f25baa68"
-dependencies = [
- "anyhow",
- "ash",
- "bevy",
- "futures-lite 2.2.0",
- "mint",
- "openxr",
- "wgpu",
- "wgpu-core",
- "wgpu-hal",
-]
-
-[[package]]
-name = "bevy_oxr"
-version = "0.1.0"
-source = "git+https://github.com/awtterpip/bevy_oxr#53af86b0739406fde574e0d4889d7713becaa455"
+source = "git+https://github.com/awtterpip/bevy_oxr?rev=53af86b#53af86b0739406fde574e0d4889d7713becaa455"
 dependencies = [
  "anyhow",
  "ash",
@@ -1618,11 +1602,11 @@ dependencies = [
 [[package]]
 name = "bevy_schminput"
 version = "0.1.0"
-source = "git+https://github.com/Schmarni-Dev/Schminput?rev=b112432#b112432fa8bcebdaa70c18ddb950b42575b4829d"
+source = "git+https://github.com/Schmarni-Dev/Schminput?rev=b345419#b345419fb8fbdbface15f95d10c034434ff2ef99"
 dependencies = [
  "bevy",
  "bevy-trait-query",
- "bevy_oxr 0.1.0 (git+https://github.com/awtterpip/bevy_oxr)",
+ "bevy_oxr",
  "openxr",
 ]
 
@@ -3464,9 +3448,9 @@ checksum = "95505c38b4572b2d910cecb0281560f54b440a19336cbbcb27bf6ce6adc6f5a8"
 
 [[package]]
 name = "hermit-abi"
-version = "0.3.3"
+version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d77f7ec81a6d05a3abb01ab6eb7590f6083d08449fe5a1c8b1e620283546ccb7"
+checksum = "5d3d0e0f38255e7fa3cf31335b3a56f05febd18025f4db5ef7a0cfb4f8da651f"
 
 [[package]]
 name = "hexasphere"
@@ -4619,7 +4603,7 @@ dependencies = [
  "bevy",
  "bevy_mod_picking 0.17.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "bevy_mod_raycast",
- "bevy_oxr 0.1.0 (git+https://github.com/awtterpip/bevy_oxr?rev=b2efa80)",
+ "bevy_oxr",
  "bevy_picking_core 0.17.0 (git+https://github.com/Schmarni-Dev/bevy_mod_picking?branch=no_windows)",
  "openxr",
 ]
@@ -4669,9 +4653,9 @@ dependencies = [
 
 [[package]]
 name = "pkg-config"
-version = "0.3.28"
+version = "0.3.29"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "69d3587f8a9e599cc7ec2c00e331f71c4e69a5f9a4b8a6efd5b07466b9736f9a"
+checksum = "2900ede94e305130c13ddd391e0ab7cbaeb783945ae07a279c268cb05109c6cb"
 
 [[package]]
 name = "plotters"
@@ -4949,9 +4933,9 @@ checksum = "f2ff9a1f06a88b01621b7ae906ef0211290d1c8a168a15542486a8f61c0833b9"
 
 [[package]]
 name = "rayon"
-version = "1.8.0"
+version = "1.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9c27db03db7734835b3f53954b534c91069375ce6ccaa2e065441e07d9b6cdb1"
+checksum = "fa7237101a77a10773db45d62004a272517633fbcc3df19d96455ede1122e051"
 dependencies = [
  "either",
  "rayon-core",
@@ -4959,9 +4943,9 @@ dependencies = [
 
 [[package]]
 name = "rayon-core"
-version = "1.12.0"
+version = "1.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5ce3fb6ad83f861aac485e76e1985cd109d9a3713802152be56c3b1f0e0658ed"
+checksum = "1465873a3dfdaa8ae7cb14b4383657caab0b3e8a0aa9ae8e04b044854c8dfce2"
 dependencies = [
  "crossbeam-deque",
  "crossbeam-utils",
@@ -5185,7 +5169,7 @@ name = "rvid-client"
 version = "0.0.0"
 dependencies = [
  "bevy",
- "bevy_oxr 0.1.0 (git+https://github.com/awtterpip/bevy_oxr?rev=b2efa80)",
+ "bevy_oxr",
  "color-eyre",
  "openssl",
  "openssl-sys",
@@ -5408,7 +5392,7 @@ dependencies = [
  "bevy_egui",
  "bevy_mod_inverse_kinematics",
  "bevy_mod_picking 0.17.0 (git+https://github.com/Schmarni-Dev/bevy_mod_picking?branch=no_windows)",
- "bevy_oxr 0.1.0 (git+https://github.com/awtterpip/bevy_oxr?rev=b2efa80)",
+ "bevy_oxr",
  "bevy_schminput",
  "bevy_vrm",
  "bevy_web_asset",
@@ -5988,9 +5972,9 @@ dependencies = [
 
 [[package]]
 name = "unicode-bidi"
-version = "0.3.14"
+version = "0.3.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6f2528f27a9eb2b21e69c95319b30bd0efd85d09c379741b0f78ea1d86be2416"
+checksum = "08f95100a766bf4f8f28f90d77e0a5461bbdb219042e7679bebe79004fed8d75"
 
 [[package]]
 name = "unicode-ident"

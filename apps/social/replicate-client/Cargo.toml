@@ -1,0 +1,23 @@
+[package]
+name = "replicate-client"
+version.workspace = true
+license.workspace = true
+repository.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description = "A client api for state replication"
+
+[dependencies]
+base64.workspace = true
+# TODO: Use cert hashes instead
+wtransport = { workspace = true, features = ["dangerous-configuration"] }
+tracing.workspace = true
+thiserror = "1.0.56"
+replicate-common.path = "../replicate-common"
+url.workspace = true
+
+[dev-dependencies]
+color-eyre.workspace = true
+tracing-subscriber = { workspace = true, features = ["env-filter"] }
+tokio = { workspace = true, features = ["rt-multi-thread"] }
+clap.workspace = true

@@ -6,8 +6,10 @@ members = [
 	"apps/social/client",
 	"apps/social/common",
 	"apps/social/networking",
+	"apps/social/replicate-client",
+	"apps/social/replicate-common",
+	"apps/social/replicate-server",
 	"apps/social/server",
-	"apps/social/server2",
 
 	"crates/nexus-voicechat",
 	"crates/universal-capture",
@@ -24,16 +26,18 @@ edition = "2021"
 rust-version = "1.74.1"
 
 [workspace.dependencies]
+base64 = "0.21.7"
 bevy = "0.12"
 bevy-inspector-egui = { git = "https://github.com/Schmarni-Dev/bevy-inspector-egui", branch = "0210" }
 bevy_egui = { git = "https://github.com/Schmarni-Dev/bevy_egui/", branch = "add-worldspace-egui" }
 bevy_mod_inverse_kinematics = "0.5"
-bevy_mod_picking = { git = "https://github.com/Schmarni-Dev/bevy_mod_picking", branch = "no_windows", default-features = false }
 # bevy_mod_picking = "0.17.0"
+bevy_mod_picking = { git = "https://github.com/Schmarni-Dev/bevy_mod_picking", branch = "no_windows", default-features = false }
 bevy_mod_raycast = "0.16.0"
 bevy_oxr = { git = "https://github.com/awtterpip/bevy_oxr", rev = "53af86b" }
-bevy_picking_core = { package = "bevy_picking_core", git = "https://github.com/Schmarni-Dev/bevy_mod_picking", branch = "no_windows" }
 # bevy_picking_core = "0.17.0"
+bevy_picking_core = { package = "bevy_picking_core", git = "https://github.com/Schmarni-Dev/bevy_mod_picking", branch = "no_windows" }
+bevy_schminput = { git = "https://github.com/Schmarni-Dev/Schminput", rev = "b345419" }
 bevy_vrm = "0.0.7"
 bevy_web_asset = { git = "https://github.com/MalekiRe/bevy_web_asset", rev = "23f6670" }
 clap = { version = "4.4.11", features = ["derive"] }
@@ -45,20 +49,23 @@ derive_more = { version = "0.99", default-features = false, features = [
 	"deref_mut",
 ] }
 egui = "0.23"
+egui-picking = { path = "./crates/egui-picking" }
 #lightyear = "0.5.1"
 lightyear = { git = "https://github.com/cBournhonesque/lightyear", rev = "b16ae27" }
 openxr = "0.17"
+opus = { git = "https://github.com/Schmarni-Dev/opus-rs", branch = "unsafe-libopus", default-features = false, features = [
+	"unsafe-libopus-backend",
+] }
+picking-xr = { path = "./crates/picking-xr" }
 random-number = "0.1.8"
 serde = { version = "1.0.193", features = ["derive"] }
 social-common.path = "apps/social/common"
 social-networking.path = "apps/social/networking"
+tokio = "1.35.1"
 tracing = "0.1.40"
-egui-picking = { path = "./crates/egui-picking" }
-picking-xr = { path = "./crates/picking-xr" }
-opus = { git = "https://github.com/Schmarni-Dev/opus-rs", branch = "unsafe-libopus", default-features = false, features = [
-	"unsafe-libopus-backend",
-] }
-bevy_schminput = { git = "https://github.com/Schmarni-Dev/Schminput", rev = "b345419" }
+tracing-subscriber = "0.3.18"
+url = "2.5.0"
+wtransport = "0.1.10"
 
 [profile.dev]
 # Enable a small amount of optimization in debug mode

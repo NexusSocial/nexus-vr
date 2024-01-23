@@ -5,7 +5,7 @@ use dashmap::DashMap;
 use replicate_common::InstanceId;
 use tracing::debug;
 
-use super::instance::Instance;
+use super::Instance;
 
 #[derive(Default, Debug)]
 pub struct InstanceManager {

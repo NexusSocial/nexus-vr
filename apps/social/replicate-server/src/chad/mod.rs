@@ -63,6 +63,7 @@ pub async fn launch_webtransport_server(
 			interval.tick().await;
 			info!("refreshing certs");
 			cert = Certificate::self_signed(args.subject_alt_names.iter());
+			#[allow(clippy::question_mark)]
 			if let Err(err) = server
 				.reload_config(
 					ServerConfig::builder()

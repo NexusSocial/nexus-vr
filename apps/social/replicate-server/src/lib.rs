@@ -1,4 +1,4 @@
-#![warn(clippy::option_unwrap_used)]
+#![warn(clippy::unwrap_used)]
 
 mod chad;
 mod instance;

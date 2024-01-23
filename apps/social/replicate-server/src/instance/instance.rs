@@ -52,11 +52,13 @@ impl ChannelManager {
 		// We use the first hole to prioiritize filling the values closer to the
 		// start of the vec. This will help reduce fragmentation in `self.channels`.
 		if let Some(hole) = self.holes.pop_first() {
-			self.channels[usize::try_from(hole.0).unwrap()].reinitialize();
+			self.channels[usize::try_from(hole.0).expect("cast err")].reinitialize();
 			Ok(hole)
 		} else {
 			self.channels.push(Channel::default());
-			Ok(ChannelId((self.channels.len() - 1).try_into().unwrap()))
+			Ok(ChannelId(
+				(self.channels.len() - 1).try_into().expect("cast err"),
+			))
 		}
 	}
 }

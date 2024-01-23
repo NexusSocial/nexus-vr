@@ -99,7 +99,7 @@ impl Instance {
 	/// Entities are not spawned on the server until their state is set.
 	pub async fn reserve_entities(
 		&self,
-		_entities: &mut Vec<Entity>,
+		#[allow(clippy::ptr_arg)] _entities: &mut Vec<Entity>,
 	) -> Result<(), ReserveErr> {
 		todo!()
 	}
@@ -133,6 +133,8 @@ impl Instance {
 	) -> Result<(), SendReliableStateErr> {
 		todo!()
 	}
+
+	// TODO: Handle receiving apis.
 }
 
 /// An identifier for an entity in the network datamodel. NOTE: This is not the

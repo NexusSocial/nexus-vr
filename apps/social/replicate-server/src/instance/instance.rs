@@ -4,6 +4,9 @@
 //!
 //! [gaffer_vr]: https://gafferongames.com/post/networked_physics_in_virtual_reality
 
+// TODO: Remove this
+#![allow(unused)]
+
 use replicate_common::{ChannelFormat, ChannelId, ClientId};
 use std::collections::{BTreeSet, HashMap};
 

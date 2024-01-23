@@ -40,6 +40,7 @@ bevy_picking_core = { package = "bevy_picking_core", git = "https://github.com/S
 bevy_schminput = { git = "https://github.com/Schmarni-Dev/Schminput", rev = "b345419" }
 bevy_vrm = "0.0.7"
 bevy_web_asset = { git = "https://github.com/MalekiRe/bevy_web_asset", rev = "23f6670" }
+bytes = "1.5.0"
 clap = { version = "4.4.11", features = ["derive"] }
 color-eyre = "0.6"
 derive_more = { version = "0.99", default-features = false, features = [

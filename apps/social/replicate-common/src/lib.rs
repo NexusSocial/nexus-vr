@@ -1,4 +1,5 @@
 pub mod did;
+pub mod messages;
 
 use bytes::Bytes;
 use serde::{Deserialize, Serialize};

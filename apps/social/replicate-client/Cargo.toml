@@ -9,6 +9,7 @@ description = "A client api for state replication"
 
 [dependencies]
 base64.workspace = true
+bytes.workspace = true
 # TODO: Use cert hashes instead
 wtransport = { workspace = true, features = ["dangerous-configuration"] }
 tracing.workspace = true

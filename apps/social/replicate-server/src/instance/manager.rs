@@ -1,3 +1,6 @@
+// TODO: Remove this
+#![allow(unused)]
+
 use dashmap::DashMap;
 use replicate_common::InstanceId;
 use tracing::debug;

@@ -5,7 +5,6 @@ use replicate_common::did::{AuthenticationAttestation, Did, DidPrivateKey};
 use tracing_subscriber::{filter::LevelFilter, EnvFilter};
 use url::Url;
 
-/// Runs a nexus server.
 #[derive(Parser, Debug, Clone)]
 #[clap(author, version, about)]
 pub struct Args {

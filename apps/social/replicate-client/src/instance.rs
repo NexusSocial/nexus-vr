@@ -65,6 +65,8 @@ use crate::CertHashDecodeErr;
 /// The state of an [`Entity`].
 pub type State = bytes::Bytes;
 
+/// Client api for interacting with a particular instance on the server.
+/// Instances manage persistent, realtime state updates for many concurrent clients.
 #[derive(Debug)]
 pub struct Instance {
 	_conn: wtransport::Connection,

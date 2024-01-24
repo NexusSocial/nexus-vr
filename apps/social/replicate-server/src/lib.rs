@@ -11,7 +11,6 @@ use tracing_subscriber::{filter::LevelFilter, EnvFilter};
 
 use crate::instance::InstanceManager;
 
-/// Runs a nexus server.
 #[derive(Parser, Debug, Clone)]
 #[clap(author, version, about)]
 pub struct Args {

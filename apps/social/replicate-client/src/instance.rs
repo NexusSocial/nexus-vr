@@ -136,7 +136,26 @@ impl Instance {
 		todo!()
 	}
 
-	// TODO: Handle receiving apis.
+	// TODO: this crate should maintain the view of the datamodel instead of punting
+	// that responsibility to the user. It just makes the user's life easier to do
+	// that. It also might be important, because otherwise we can't be sure that the
+	// caller isn't taking a long time processing the incoming data and causing the
+	// incoming datagram buffer to fill up and drop datagrams. We want control over
+	// dropping datagrams ourselves because then we can potentially discard them
+	// via their sequence number.
+	//
+	// Also, just having the state acessible directly would avoid the need for this
+	// to use async in the user's read path.
+}
+
+/// The results of a state update pushed by the server.
+// TODO: This is gonna go away now.
+pub enum RecvState<'a> {
+	DeletedEntities(&'a [Entity]),
+	StateUpdates {
+		entities: &'a [Entity],
+		states: &'a [State],
+	},
 }
 
 /// An identifier for an entity in the network datamodel. NOTE: This is not the
@@ -172,6 +191,9 @@ mod error {
 		#[error("error while finalizing state to network: {0}")]
 		StreamWrite(#[from] StreamWriteError),
 	}
+
+	#[derive(thiserror::Error, Debug)]
+	pub enum RecvStateErr {}
 
 	#[derive(thiserror::Error, Debug)]
 	pub enum ConnectErr {

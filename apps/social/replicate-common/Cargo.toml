@@ -1,0 +1,13 @@
+[package]
+name = "replicate-common"
+version.workspace = true
+license.workspace = true
+repository.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description = "Shared code between replicate-client and replicate-server"
+
+[dependencies]
+bytes.workspace = true
+serde.workspace = true
+uuid = { version = "1.7.0", features = ["v4", "serde"] }

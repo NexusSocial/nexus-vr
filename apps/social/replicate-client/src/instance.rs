@@ -42,6 +42,32 @@
 //! with an id, which the server assigns in response to a request to spawn an entity
 //! by the client. The id is used by the client to reference it.
 //!
+//! Internally, entity ids are based on a generational index, which is a tuple of
+//! (generation, index): (u32, u32). In the future we may make this (u16,u16). This is
+//! because using generations avoids the [ABA problem][ABA] where an entity could be
+//! deleted, and then a stale id for it could be held by either the server or client
+//! still, and then a new, distinct entity is later created at that index and accessed
+//! with the stale id.
+//!
+//! # State Priority
+//! Each connection will have a dynamically calculated bandwidth, measured in bytes per
+//! second. Sending data too fast will cause state updates to be dropped. Because state
+//! updates are supposed to happen at a roughly fixed frequency, we often will need to
+//! proactively limit the amount of data being sent. To solve this, the user of the api
+//! will explicitly set a send and recv proirity for each entity.
+//!
+//! On each message sent, the client will take the entity's priority and add it to a
+//! priority ccumulator associated with that entity. Then, it will sort all entities by
+//! their priority accumulators, adding entities with the highest proirity to the packet
+//! until the packet has reached its target size (the one calculated based on bandwidth)
+//! or there are no more entities with a non-negative priority accumulator. When the
+//! entity is included in the packet, its priority accumulator is reset.
+//!
+//! When the client configures the recv priority, it will send a reliable message to
+//! the server informing it of its recv priority for that entity. The server will track
+//! these priorities for each client independently, and will follow a similar priority
+//! accumulation scheme described above to prioritize sending updates to the client.
+//!
 //! [^1]: For anyone concerned if this involves blockchains: There are several DID
 //! methods that don't require any use of blockchain technologies, such as
 //! [did:key][did:key] and [did:web][did:web]. Initially, we intend to support only
@@ -51,6 +77,7 @@
 //! [DID]: https://www.w3.org/TR/did-core/
 //! [did:key]: https://w3c-ccg.github.io/did-method-key/
 //! [did:web]: https://w3c-ccg.github.io/did-method-web/
+//! [ABA]: https://en.wikipedia.org/wiki/ABA_problem
 
 use std::{num::NonZeroU16, sync::atomic::AtomicU16};
 
@@ -61,9 +88,6 @@ use url::Url;
 use wtransport::{endpoint::ConnectOptions, ClientConfig, Endpoint, RecvStream};
 
 use crate::CertHashDecodeErr;
-
-/// The state of an [`Entity`].
-pub type State = bytes::Bytes;
 
 /// Client api for interacting with a particular instance on the server.
 /// Instances manage persistent, realtime state updates for many concurrent clients.
@@ -157,14 +181,6 @@ pub enum RecvState<'a> {
 		states: &'a [State],
 	},
 }
-
-/// An identifier for an entity in the network datamodel. NOTE: This is not the
-/// same as an ECS entity. This crate is completely independent of bevy.
-///
-/// Entity ID of 1 is guaranteed to never be assigned by the server, so you can
-/// use it for default initialization
-#[derive(Debug, Eq, PartialEq, Copy, Clone)]
-pub struct Entity(NonZeroU16);
 
 /// Sequence number for state messages
 #[derive(Debug)]

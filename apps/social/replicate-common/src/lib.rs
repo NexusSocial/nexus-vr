@@ -1,3 +1,4 @@
+pub mod data_model;
 pub mod did;
 pub mod messages;
 

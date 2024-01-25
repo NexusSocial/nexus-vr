@@ -10,4 +10,5 @@ description = "Shared code between replicate-client and replicate-server"
 [dependencies]
 bytes.workspace = true
 serde.workspace = true
-uuid = { version = "1.7.0", features = ["v4", "serde"] }
+thiserror.workspace = true
+uuid = { workspace = true, features = ["v4", "serde"] }

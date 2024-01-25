@@ -13,9 +13,14 @@ bytes.workspace = true
 # TODO: Use cert hashes instead
 wtransport = { workspace = true, features = ["dangerous-configuration"] }
 tracing.workspace = true
-thiserror = "1.0.56"
+thiserror.workspace = true
 replicate-common.path = "../replicate-common"
 url.workspace = true
+
+[dependencies.tokio]
+workspace = true
+default-features = false
+features = ["sync"]
 
 [dev-dependencies]
 color-eyre.workspace = true

@@ -6312,6 +6312,7 @@ version = "0.0.0"
 dependencies = [
  "bytes",
  "serde",
+ "thiserror",
  "uuid 1.7.0",
 ]
 

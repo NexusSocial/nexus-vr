@@ -79,10 +79,13 @@
 //! [did:web]: https://w3c-ccg.github.io/did-method-web/
 //! [ABA]: https://en.wikipedia.org/wiki/ABA_problem
 
-use std::{num::NonZeroU16, sync::atomic::AtomicU16};
+use std::sync::{atomic::AtomicU16, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use base64::prelude::{Engine, BASE64_URL_SAFE_NO_PAD};
-use replicate_common::did::AuthenticationAttestation;
+use replicate_common::{
+	data_model::{DataModel, Entity, State},
+	did::AuthenticationAttestation,
+};
 use tracing::warn;
 use url::Url;
 use wtransport::{endpoint::ConnectOptions, ClientConfig, Endpoint, RecvStream};
@@ -103,6 +106,7 @@ pub struct Instance {
 	/// Current sequence number.
 	// TODO: Figure out how sequence numbers work
 	_state_seq: StateSeq,
+	dm: RwLock<DataModel>,
 }
 
 impl Instance {
@@ -130,46 +134,13 @@ impl Instance {
 		todo!()
 	}
 
-	pub async fn delete_entities(
-		&self,
-		_entities: impl IntoIterator<Item = Entity>,
-	) -> Result<(), DeleteErr> {
-		todo!()
+	pub fn data_model(&self) -> RwLockReadGuard<'_, DataModel> {
+		self.dm.read().expect("lock poisoned")
 	}
 
-	/// Updates the state of an entity. Note that delivery of this state is not
-	/// guaranteed.
-	///
-	/// If you want to gurantee delivery, use [`Self::send_reliable_state`] or
-	/// use events or an RPC system.
-	pub fn send_state(
-		_states: impl IntoIterator<Item = (Entity, State)>,
-	) -> Result<(), SendStateErr> {
-		todo!()
+	pub fn data_model_mut(&self) -> RwLockWriteGuard<'_, DataModel> {
+		self.dm.write().expect("lock poisoned")
 	}
-
-	/// Sends a reliable state update. Typically you only do this when you don't expect
-	/// to modify the state for the forseeable future and care about the final result.
-	/// For example, you can use this when a physics object comes to rest.
-	///
-	/// Dont use this for general purpose reliable delivery, use events or an RPC system
-	/// for that.
-	pub async fn send_reliable_state(
-		_states: impl IntoIterator<Item = (Entity, State)>,
-	) -> Result<(), SendReliableStateErr> {
-		todo!()
-	}
-
-	// TODO: this crate should maintain the view of the datamodel instead of punting
-	// that responsibility to the user. It just makes the user's life easier to do
-	// that. It also might be important, because otherwise we can't be sure that the
-	// caller isn't taking a long time processing the incoming data and causing the
-	// incoming datagram buffer to fill up and drop datagrams. We want control over
-	// dropping datagrams ourselves because then we can potentially discard them
-	// via their sequence number.
-	//
-	// Also, just having the state acessible directly would avoid the need for this
-	// to use async in the user's read path.
 }
 
 /// The results of a state update pushed by the server.

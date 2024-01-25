@@ -60,12 +60,15 @@ opus = { git = "https://github.com/Schmarni-Dev/opus-rs", branch = "unsafe-libop
 picking-xr = { path = "./crates/picking-xr" }
 random-number = "0.1.8"
 serde = { version = "1.0.193", features = ["derive"] }
+slotmap = "1.0.7"
 social-common.path = "apps/social/common"
 social-networking.path = "apps/social/networking"
+thiserror = "1.0.56"
 tokio = "1.35.1"
 tracing = "0.1.40"
 tracing-subscriber = "0.3.18"
 url = "2.5.0"
+uuid = "1.7.0"
 wtransport = "0.1.10"
 
 [profile.dev]

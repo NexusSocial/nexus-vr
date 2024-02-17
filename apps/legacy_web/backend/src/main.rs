@@ -34,7 +34,6 @@ async fn main() {
 		.route("/", get(|| async move { "welcome to Image upload api" }))
 		//route for uploading image or any file
 		.route("/upload/:username", post(upload_file))
-		.route("/create_user/:username", get(create_user))
 		.route("/get_avatars/:username", get(get_avatars))
 		.route("/delete_avatar/:username/:avatar_name", get(delete_avatar))
 		.route("/get_avatar/:username/:avatar_name", get(get_avatar_file))
@@ -50,24 +49,6 @@ async fn main() {
 	axum::serve(listener, app).await.unwrap();
 }
 
-async fn create_user(
-	Extension(mut db): Extension<Database>,
-	Extension(proj_dirs): Extension<ProjectDirs>,
-	Path(username): Path<String>,
-) {
-	db.transaction(|data| {
-		if data.users.get(&username).is_none() {
-			println!("creating user: {}", username);
-			data.users
-				.insert(username.clone(), User::new(username.clone()));
-		} else {
-			println!("logging in as user: {}", username);
-		}
-	});
-	let path = proj_dirs.data_dir().join("avatars").join(username);
-	std::fs::create_dir_all(path).expect("failed to create directory for user");
-}
-
 #[axum_macros::debug_handler]
 async fn upload_file(
 	Extension(mut db): Extension<Database>,
@@ -75,7 +56,12 @@ async fn upload_file(
 	Path(username): Path<String>,
 	mut files: Multipart,
 ) {
+	ensure_user_in_db(&mut db, &username).await;
+
 	let avatar_path = proj_dirs.data_dir().join("avatars").join(username.clone());
+	tokio::fs::create_dir_all(&avatar_path)
+		.await
+		.expect("unable to create avatar dir");
 
 	while let Some(file) = files.next_field().await.unwrap() {
 		// this is the name which is sent in formdata from frontend or whoever called the api, i am
@@ -156,5 +142,15 @@ async fn delete_avatar(
 		let mut user = data.users.get_mut(&username).unwrap();
 		let path = user.avatars.remove(&avatar_name).unwrap();
 		std::fs::remove_file(path).unwrap();
+	});
+}
+
+async fn ensure_user_in_db(db: &mut Database, username: &str) {
+	db.transaction(|data| {
+		if data.users.get(username).is_none() {
+			println!("creating user: {}", username);
+			data.users
+				.insert(username.to_owned(), User::new(username.to_owned()));
+		}
 	});
 }

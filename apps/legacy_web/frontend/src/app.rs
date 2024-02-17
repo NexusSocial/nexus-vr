@@ -93,17 +93,6 @@ impl eframe::App for TemplateApp {
 				ui.text_edit_singleline(&mut self.temp_username);
 				if ui.button("login").clicked() {
 					self.username.replace(self.temp_username.clone());
-					let create_user_request = ehttp::Request::get(format!(
-						"{}/create_user/{}",
-						url,
-						self.username.as_ref().unwrap()
-					));
-					let ctx = ctx.clone();
-					let refresh_avatar = self.refresh_avatar_list(&ctx);
-					ehttp::fetch(create_user_request, move |_| {
-						ctx.request_repaint();
-						refresh_avatar();
-					});
 				}
 				return;
 			}
@@ -135,7 +124,6 @@ impl eframe::App for TemplateApp {
 					});
 					if ui.button("download").clicked() {
 						use wasm_bindgen::JsCast;
-						use web_sys;
 
 						let win = web_sys::window().unwrap();
 						let doc = win.document().unwrap();

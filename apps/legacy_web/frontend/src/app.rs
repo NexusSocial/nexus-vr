@@ -19,18 +19,15 @@ pub struct TemplateApp {
 	#[serde(skip)]
 	dropped_file: Option<egui::DroppedFile>,
 
-	#[serde(skip)]
 	username: Option<String>,
 
 	temp_username: String,
 
-	#[serde(skip)]
 	avatars: Arc<Mutex<Vec<String>>>,
 }
 
 impl Default for TemplateApp {
 	fn default() -> Self {
-
 		Self {
 			// Example stuff:
 			label: "Hello World!".to_owned(),
@@ -59,7 +56,7 @@ impl TemplateApp {
 	}
 
 	pub fn refresh_avatar_list(&self, ctx: &egui::Context) -> impl FnOnce() {
-		let url = "http://0.0.0.0:3000".to_string();
+		let url = "http://127.0.0.1:3000".to_string();
 		let ctx = ctx.clone();
 		let this_avatars = self.avatars.clone();
 		let username = self.username.as_ref().unwrap().clone();
@@ -91,7 +88,7 @@ impl eframe::App for TemplateApp {
 		// For inspiration and more examples, go to https://emilk.github.io/egui
 
 		egui::CentralPanel::default().show(ctx, |ui| {
-			let url = "http://0.0.0.0:3000".to_string();
+			let url = "http://127.0.0.1:3000".to_string();
 			if self.username.is_none() {
 				ui.text_edit_singleline(&mut self.temp_username);
 				if ui.button("login").clicked() {
@@ -144,7 +141,7 @@ impl eframe::App for TemplateApp {
 						let doc = win.document().unwrap();
 
 						let link = doc.create_element("a").unwrap();
-						let _ = link.set_attribute(
+						link.set_attribute(
 							"href",
 							&format!(
 								"{}/get_avatar/{}/{}",
@@ -152,7 +149,8 @@ impl eframe::App for TemplateApp {
 								self.username.as_ref().unwrap(),
 								avatar
 							),
-						);
+						)
+						.unwrap();
 
 						let link: web_sys::HtmlAnchorElement =
 							web_sys::HtmlAnchorElement::unchecked_from_js(link.into());

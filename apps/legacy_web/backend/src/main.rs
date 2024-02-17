@@ -1,25 +1,19 @@
 mod database;
 
-use crate::database::{Data, Database, User};
+use crate::database::{Database, User};
 use axum::body::Body;
 use axum::extract::{DefaultBodyLimit, Path};
-use axum::http::{HeaderMap, Request, Response};
+use axum::http::{HeaderMap, Request};
 use axum::response::IntoResponse;
 use axum::{
 	extract::Multipart,
-	http::StatusCode,
 	routing::{get, post},
 	Extension, Json, Router,
 };
 use directories::ProjectDirs;
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::path::PathBuf;
+
 use std::sync::{Arc, Mutex};
 use tower_http::cors::CorsLayer;
-use tracing_subscriber::{
-	prelude::__tracing_subscriber_SubscriberExt, util::SubscriberInitExt,
-};
 
 #[tokio::main]
 async fn main() {
@@ -66,7 +60,7 @@ async fn upload_file(
 	while let Some(file) = files.next_field().await.unwrap() {
 		// this is the name which is sent in formdata from frontend or whoever called the api, i am
 		// using it as category, we can get the filename from file data
-		let category = file.name().unwrap().to_string();
+		let _category = file.name().unwrap().to_string();
 		// name of the file with extention
 		let name = file.file_name().unwrap().to_string();
 		// file data
@@ -118,7 +112,7 @@ async fn get_avatars(
 	Extension(mut db): Extension<Database>,
 	Path(username): Path<String>,
 ) -> Json<Vec<String>> {
-	let mut names = Arc::new(Mutex::new(None));
+	let names = Arc::new(Mutex::new(None));
 	db.transaction(|data| {
 		let names2 = data
 			.users
@@ -126,7 +120,7 @@ async fn get_avatars(
 			.unwrap()
 			.avatars
 			.keys()
-			.map(|key| key.clone())
+			.cloned()
 			.collect::<Vec<_>>();
 		names.lock().unwrap().replace(names2);
 	});
@@ -139,7 +133,7 @@ async fn delete_avatar(
 	Path((username, avatar_name)): Path<(String, String)>,
 ) {
 	db.transaction(|data| {
-		let mut user = data.users.get_mut(&username).unwrap();
+		let user = data.users.get_mut(&username).unwrap();
 		let path = user.avatars.remove(&avatar_name).unwrap();
 		std::fs::remove_file(path).unwrap();
 	});

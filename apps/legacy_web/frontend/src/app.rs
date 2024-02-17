@@ -1,7 +1,6 @@
-use egui::DroppedFile;
 use std::io::Cursor;
 use std::sync::{Arc, Mutex};
-use std::thread;
+
 // use tokio::runtime::Runtime;
 // use tokio::sync::mpsc::Sender;
 
@@ -63,12 +62,9 @@ impl TemplateApp {
 		let request = ehttp::Request::get(format!("{}/get_avatars/{}", url, username));
 		move || {
 			ehttp::fetch(request, move |response| {
-				match response {
-					Ok(value) => {
-						let avatars = value.json::<Vec<String>>().unwrap();
-						*this_avatars.lock().unwrap() = avatars;
-					}
-					Err(_) => {}
+				if let Ok(value) = response {
+					let avatars = value.json::<Vec<String>>().unwrap();
+					*this_avatars.lock().unwrap() = avatars;
 				}
 				ctx.request_repaint();
 			});
@@ -153,15 +149,15 @@ impl eframe::App for TemplateApp {
 					ui.label("drag and drop avatars to upload");
 				}
 				Some(dropped_file) => {
-					ui.label(format!("{}", dropped_file.name));
+					ui.label(&dropped_file.name);
 					if ui.button("Upload Avatar").clicked() {
 						let ctx = ctx.clone();
 						let mut bytes = Cursor::new(dropped_file.bytes.unwrap());
 						let multipart = ehttp::multipart::MultipartBuilder::new()
 							.add_stream(
 								&mut bytes,
-								&*dropped_file.name,
-								Some(&*dropped_file.name),
+								&dropped_file.name,
+								Some(&dropped_file.name),
 								None,
 							)
 							.unwrap();
@@ -174,7 +170,7 @@ impl eframe::App for TemplateApp {
 							multipart,
 						);
 						let refresh_avatars = self.refresh_avatar_list(&ctx);
-						ehttp::fetch(request, move |part| {
+						ehttp::fetch(request, move |_part| {
 							ctx.request_repaint();
 							refresh_avatars();
 						});
@@ -188,26 +184,12 @@ impl eframe::App for TemplateApp {
 		if self.username.is_some() {
 			preview_files_being_dropped(ctx);
 			ctx.input_mut(|i| {
-				while i.raw.dropped_files.len() != 0 {
+				while !i.raw.dropped_files.is_empty() {
 					self.dropped_file.replace(i.raw.dropped_files.remove(0));
 				}
 			});
 		}
 	}
-}
-
-fn powered_by_egui_and_eframe(ui: &mut egui::Ui) {
-	ui.horizontal(|ui| {
-		ui.spacing_mut().item_spacing.x = 0.0;
-		ui.label("Powered by ");
-		ui.hyperlink_to("egui", "https://github.com/emilk/egui");
-		ui.label(" and ");
-		ui.hyperlink_to(
-			"eframe",
-			"https://github.com/emilk/egui/tree/master/crates/eframe",
-		);
-		ui.label(".");
-	});
 }
 
 /// Preview hovering files:

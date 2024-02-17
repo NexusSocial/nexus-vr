@@ -13,7 +13,6 @@ RUN mkdir -p /opt/app && chown app:app /opt/app
 # Set the working directory
 WORKDIR /opt/app
 
-
 # Switch from root to the "app" user
 USER app
 COPY --chown=app:app ${BIN_PATH:?missing} /opt/app/backend

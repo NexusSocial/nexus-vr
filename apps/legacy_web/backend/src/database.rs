@@ -36,7 +36,9 @@ impl Database {
 		if fs::metadata(&path).is_err() {
 			let mut dir_path = path.clone();
 			dir_path.pop();
-			fs::create_dir_all(&dir_path).unwrap();
+			fs::create_dir_all(&dir_path).unwrap_or_else(|_| {
+				panic!("failed to create database dir at {path:?}")
+			});
 			File::create(&path).unwrap();
 			std::fs::write(
 				path.as_path(),

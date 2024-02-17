@@ -44,7 +44,7 @@ async fn main() {
 		.layer(DefaultBodyLimit::disable())
 		.layer(CorsLayer::permissive());
 
-	let addr = std::net::SocketAddr::from(([0, 0, 0, 0], 3000));
+	let addr = std::net::SocketAddr::from(([0, 0, 0, 0], 8080));
 	tracing::debug!("starting server on port: {}", addr.port());
 	let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
 	axum::serve(listener, app).await.unwrap();

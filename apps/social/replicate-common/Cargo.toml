@@ -9,6 +9,11 @@ description = "Shared code between replicate-client and replicate-server"
 
 [dependencies]
 bytes.workspace = true
+futures.workspace = true
+pin-project.workspace = true
 serde.workspace = true
 thiserror.workspace = true
+tokio = { workspace = true, default-features = false }
+tokio-serde.workspace = true
+tokio-util.workspace = true
 uuid = { workspace = true, features = ["v4", "serde"] }

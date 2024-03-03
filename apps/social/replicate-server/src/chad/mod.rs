@@ -4,12 +4,19 @@ use std::{num::Wrapping, sync::Arc, time::Duration};
 
 use base64::prelude::{Engine, BASE64_URL_SAFE_NO_PAD};
 use color_eyre::{eyre::Context, Result};
+use eyre::{bail, ensure};
+use futures::{sink::SinkExt, stream::StreamExt};
+use replicate_common::{
+	messages::manager::{Clientbound as Cb, Serverbound as Sb},
+	InstanceId,
+};
 use tracing::{error, info, info_span, Instrument};
 use wtransport::{endpoint::IncomingSession, Certificate, ServerConfig};
 
 use crate::{instance::InstanceManager, Args};
 
 type Server = wtransport::Endpoint<wtransport::endpoint::endpoint_side::Server>;
+type Framed = replicate_common::messages::Framed<wtransport::stream::BiStream, Sb, Cb>;
 
 const CERT_REFRESH_INTERVAL: Duration = Duration::from_secs(60 * 60 * 24);
 
@@ -45,7 +52,7 @@ pub async fn launch_webtransport_server(
 			tokio::spawn(
 				async move {
 					if let Err(err) = handle_connection(incoming).await {
-						error!("terminated with error: {err}");
+						error!("terminated with error: {err:?}");
 					} else {
 						info!("disconnected");
 					}
@@ -94,22 +101,55 @@ async fn handle_connection(incoming: IncomingSession) -> Result<()> {
 		session_request.authority(),
 		session_request.path()
 	);
-	// match session_request.path() {
-	//     "
-	//
-	// }
-	// session_request.headers
 	let connection = session_request.accept().await?;
+	info!("accepted wt connection");
+	let bi = wtransport::stream::BiStream::join(
+		connection
+			.accept_bi()
+			.await
+			.wrap_err("expected client to open bi stream")?,
+	);
+	let mut framed = Framed::new(bi);
 
-	loop {
-		let dgram = connection.receive_datagram().await?;
-		info!("dgram: {dgram:?}");
+	// Do handshake before anything else
+	{
+		let Some(msg) = framed.next().await else {
+			bail!("Client disconnected before completing handshake");
+		};
+		let msg = msg.wrap_err("error while receiving handshake message")?;
+		ensure!(
+			msg == Sb::HandshakeRequest,
+			"invalid message during handshake"
+		);
+		framed
+			.send(Cb::HandshakeResponse)
+			.await
+			.wrap_err("failed to send handshake response")?;
 	}
+
+	while let Some(request) = framed.next().await {
+		let request: Sb = request.wrap_err("error while receiving message")?;
+		match request {
+			Sb::InstanceCreateRequest => {
+				// TODO: Actually manipulate the instance manager.
+				let response = Cb::InstanceCreateResponse {
+					id: InstanceId::random(),
+				};
+				framed.send(response).await?;
+			}
+			Sb::HandshakeRequest => {
+				bail!("already did handshake, another handshake is unexpected")
+			}
+		}
+	}
+
+	info!("Client disconnected");
+	Ok(())
 }
 
 fn server_url(subject_alt_name: &str, port: u16, cert: &Certificate) -> String {
 	let cert_hash = cert.hashes().pop().expect("should be at least one hash");
-	let encoded_cert_hash = BASE64_URL_SAFE_NO_PAD.encode(cert_hash);
+	let encoded_cert_hash = BASE64_URL_SAFE_NO_PAD.encode(cert_hash.as_ref());
 	format!("https://{subject_alt_name}:{port}/#{encoded_cert_hash}")
 }
 

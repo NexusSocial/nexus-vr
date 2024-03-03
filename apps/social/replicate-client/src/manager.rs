@@ -1,19 +1,27 @@
+//! Messages for the manager API.
+//!
+//! TODO(thebutlah): we do some inefficient stuff here just for convenience.
+//! Fix it later.
+
+use std::fmt::Debug;
+
 use base64::prelude::{Engine, BASE64_URL_SAFE_NO_PAD};
-use replicate_common::{did::AuthenticationAttestation, InstanceId};
+use eyre::{bail, ensure, eyre, Context};
+use futures::sink::SinkExt;
+use futures::stream::StreamExt;
+use replicate_common::{
+	did::AuthenticationAttestation,
+	messages::manager::{Clientbound as Cb, Serverbound as Sb},
+	InstanceId,
+};
 use tracing::warn;
 use url::Url;
-use wtransport::{
-	endpoint::ConnectOptions,
-	error::{
-		ConnectingError, ConnectionError, StreamOpeningError, StreamReadExactError,
-		StreamWriteError,
-	},
-	ClientConfig, Endpoint,
-};
+use wtransport::{endpoint::ConnectOptions, ClientConfig, Endpoint};
 
 use crate::CertHashDecodeErr;
 
-type Result<T> = std::result::Result<T, ManagerErr>;
+type Result<T> = eyre::Result<T>;
+type Framed = replicate_common::messages::Framed<wtransport::stream::BiStream, Cb, Sb>;
 
 /// Manages instances on the instance server. Under the hood, this is all done
 /// as reliable messages on top of a WebTransport connection.
@@ -25,8 +33,7 @@ type Result<T> = std::result::Result<T, ManagerErr>;
 pub struct Manager {
 	_conn: wtransport::Connection,
 	_url: Url,
-	sender: wtransport::SendStream,
-	receiver: wtransport::RecvStream,
+	framed: Framed,
 }
 
 impl Manager {
@@ -69,45 +76,54 @@ impl Manager {
 		let opts = ConnectOptions::builder(&url)
 			.add_header("Authorization", format!("Bearer {}", auth_attest))
 			.build();
-		let conn = client.connect(opts).await?;
-		let (sender, receiver) = conn.open_bi().await?.await?;
+		let conn = client
+			.connect(opts)
+			.await
+			.wrap_err("failed to connect to server")?;
+		let bi = wtransport::stream::BiStream::join(
+			conn.open_bi()
+				.await
+				.wrap_err("could not initiate bi stream")?
+				.await
+				.wrap_err("could not finish opening bi stream")?,
+		);
+
+		let mut framed = Framed::new(bi);
+
+		// Do handshake before anything else
+		{
+			framed
+				.send(Sb::HandshakeRequest)
+				.await
+				.wrap_err("failed to send handshake request")?;
+			let Some(msg) = framed.next().await else {
+				bail!("Server disconnected before completing handshake");
+			};
+			let msg = msg.wrap_err("error while receiving handshake response")?;
+			ensure!(
+				msg == Cb::HandshakeResponse,
+				"invalid message during handshake"
+			);
+		}
 		Ok(Self {
 			_conn: conn,
 			_url: url,
-			sender,
-			receiver,
+			framed,
 		})
 	}
 
 	pub async fn instance_create(&mut self) -> Result<InstanceId> {
-		self.sender.write_all("create".as_bytes()).await?;
-		const ACK: &str = "ack";
-		let mut response = [0; ACK.len()];
-		self.receiver.read_exact(&mut response).await?;
-		if response != ACK.as_bytes() {
-			return Err(ManagerErr::UnexpectedResponse);
+		self.framed
+			.send(Sb::InstanceCreateRequest)
+			.await
+			.wrap_err("failed to write message")?;
+		match self.framed.next().await {
+			None => Err(eyre!("server disconnected")),
+			Some(Err(err)) => {
+				Err(eyre::Report::new(err).wrap_err("failed to receive message"))
+			}
+			Some(Ok(Cb::InstanceCreateResponse { id })) => Ok(id),
+			Some(Ok(_)) => Err(eyre!("unexpected response")),
 		}
-
-		todo!()
 	}
-}
-
-#[derive(thiserror::Error, Debug)]
-pub enum ManagerErr {
-	#[error("failed to create webtransport client: {0}")]
-	ClientCreate(#[from] std::io::Error),
-	#[error("failed to connect to webtransport endoint: {0}")]
-	WtConnectingError(#[from] ConnectingError),
-	#[error(transparent)]
-	InvalidCertHash(#[from] CertHashDecodeErr),
-	#[error(transparent)]
-	ConnectionError(#[from] ConnectionError),
-	#[error(transparent)]
-	StreamOpeningError(#[from] StreamOpeningError),
-	#[error(transparent)]
-	StreamWriteError(#[from] StreamWriteError),
-	#[error("not enough bytes read on stream")]
-	StreamReadExactError(#[from] StreamReadExactError),
-	#[error("unexpected response")]
-	UnexpectedResponse,
 }

@@ -15,7 +15,7 @@ color-eyre.workspace = true
 dashmap = "5.5.3"
 eyre.workspace = true
 futures.workspace = true
-replicate-common.path = "../replicate-common"
+replicate-common.path = "../common"
 serde.workspace = true
 tokio-serde = { workspace = true, features = ["json"] }
 tokio-util = { workspace = true, features = ["codec"] }

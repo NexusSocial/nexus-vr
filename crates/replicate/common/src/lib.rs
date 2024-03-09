@@ -1,6 +1,9 @@
 pub mod data_model;
 pub mod did;
+mod framed;
 pub mod messages;
+
+pub use self::framed::Framed;
 
 use bytes::Bytes;
 use serde::{Deserialize, Serialize};

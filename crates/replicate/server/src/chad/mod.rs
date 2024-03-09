@@ -16,7 +16,7 @@ use wtransport::{endpoint::IncomingSession, Certificate, ServerConfig};
 use crate::{instance::InstanceManager, Args};
 
 type Server = wtransport::Endpoint<wtransport::endpoint::endpoint_side::Server>;
-type Framed = replicate_common::messages::Framed<wtransport::stream::BiStream, Sb, Cb>;
+type Framed = replicate_common::Framed<wtransport::stream::BiStream, Sb, Cb>;
 
 const CERT_REFRESH_INTERVAL: Duration = Duration::from_secs(60 * 60 * 24);
 

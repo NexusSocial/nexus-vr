@@ -1,23 +1,21 @@
 [workspace]
 resolver = "2"
 members = [
+	"apps/legacy_web/backend",
+	"apps/legacy_web/frontend",
 	"apps/rvid/client",
 	"apps/rvid/server",
 	"apps/social/client",
 	"apps/social/common",
 	"apps/social/networking",
-	"apps/social/replicate-client",
-	"apps/social/replicate-common",
-	"apps/social/replicate-server",
 	"apps/social/server",
-
-	"apps/legacy_web/frontend",
-	"apps/legacy_web/backend",
-
-	"crates/nexus-voicechat",
-	"crates/universal-capture",
 	"crates/egui-picking",
-	"crates/picking-xr", "apps/legacy_web/backend", "apps/legacy_web/frontend",
+	"crates/nexus-voicechat",
+	"crates/picking-xr",
+	"crates/replicate/client",
+	"crates/replicate/common",
+	"crates/replicate/server",
+	"crates/universal-capture",
 ]
 
 # These settings will apply to all members of the workspace that opt in to them

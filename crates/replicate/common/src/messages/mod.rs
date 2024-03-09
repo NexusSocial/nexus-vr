@@ -3,7 +3,3 @@
 //! works.
 
 pub mod manager;
-
-mod framed;
-
-pub use self::framed::Framed;

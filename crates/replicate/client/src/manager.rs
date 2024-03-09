@@ -21,7 +21,7 @@ use wtransport::{endpoint::ConnectOptions, ClientConfig, Endpoint};
 use crate::CertHashDecodeErr;
 
 type Result<T> = eyre::Result<T>;
-type Framed = replicate_common::messages::Framed<wtransport::stream::BiStream, Cb, Sb>;
+type Framed = replicate_common::Framed<wtransport::stream::BiStream, Cb, Sb>;
 
 /// Manages instances on the instance server. Under the hood, this is all done
 /// as reliable messages on top of a WebTransport connection.

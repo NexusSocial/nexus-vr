@@ -10,7 +10,6 @@ members = [
 	"apps/social/networking",
 	"apps/social/server",
 	"crates/egui-picking",
-	"crates/nexus-voicechat",
 	"crates/picking-xr",
 	"crates/replicate/client",
 	"crates/replicate/common",
@@ -74,6 +73,7 @@ features = [
 	"deref",
 	"deref_mut",
 	"mul",
+	"from",
 ]
 
 [workspace.dependencies.opus]

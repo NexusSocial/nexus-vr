@@ -82,27 +82,34 @@
 use std::sync::{atomic::AtomicU16, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use base64::prelude::{Engine, BASE64_URL_SAFE_NO_PAD};
+use eyre::{bail, ensure, Result, WrapErr};
+use futures::{SinkExt, StreamExt};
 use replicate_common::{
 	data_model::{DataModel, Entity, State},
 	did::AuthenticationAttestation,
 };
 use tracing::warn;
 use url::Url;
-use wtransport::{endpoint::ConnectOptions, ClientConfig, Endpoint, RecvStream};
+use wtransport::{endpoint::ConnectOptions, ClientConfig, Endpoint};
 
 use crate::CertHashDecodeErr;
+
+use replicate_common::messages::instance::{Clientbound as Cb, Serverbound as Sb};
+type RpcFramed = replicate_common::Framed<wtransport::stream::BiStream, Cb, Sb>;
 
 /// Client api for interacting with a particular instance on the server.
 /// Instances manage persistent, realtime state updates for many concurrent clients.
 #[derive(Debug)]
 pub struct Instance {
 	_conn: wtransport::Connection,
-	_url: String,
+	_url: Url,
 	/// Used to reliably push state updates from server to client. This happens for all
 	/// entities when the client initially connects, as well as when the server is
 	/// marking an entity as "stable", meaning its state is no longer changing frame to
 	/// frame. This allows the server to reduce network bandwidth.
-	_stable_states: RecvStream,
+	// _stable_states: RecvStream,
+	/// Used for general RPC.
+	_rpc: RpcFramed,
 	/// Current sequence number.
 	// TODO: Figure out how sequence numbers work
 	_state_seq: StateSeq,
@@ -118,9 +125,42 @@ impl Instance {
 	pub async fn connect(
 		url: Url,
 		auth_attest: AuthenticationAttestation,
-	) -> Result<Self, ConnectErr> {
-		let _conn = connect_to_url(url, auth_attest).await?;
-		todo!()
+	) -> Result<Self> {
+		let conn = connect_to_url(&url, auth_attest)
+			.await
+			.wrap_err("failed to connect to server")?;
+
+		let bi = wtransport::stream::BiStream::join(
+			conn.open_bi()
+				.await
+				.wrap_err("could not initiate bi stream")?
+				.await
+				.wrap_err("could not finish opening bi stream")?,
+		);
+		let mut rpc = RpcFramed::new(bi);
+
+		// Do handshake before anything else
+		{
+			rpc.send(Sb::HandshakeRequest)
+				.await
+				.wrap_err("failed to send handshake request")?;
+			let Some(msg) = rpc.next().await else {
+				bail!("Server disconnected before completing handshake");
+			};
+			let msg = msg.wrap_err("error while receiving handshake response")?;
+			ensure!(
+				msg == Cb::HandshakeResponse,
+				"invalid message during handshake"
+			);
+		}
+
+		Ok(Self {
+			_conn: conn,
+			_url: url,
+			_state_seq: Default::default(),
+			dm: RwLock::new(DataModel::new()),
+			_rpc: rpc,
+		})
 	}
 
 	/// Asks the server to reserve for this client a list of entity ids and store them
@@ -130,7 +170,7 @@ impl Instance {
 	pub async fn reserve_entities(
 		&self,
 		#[allow(clippy::ptr_arg)] _entities: &mut Vec<Entity>,
-	) -> Result<(), ReserveErr> {
+	) -> Result<()> {
 		todo!()
 	}
 
@@ -154,52 +194,13 @@ pub enum RecvState<'a> {
 }
 
 /// Sequence number for state messages
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct StateSeq(AtomicU16);
 
-mod error {
-	use crate::CertHashDecodeErr;
-	use wtransport::error::{ConnectingError, SendDatagramError, StreamWriteError};
-
-	#[derive(thiserror::Error, Debug)]
-	pub enum ReserveErr {}
-
-	#[derive(thiserror::Error, Debug)]
-	pub enum DeleteErr {}
-
-	#[derive(thiserror::Error, Debug)]
-	pub enum SendStateErr {
-		#[error("error while sending state across network: {0}")]
-		Dgram(#[from] SendDatagramError),
-	}
-
-	#[derive(thiserror::Error, Debug)]
-	pub enum SendReliableStateErr {
-		#[error("error while finalizing state to network: {0}")]
-		StreamWrite(#[from] StreamWriteError),
-	}
-
-	#[derive(thiserror::Error, Debug)]
-	pub enum RecvStateErr {}
-
-	#[derive(thiserror::Error, Debug)]
-	pub enum ConnectErr {
-		#[error("failed to create webtransport client: {0}")]
-		ClientCreate(#[from] std::io::Error),
-		#[error("failed to connect to webtransport endoint: {0}")]
-		WtConnectingError(#[from] ConnectingError),
-		#[error(transparent)]
-		InvalidCertHash(#[from] CertHashDecodeErr),
-		#[error(transparent)]
-		Other(#[from] Box<dyn std::error::Error>),
-	}
-}
-pub use self::error::*;
-
 async fn connect_to_url(
-	url: Url,
+	url: &Url,
 	auth_attest: AuthenticationAttestation,
-) -> Result<wtransport::Connection, ConnectErr> {
+) -> Result<wtransport::Connection> {
 	let cert_hash = if let Some(frag) = url.fragment() {
 		let cert_hash = BASE64_URL_SAFE_NO_PAD
 			.decode(frag)

@@ -44,7 +44,7 @@ impl Manager {
 	///   our DID.
 	pub async fn connect(
 		url: Url,
-		auth_attest: AuthenticationAttestation,
+		auth_attest: &AuthenticationAttestation,
 	) -> Result<Self> {
 		let cert_hash = if let Some(frag) = url.fragment() {
 			let cert_hash = BASE64_URL_SAFE_NO_PAD
@@ -105,6 +105,7 @@ impl Manager {
 				"invalid message during handshake"
 			);
 		}
+
 		Ok(Self {
 			_conn: conn,
 			_url: url,
@@ -123,6 +124,21 @@ impl Manager {
 				Err(eyre::Report::new(err).wrap_err("failed to receive message"))
 			}
 			Some(Ok(Cb::InstanceCreateResponse { id })) => Ok(id),
+			Some(Ok(_)) => Err(eyre!("unexpected response")),
+		}
+	}
+
+	pub async fn instance_url(&mut self, id: InstanceId) -> Result<Url> {
+		self.framed
+			.send(Sb::InstanceUrlRequest { id })
+			.await
+			.wrap_err("failed to write message")?;
+		match self.framed.next().await {
+			None => Err(eyre!("server disconnected")),
+			Some(Err(err)) => {
+				Err(eyre::Report::new(err).wrap_err("failed to receive message"))
+			}
+			Some(Ok(Cb::InstanceUrlResponse { url })) => Ok(url),
 			Some(Ok(_)) => Err(eyre!("unexpected response")),
 		}
 	}

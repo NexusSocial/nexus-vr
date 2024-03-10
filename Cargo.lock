@@ -5192,10 +5192,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "nexus-voicechat"
-version = "0.0.0"
-
-[[package]]
 name = "nix"
 version = "0.24.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6357,6 +6353,7 @@ dependencies = [
  "tokio",
  "tokio-serde",
  "tokio-util",
+ "url",
  "uuid 1.7.0",
 ]
 
@@ -6369,6 +6366,7 @@ dependencies = [
  "clap",
  "color-eyre",
  "dashmap",
+ "derive_more",
  "eyre",
  "futures",
  "replicate-common",
@@ -6378,6 +6376,7 @@ dependencies = [
  "tokio-util",
  "tracing",
  "tracing-subscriber",
+ "url",
  "uuid 1.7.0",
  "wtransport",
 ]

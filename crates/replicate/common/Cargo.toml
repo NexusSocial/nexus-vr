@@ -16,4 +16,5 @@ thiserror.workspace = true
 tokio = { workspace = true, default-features = false }
 tokio-serde.workspace = true
 tokio-util.workspace = true
+url.workspace = true
 uuid = { workspace = true, features = ["v4", "serde"] }

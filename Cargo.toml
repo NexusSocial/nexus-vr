@@ -34,16 +34,12 @@ bevy = "0.13"
 bevy-inspector-egui = "0.23.4"#{ git = "https://github.com/Schmarni-Dev/bevy-inspector-egui", branch = "0210" }
 bevy_egui = { git = "https://github.com/Schmarni-Dev/bevy_egui/", branch = "nexus-use-bevy-0.13" }
 bevy_mod_inverse_kinematics = "0.6"
-# bevy_mod_picking = "0.17.0"
 bevy_mod_picking = { version = "0.18",default-features = false}
 bevy_mod_raycast = "0.17.0"
-bevy_oxr = { git = "https://github.com/awtterpip/bevy_oxr", rev = "8e70df2" }
-# bevy_picking_core = "0.17.0"
+bevy_oxr = { git = "https://github.com/awtterpip/bevy_oxr", rev = "c6d0686" }
 bevy_picking_core = "0.18"
-# TODO: Update
-bevy_schminput = { git = "https://github.com/Schmarni-Dev/Schminput", rev = "40fad1" }
+bevy_schminput = { git = "https://github.com/Schmarni-Dev/Schminput", rev = "d5695bb" }
 bevy_vrm = "0.0.8"
-# TODO: ask Malek to update or update myself
 bevy_web_asset = { git = "https://github.com/Schmarni-Dev/bevy_web_asset", rev = "f10a2df" }
 bytes = "1.5.0"
 clap = { version = "4.4.11", features = ["derive"] }
@@ -56,9 +52,7 @@ derive_more = { version = "0.99", default-features = false, features = [
 ] }
 egui = "0.26"
 egui-picking = { path = "./crates/egui-picking" }
-#lightyear = "0.5.1"
 lightyear = "0.12"
-# probably need to upstream the version to bevy_oxr
 openxr = "0.18"
 opus = { git = "https://github.com/Schmarni-Dev/opus-rs", branch = "unsafe-libopus", default-features = false, features = [
 	"unsafe-libopus-backend",

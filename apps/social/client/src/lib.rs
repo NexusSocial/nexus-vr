@@ -34,8 +34,8 @@ use bevy_egui::EguiPlugin;
 use bevy_mod_inverse_kinematics::InverseKinematicsPlugin;
 use bevy_mod_picking::DefaultPickingPlugins;
 use bevy_oxr::input::XrInput;
-use bevy_oxr::resources::{XrFrameState, XrInstance};
-use bevy_oxr::xr_init::{StartXrSession, XrSetup};
+use bevy_oxr::resources::XrFrameState;
+use bevy_oxr::xr_init::XrSetup;
 use bevy_oxr::xr_input::oculus_touch::OculusController;
 use bevy_oxr::xr_input::trackers::OpenXRRightEye;
 use bevy_oxr::xr_input::{QuatConv, Vec3Conv};
@@ -130,8 +130,7 @@ impl Plugin for MainPlugin {
 		.set(AssetPlugin {
 			file_path: ASSET_FOLDER.to_string(),
 			..Default::default()
-		})
-		.disable::<bevy_oxr::xr_init::StartSessionOnStartup>();
+		});
 		let xr_plugins = match &self.exec_mode {
 			ExecutionMode::Normal => xr_plugins,
 			ExecutionMode::Testing => xr_plugins
@@ -185,19 +184,8 @@ impl Plugin for MainPlugin {
 			.add_systems(
 				Update,
 				send_avatar_url_changed_event_when_avatar_url_changed,
-			)
-			.add_systems(PostStartup, start_xr_session);
+			);
 		info!("built main app with config: {self:#?}");
-	}
-}
-
-/// Should be removed once #81 in bevy_oxr is merged
-fn start_xr_session(
-	instance: Option<Res<XrInstance>>,
-	mut start_session: EventWriter<StartXrSession>,
-) {
-	if instance.is_some() {
-		start_session.send_default();
 	}
 }
 

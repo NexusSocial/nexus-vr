@@ -1527,7 +1527,7 @@ dependencies = [
 [[package]]
 name = "bevy_oxr"
 version = "0.1.0"
-source = "git+https://github.com/awtterpip/bevy_oxr?rev=8e70df2#8e70df221f9c24227877cd08f836e28599818f16"
+source = "git+https://github.com/awtterpip/bevy_oxr?rev=c6d0686#c6d06867080c2de61b4602f93787d0a69935b195"
 dependencies = [
  "ash",
  "bevy",
@@ -1806,7 +1806,7 @@ dependencies = [
 [[package]]
 name = "bevy_schminput"
 version = "0.1.0"
-source = "git+https://github.com/Schmarni-Dev/Schminput?rev=40fad1#40fad1261b06bb85a66b1ff2ce95e49d6fff836f"
+source = "git+https://github.com/Schmarni-Dev/Schminput?rev=d5695bb#d5695bba76012ad952c8a3e50408dcea3c3bbc62"
 dependencies = [
  "bevy",
  "bevy-trait-query",

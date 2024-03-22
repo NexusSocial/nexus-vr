@@ -2,8 +2,8 @@ use bevy::{
 	prelude::{Component, Quat, Vec3},
 	reflect::Reflect,
 };
-use lightyear::prelude::Message;
 use lightyear::client::components::LerpFn;
+use lightyear::prelude::Message;
 use serde::{Deserialize, Serialize};
 
 #[derive(

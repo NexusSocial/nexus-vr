@@ -63,8 +63,7 @@ impl Plugin for ClientPlugin {
 		let transport = match self.transport {
 			Transports::Udp => TransportConfig::UdpSocket(client_addr),
 		};
-		let io = 
-			IoConfig::from_transport(transport).with_conditioner(link_conditioner);
+		let io = IoConfig::from_transport(transport).with_conditioner(link_conditioner);
 		let config = ClientConfig {
 			shared: shared_config().clone(),
 			input: InputConfig::default(),
@@ -75,9 +74,12 @@ impl Plugin for ClientPlugin {
 			interpolation: InterpolationConfig::default().with_delay(
 				InterpolationDelay::default(), /*.with_send_interval_ratio(2.0),*/
 			),
-			net: NetConfig::Netcode { auth, config: default(), io },
-			..Default::default()
-			// .with_delay(InterpolationDelay::Ratio(2.0)),
+			net: NetConfig::Netcode {
+				auth,
+				config: default(),
+				io,
+			},
+			..Default::default() // .with_delay(InterpolationDelay::Ratio(2.0)),
 		};
 		let plugin_config = PluginConfig::new(config, protocol());
 		app.add_plugins(::lightyear::client::plugin::ClientPlugin::new(

@@ -37,15 +37,17 @@ pub fn main() -> Result<()> {
 			));
 		}
 		false => {
-			app.add_plugins(DefaultPlugins.build()/* .disable::<LogPlugin>() */.set(
-				WindowPlugin {
-					primary_window: Some(Window {
-						title: "Nexus Server".to_string(),
+			app.add_plugins(
+				DefaultPlugins
+					.build() /* .disable::<LogPlugin>() */
+					.set(WindowPlugin {
+						primary_window: Some(Window {
+							title: "Nexus Server".to_string(),
+							..Default::default()
+						}),
 						..Default::default()
 					}),
-					..Default::default()
-				},
-			));
+			);
 			app.add_plugins(bevy_egui::EguiPlugin);
 			app.add_plugins(VrmPlugin);
 			app.add_plugins(if !args.frame_timings {

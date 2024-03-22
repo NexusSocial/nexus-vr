@@ -211,7 +211,8 @@ pub fn ui_interactions(
 				.1
 				.inverse()
 				.mul_vec3(local_pos);
-			let mut uv = rotated_point.xz() + (Vec2::splat(0.5)* Vec2::new(ui.size_x,ui.size_y));
+			let mut uv = rotated_point.xz()
+				+ (Vec2::splat(0.5) * Vec2::new(ui.size_x, ui.size_y));
 			// info!("ui_pos: {}", uv);
 			uv.x /= ui.size_x;
 			uv.y /= ui.size_y;

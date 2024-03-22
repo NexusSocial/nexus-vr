@@ -18,8 +18,7 @@ impl Plugin for CursorLockingPlugin {
 		);
 		app.add_systems(
 			Update,
-			apply_mouse_lock_toggle
-				.run_if(resource_exists_and_changed::<MouseLocked>),
+			apply_mouse_lock_toggle.run_if(resource_exists_and_changed::<MouseLocked>),
 		);
 		app.add_systems(
 			Update,

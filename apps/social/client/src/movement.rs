@@ -253,7 +253,6 @@ fn move_entities(
 	time: Res<Time>,
 ) {
 	for (mut transform, forward_ref) in &mut moving_entity_query {
-		info!("moving_loop");
 		let forward_rot = forward_ref
 			.and_then(|r| forward_query.get(**r).ok())
 			.map(|f| f.to_scale_rotation_translation().1)
@@ -266,7 +265,6 @@ fn move_entities(
 		}
 		.get_value();
 
-		info!("moving_values: {}", input_vec);
 		let mut in_vec = Vec3::new(input_vec.x, 0.0, -input_vec.y);
 		if in_vec.length() > 1.0 {
 			in_vec = in_vec.normalize_or_zero();

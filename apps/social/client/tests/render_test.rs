@@ -33,7 +33,9 @@ fn kill_after_frames(
 ) {
 	if let Some(recv_chan) = recv_chan.as_mut() {
 		match recv_chan.try_recv() {
-			Ok(Ok(())) => exit_evts.send_default(),
+			Ok(Ok(())) => {
+				exit_evts.send_default();
+			}
 			Ok(Err(err)) => panic!("{err:?}"),
 			Err(TryRecvError::Disconnected) => panic!("disconnected"),
 			Err(TryRecvError::Empty) => {}

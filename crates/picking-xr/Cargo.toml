@@ -16,4 +16,4 @@ bevy_oxr.workspace = true
 openxr.workspace = true
 
 [dev-dependencies]
-bevy_mod_picking = "0.17.0"
+bevy_mod_picking.workspace = true

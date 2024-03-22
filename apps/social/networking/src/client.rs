@@ -16,7 +16,7 @@ use lightyear::prelude::{
 		Authentication, ClientConfig, InputConfig, InterpolationConfig,
 		InterpolationDelay, PluginConfig, PredictionConfig, SyncConfig,
 	},
-	ClientId, Io, IoConfig, LinkConditionerConfig, NetworkTarget, PingConfig,
+	ClientId, IoConfig, LinkConditionerConfig, NetworkTarget, PingConfig,
 	TransportConfig,
 };
 use lightyear::shared::replication::components::Replicate;
@@ -115,7 +115,7 @@ fn data_model_add_replicated(
 }
 
 fn connect(mut client: lightyear::client::resource::ClientMut<MyProtocol>) {
-	client.connect();
+	let _ = client.connect();
 }
 
 struct ClientVoiceChat;

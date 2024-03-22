@@ -2,10 +2,7 @@
 
 use bevy::{
 	app::PreUpdate,
-	ecs::{
-		schedule::{common_conditions::resource_exists, Condition},
-		system::{Res, ResMut},
-	},
+	ecs::system::{Res, ResMut},
 };
 use std::{
 	net::{Ipv4Addr, SocketAddr},
@@ -16,20 +13,13 @@ use bevy::prelude::{
 	default, Added, App, Commands, Entity, EventReader, IntoSystemConfigs, Name,
 	Plugin, Query,
 };
-use lightyear::server::resource::Server;
+use lightyear::prelude::NetworkTarget;
+use lightyear::prelude::{
+	server::{NetConfig, NetServer, ServerConnections},
+	MainSet::ClientReplication,
+};
 use lightyear::shared::replication::components::Replicate;
 use lightyear::{prelude::server::MessageEvent, server::config::PacketConfig};
-use lightyear::{
-	prelude::{server::ServerConnection, NetworkTarget},
-	transport::io::Io,
-};
-use lightyear::{
-	prelude::{
-		server::{NetConfig, NetServer, ServerConnections},
-		MainSet::ClientReplication,
-	},
-	server::resource::ServerMut,
-};
 use lightyear::{
 	prelude::{IoConfig, Key, LinkConditionerConfig, PingConfig, TransportConfig},
 	server::{

@@ -4,7 +4,6 @@ mod player_management;
 
 use bevy::app::PluginGroupBuilder;
 use bevy::diagnostic::LogDiagnosticsPlugin;
-use bevy::log::LogPlugin;
 use bevy::prelude::PluginGroup;
 use bevy::prelude::*;
 use bevy::render::camera::ScalingMode;

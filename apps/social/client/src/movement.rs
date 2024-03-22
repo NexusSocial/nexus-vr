@@ -7,7 +7,7 @@ use bevy_inspector_egui::{
 use bevy_oxr::{
 	input::XrInput,
 	resources::XrFrameState,
-	xr_init::{xr_only, XrPostSetup, XrSetup},
+	xr_init::{xr_only, XrPostSetup},
 	xr_input::{trackers::OpenXRTrackingRoot, QuatConv, Vec3Conv},
 };
 use bevy_schminput::{mouse::MouseBindings, mouse_action, prelude::*, ActionTrait};

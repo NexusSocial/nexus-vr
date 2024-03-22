@@ -47,7 +47,7 @@ fn on_vrm_asset_load(
 		debug!("Requesting rig autoassignment for entity {entity_matching_id:?}");
 		assign_rig_evts.send(AutoAssignRigRequest {
 			mesh: entity_matching_id,
-		})
+		});
 	}
 }
 

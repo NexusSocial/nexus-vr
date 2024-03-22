@@ -37,7 +37,7 @@ pub fn main() -> Result<()> {
 			));
 		}
 		false => {
-			app.add_plugins(DefaultPlugins.build().disable::<LogPlugin>().set(
+			app.add_plugins(DefaultPlugins.build()/* .disable::<LogPlugin>() */.set(
 				WindowPlugin {
 					primary_window: Some(Window {
 						title: "Nexus Server".to_string(),
@@ -105,8 +105,8 @@ fn setup(
 
 	// plane
 	commands.spawn((PbrBundle {
-		mesh: meshes.add(shape::Plane::from_size(20.0).into()),
-		material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
+		mesh: meshes.add(Plane3d::new(Vec3::Y).mesh().size(20.0, 20.0)),
+		material: materials.add(StandardMaterial::from(Color::rgb(0.3, 0.5, 0.3))),
 		transform: Transform::from_xyz(0.0, -1.0, 0.0),
 		..default()
 	},));

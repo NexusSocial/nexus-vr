@@ -76,7 +76,7 @@ fn send_voice_msg(
 				)
 				.expect("couldnt' encode audio"),
 			social_networking::client::Channels(channels as u16),
-		))
+		));
 	}
 }
 

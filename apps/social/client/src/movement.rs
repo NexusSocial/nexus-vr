@@ -7,7 +7,7 @@ use bevy_inspector_egui::{
 use bevy_oxr::{
 	input::XrInput,
 	resources::XrFrameState,
-	xr_init::xr_only,
+	xr_init::{xr_only, XrPostSetup, XrSetup},
 	xr_input::{trackers::OpenXRTrackingRoot, QuatConv, Vec3Conv},
 };
 use bevy_schminput::{mouse::MouseBindings, mouse_action, prelude::*, ActionTrait};
@@ -32,7 +32,8 @@ impl Plugin for MovementPugin {
 		app.add_systems(Update, drive_non_xr_input_pose);
 		app.add_systems(Update, rotate_entities.before(move_entities));
 		app.add_systems(Startup, setup_actions);
-		app.add_systems(Update, spawn_player.run_if(run_once()));
+		app.add_systems(Startup, spawn_player);
+		app.add_systems(XrPostSetup, spawn_player);
 		app.add_systems(Update, vr_player_head_update.run_if(xr_only()));
 	}
 }
@@ -45,10 +46,10 @@ fn vr_player_head_update(
 ) {
 	for (parent, mut transform) in &mut player_heads {
 		if let Ok(true) = root.get(parent.get()) {
-			let t = match xr_input.head.relate(
-				&xr_input.stage,
-				frame_state.lock().unwrap().predicted_display_time,
-			) {
+			let t = match xr_input
+				.head
+				.relate(&xr_input.stage, frame_state.predicted_display_time)
+			{
 				Ok(t) => t,
 				Err(_) => continue,
 			};
@@ -61,7 +62,12 @@ fn vr_player_head_update(
 fn spawn_player(
 	mut cmds: Commands,
 	root_query: Query<Entity, With<OpenXRTrackingRoot>>,
+	old_query: Query<Entity, Or<(With<PlayerHead>, With<PlayerRoot>)>>,
 ) {
+	for e in &old_query {
+		cmds.entity(e).despawn_recursive();
+	}
+
 	if let Ok(root) = root_query.get_single() {
 		let e = cmds
 			.spawn((
@@ -192,19 +198,19 @@ fn setup_actions(
 	keyb.add_binding(
 		&move_action,
 		KeyboardBinding::Dpad {
-			up: KeyBinding::Held(KeyCode::W),
-			down: KeyBinding::Held(KeyCode::S),
-			left: KeyBinding::Held(KeyCode::A),
-			right: KeyBinding::Held(KeyCode::D),
+			up: KeyBinding::Held(KeyCode::KeyW),
+			down: KeyBinding::Held(KeyCode::KeyS),
+			left: KeyBinding::Held(KeyCode::KeyA),
+			right: KeyBinding::Held(KeyCode::KeyD),
 		},
 	);
 	keyb.add_binding(
 		&view_action,
 		KeyboardBinding::Dpad {
-			up: KeyBinding::Held(KeyCode::Up),
-			down: KeyBinding::Held(KeyCode::Down),
-			left: KeyBinding::Held(KeyCode::Left),
-			right: KeyBinding::Held(KeyCode::Right),
+			up: KeyBinding::Held(KeyCode::ArrowUp),
+			down: KeyBinding::Held(KeyCode::ArrowDown),
+			left: KeyBinding::Held(KeyCode::ArrowLeft),
+			right: KeyBinding::Held(KeyCode::ArrowRight),
 		},
 	);
 	cmds.spawn((move_action, view_action));
@@ -247,6 +253,7 @@ fn move_entities(
 	time: Res<Time>,
 ) {
 	for (mut transform, forward_ref) in &mut moving_entity_query {
+		info!("moving_loop");
 		let forward_rot = forward_ref
 			.and_then(|r| forward_query.get(**r).ok())
 			.map(|f| f.to_scale_rotation_translation().1)
@@ -259,6 +266,7 @@ fn move_entities(
 		}
 		.get_value();
 
+		info!("moving_values: {}", input_vec);
 		let mut in_vec = Vec3::new(input_vec.x, 0.0, -input_vec.y);
 		if in_vec.length() > 1.0 {
 			in_vec = in_vec.normalize_or_zero();

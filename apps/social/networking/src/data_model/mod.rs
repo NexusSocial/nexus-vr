@@ -8,7 +8,7 @@ use bevy::{
 	prelude::{App, Bundle, Component, Entity, Resource},
 	reflect::Reflect,
 };
-use lightyear::prelude::{client::InterpolatedComponent, Message};
+use lightyear::prelude::{/* client::InterpolatedComponent, */ Message};
 use serde::{Deserialize, Serialize};
 
 /// Data model bundle for avatars.
@@ -66,7 +66,7 @@ pub struct Avatar;
 	Reflect,
 	Default,
 )]
-pub struct ClientIdComponent(pub lightyear::netcode::ClientId);
+pub struct ClientIdComponent(pub lightyear::connection::netcode::ClientId);
 
 pub(crate) fn register_types(app: &mut App) {
 	app.register_type::<Local>()
@@ -77,8 +77,8 @@ pub(crate) fn register_types(app: &mut App) {
 
 // ---- type checks ----
 
-fn _assert_impl_interp() {
-	fn check<T: InterpolatedComponent<T>>() {}
-
-	check::<PlayerPose>()
-}
+// fn _assert_impl_interp() {
+// 	fn check<T: InterpolatedComponent<T>>() {}
+//
+// 	check::<PlayerPose>()
+// }

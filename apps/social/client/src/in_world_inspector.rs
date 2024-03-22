@@ -10,7 +10,7 @@ use bevy::{
 	render::render_resource::{Extent3d, TextureUsages},
 };
 use bevy_oxr::{
-	xr_init::XrEnableStatus,
+	xr_init::XrStatus,
 	xr_input::trackers::{AimPose, OpenXRLeftController},
 };
 use egui_picking::WorldSpaceUI;
@@ -58,7 +58,7 @@ fn setup_actions(
 	);
 	keyb.add_binding(
 		&open_inspector,
-		KeyboardBinding::Simple(KeyBinding::JustPressed(KeyCode::Q)),
+		KeyboardBinding::Simple(KeyBinding::JustPressed(KeyCode::KeyQ)),
 	);
 	cmds.spawn(open_inspector);
 }
@@ -117,7 +117,7 @@ fn toggle_inspector(
 	cam_pose: Query<&Transform, With<PlayerHead>>,
 	root: Query<&Transform, With<PlayerRoot>>,
 	open_action: Query<&OpenInspector>,
-	xr_enabled: Option<Res<XrEnableStatus>>,
+	xr_enabled: Option<Res<XrStatus>>,
 	mut last_pressed: Local<bool>,
 ) {
 	let pressed = match open_action.get_single() {
@@ -131,12 +131,12 @@ fn toggle_inspector(
 			}
 		} else {
 			let transform = match xr_enabled.as_deref() {
-				Some(XrEnableStatus::Enabled) => aim_pose.single().0,
+				Some(XrStatus::Enabled) => aim_pose.single().0,
 				_ => *cam_pose.single(),
 			};
 			let transform = root.single().mul_transform(transform);
 			let mut plane_transform = Transform::from_translation(
-				transform.translation + transform.forward(),
+				transform.translation + *transform.forward(),
 			)
 			.looking_at(transform.translation, Vec3::Y);
 			plane_transform.rotate_local(
@@ -144,7 +144,9 @@ fn toggle_inspector(
 			);
 			cmds.spawn((
 				PbrBundle {
-					mesh: meshes.add(shape::Plane::default().into()),
+					// The up vec is Y because the code that does the transformation from
+					// worldspace to uv space assumes Y up
+					mesh: meshes.add(Plane3d::new(Vec3::Y).mesh().size(1., 1.)),
 					material: materials.add(StandardMaterial {
 						base_color: Color::WHITE,
 						base_color_texture: Some(Handle::clone(&texture.0)),

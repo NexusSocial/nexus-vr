@@ -8,9 +8,9 @@ use std::{
 
 use bevy::prelude::{
 	default, Added, Commands, Entity, Event, EventReader, EventWriter, Name, Plugin,
-	Query, Res, ResMut, Resource, Startup, Update, With,
+	Query, Res, Resource, Startup, Update, With,
 };
-use lightyear::prelude::client::MessageEvent;
+use lightyear::prelude::client::{MessageEvent, NetConfig};
 use lightyear::prelude::{
 	client::{
 		Authentication, ClientConfig, InputConfig, InterpolationConfig,
@@ -63,13 +63,11 @@ impl Plugin for ClientPlugin {
 		let transport = match self.transport {
 			Transports::Udp => TransportConfig::UdpSocket(client_addr),
 		};
-		let io = Io::from_config(
-			IoConfig::from_transport(transport).with_conditioner(link_conditioner),
-		);
+		let io = 
+			IoConfig::from_transport(transport).with_conditioner(link_conditioner);
 		let config = ClientConfig {
 			shared: shared_config().clone(),
 			input: InputConfig::default(),
-			netcode: Default::default(),
 			ping: PingConfig::default(),
 			sync: SyncConfig::default(),
 			prediction: PredictionConfig::default(),
@@ -77,9 +75,11 @@ impl Plugin for ClientPlugin {
 			interpolation: InterpolationConfig::default().with_delay(
 				InterpolationDelay::default(), /*.with_send_interval_ratio(2.0),*/
 			),
+			net: NetConfig::Netcode { auth, config: default(), io },
+			..Default::default()
 			// .with_delay(InterpolationDelay::Ratio(2.0)),
 		};
-		let plugin_config = PluginConfig::new(config, io, protocol(), auth);
+		let plugin_config = PluginConfig::new(config, protocol());
 		app.add_plugins(::lightyear::client::plugin::ClientPlugin::new(
 			plugin_config,
 		));
@@ -112,7 +112,7 @@ fn data_model_add_replicated(
 	}
 }
 
-fn connect(mut client: ResMut<lightyear::client::resource::Client<MyProtocol>>) {
+fn connect(mut client: lightyear::client::resource::ClientMut<MyProtocol>) {
 	client.connect();
 }
 
@@ -135,7 +135,7 @@ pub struct Channels(pub u16);
 pub struct ServerToClientVoiceMsg(pub ClientId, pub Vec<u8>, pub Channels);
 
 fn send_client_to_server_voice_msg(
-	mut client: ResMut<lightyear::client::resource::Client<MyProtocol>>,
+	mut client: lightyear::client::resource::ClientMut<MyProtocol>,
 	mut event_reader: EventReader<ClientToServerVoiceMsg>,
 ) {
 	for audio_msg in event_reader.read() {

@@ -18,7 +18,7 @@ log = "0.4"
 ehttp = { git = "https://github.com/emilk/ehttp", features = ["multipart", "json"] }
 #tokio = { version = "1.0", features = ["full"] }
 #reqwest = { version = "0.11.24", features = ["multipart"] }
-web-sys = { version = "0.3.68", features = ["Window", "Document", "Element", "HtmlAnchorElement"] }
+web-sys = { version = "0.3.67", features = ["Window", "Document", "Element", "HtmlAnchorElement"] }
 wasm-bindgen = "0.2.91"
 
 # You only need serde if you want app persistence:

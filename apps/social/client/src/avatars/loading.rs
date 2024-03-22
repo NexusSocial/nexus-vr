@@ -46,7 +46,7 @@ fn on_vrm_asset_load(
 		if assets.is_loaded_with_dependencies(vrm_handle) {
 			cmds.entity(entity).insert(RigRequestSent);
 			debug!("Requesting rig autoassignment for entity {entity:?}");
-			assign_rig_evts.send(AutoAssignRigRequest { mesh: entity })
+			assign_rig_evts.send(AutoAssignRigRequest { mesh: entity });
 		}
 	}
 }
@@ -133,7 +133,7 @@ mod test {
 					vrm_entity.0 == fully_loaded,
 					"fully loaded entity should be the vrm from setup"
 				);
-				exit_evts.send_default()
+				exit_evts.send_default();
 			}
 		}
 

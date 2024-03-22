@@ -276,7 +276,7 @@ fn autoassign(
 	mut cmds: Commands,
 	mut evts: EventReader<AutoAssignRigRequest>,
 	vrm_handles: Query<&Handle<Vrm>>,
-	non_vrm: Query<Without<Handle<Vrm>>>,
+	non_vrm: Query<(), Without<Handle<Vrm>>>,
 	vrm_assets: Res<Assets<Vrm>>,
 	entity_names: Query<(Entity, &Name)>,
 	children: Query<&Children>,

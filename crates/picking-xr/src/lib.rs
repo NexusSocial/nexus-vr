@@ -86,14 +86,14 @@ pub fn xr_input_handling(
 				pointer_id: *pointer_id,
 				direction: pointer::PressDirection::Down,
 				button: PointerButton::Primary,
-			})
+			});
 		}
 		if !new && last_state.primary_action {
 			w.send(InputPress {
 				pointer_id: *pointer_id,
 				direction: pointer::PressDirection::Up,
 				button: PointerButton::Primary,
-			})
+			});
 		}
 		last_state.primary_action = new;
 
@@ -114,14 +114,14 @@ pub fn xr_input_handling(
 				pointer_id: *pointer_id,
 				direction: pointer::PressDirection::Down,
 				button: PointerButton::Secondary,
-			})
+			});
 		}
 		if !new && last_state.secondary_action {
 			w.send(InputPress {
 				pointer_id: *pointer_id,
 				direction: pointer::PressDirection::Up,
 				button: PointerButton::Secondary,
-			})
+			});
 		}
 		last_state.secondary_action = new;
 		let new = action_sets
@@ -141,14 +141,14 @@ pub fn xr_input_handling(
 				pointer_id: *pointer_id,
 				direction: pointer::PressDirection::Down,
 				button: PointerButton::Middle,
-			})
+			});
 		}
 		if !new && last_state.middle_action {
 			w.send(InputPress {
 				pointer_id: *pointer_id,
 				direction: pointer::PressDirection::Up,
 				button: PointerButton::Middle,
-			})
+			});
 		}
 		last_state.middle_action = new;
 	}

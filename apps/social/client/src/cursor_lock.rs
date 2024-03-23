@@ -5,7 +5,7 @@ use bevy::{
 	prelude::*,
 	window::{CursorGrabMode, PrimaryWindow},
 };
-use bevy_oxr::xr_init::XrEnableStatus;
+use bevy_oxr::xr_init::XrStatus;
 use bevy_schminput::mouse::{motion::MouseMotionAction, MouseBindings};
 
 pub struct CursorLockingPlugin;
@@ -18,8 +18,7 @@ impl Plugin for CursorLockingPlugin {
 		);
 		app.add_systems(
 			Update,
-			apply_mouse_lock_toggle
-				.run_if(resource_exists_and_changed::<MouseLocked>()),
+			apply_mouse_lock_toggle.run_if(resource_exists_and_changed::<MouseLocked>),
 		);
 		app.add_systems(
 			Update,
@@ -29,8 +28,8 @@ impl Plugin for CursorLockingPlugin {
 	}
 }
 
-fn init_cursor_lock(mut cmds: Commands, xr_enabled: Option<Res<XrEnableStatus>>) {
-	if xr_enabled.is_some_and(|e| *e == XrEnableStatus::Enabled) {
+fn init_cursor_lock(mut cmds: Commands, xr_status: Option<Res<XrStatus>>) {
+	if xr_status.is_some_and(|e| *e == XrStatus::Enabled) {
 		cmds.insert_resource(MouseLocked(false));
 	} else {
 		cmds.insert_resource(MouseLocked(true));
@@ -77,7 +76,7 @@ impl<T: MouseMotionAction + Component + Default> Plugin
 		app.add_systems(
 			Update,
 			toggle_mouse_input_on_lock::<T>
-				.run_if(resource_exists_and_changed::<MouseLocked>()),
+				.run_if(resource_exists_and_changed::<MouseLocked>),
 		);
 	}
 }

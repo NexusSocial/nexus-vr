@@ -26,7 +26,7 @@ fn drive_input_pose(
 	oculus_controller: Option<Res<OculusController>>,
 	frame_state: Option<Res<XrFrameState>>,
 	xr_input: Option<Res<XrInput>>,
-	tracking_root: Query<&GlobalTransform, &OpenXRTrackingRoot>,
+	tracking_root: Query<&GlobalTransform, With<OpenXRTrackingRoot>>,
 	mut player_pose: Query<&mut social_networking::data_model::PlayerPose, With<Local>>,
 ) {
 	let mut player_pose = match player_pose.get_single_mut() {
@@ -44,7 +44,6 @@ fn drive_input_pose(
 			}
 			(_, _, _) => return,
 		};
-	let frame_state = *frame_state.lock().unwrap();
 	let grip_space = oculus_controller
 		.grip_space
 		.as_ref()

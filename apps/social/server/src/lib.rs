@@ -4,7 +4,6 @@ mod player_management;
 
 use bevy::app::PluginGroupBuilder;
 use bevy::diagnostic::LogDiagnosticsPlugin;
-use bevy::log::LogPlugin;
 use bevy::prelude::PluginGroup;
 use bevy::prelude::*;
 use bevy::render::camera::ScalingMode;
@@ -37,15 +36,17 @@ pub fn main() -> Result<()> {
 			));
 		}
 		false => {
-			app.add_plugins(DefaultPlugins.build().disable::<LogPlugin>().set(
-				WindowPlugin {
-					primary_window: Some(Window {
-						title: "Nexus Server".to_string(),
+			app.add_plugins(
+				DefaultPlugins
+					.build() /* .disable::<LogPlugin>() */
+					.set(WindowPlugin {
+						primary_window: Some(Window {
+							title: "Nexus Server".to_string(),
+							..Default::default()
+						}),
 						..Default::default()
 					}),
-					..Default::default()
-				},
-			));
+			);
 			app.add_plugins(bevy_egui::EguiPlugin);
 			app.add_plugins(VrmPlugin);
 			app.add_plugins(if !args.frame_timings {
@@ -105,8 +106,8 @@ fn setup(
 
 	// plane
 	commands.spawn((PbrBundle {
-		mesh: meshes.add(shape::Plane::from_size(20.0).into()),
-		material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
+		mesh: meshes.add(Plane3d::new(Vec3::Y).mesh().size(20.0, 20.0)),
+		material: materials.add(StandardMaterial::from(Color::rgb(0.3, 0.5, 0.3))),
 		transform: Transform::from_xyz(0.0, -1.0, 0.0),
 		..default()
 	},));

@@ -59,11 +59,11 @@ pub fn update_hits(
 				pointer_id: *pointer_id,
 				location: location.clone().location.unwrap(),
 				delta: Vec2::ZERO,
-			})
+			});
 		}
 		last_hit.0 = transform;
 
-		let ray = Ray3d::new(transform.translation, transform.forward());
+		let ray = Ray3d::new(transform.translation, *transform.forward());
 		let settings = RaycastSettings {
 			visibility: RaycastVisibility::MustBeVisible,
 			filter: &|e| pickables.get(e).is_ok(),

@@ -400,13 +400,13 @@ fn update_ik(
 										.length()) - DEFAULT_SHOULDER_MOVEMENT_THRESHOLD)
 						};
 						let mut shoulder_yaw =
-							calc_shoulder_angle(root_skeleton.spine.forward());
+							calc_shoulder_angle(*root_skeleton.spine.forward());
 						shoulder_yaw = shoulder_yaw.clamp(
 							DEFAULT_SHOULDER_ROTATION_YAW_CONSTRAINT_MIN,
 							DEFAULT_SHOULDER_ROTATION_YAW_CONSTRAINT_MAX,
 						) * x_side;
 						let mut shoulder_roll =
-							calc_shoulder_angle(root_skeleton.spine.up());
+							calc_shoulder_angle(*root_skeleton.spine.up());
 						shoulder_roll = shoulder_roll.clamp(
 							DEFAULT_SHOULDER_ROTATION_ROLL_CONSTRAINT_MIN,
 							DEFAULT_SHOULDER_ROTATION_ROLL_CONSTRAINT_MAX,
@@ -448,7 +448,7 @@ fn update_ik(
 				let virtual_shoulder = root_skel_sides[i]
 					.arm
 					.upper
-					.looking_to(forward, up)
+					.looking_to(*forward, *up)
 					.with_scale(Vec3::ONE);
 				// I currently am not confident the following elbow code works correctly
 				let mut final_hand_rel_v_shoulder =

@@ -34,14 +34,14 @@ fn setup(
 ) {
 	// plane
 	commands.spawn(PbrBundle {
-		mesh: meshes.add(shape::Plane::from_size(5.0).into()),
-		material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
+		mesh: meshes.add(Plane3d::new(Vec3::Y).mesh().size(5.0, 5.0)),
+		material: materials.add(StandardMaterial::from(Color::rgb(0.3, 0.5, 0.3))),
 		..default()
 	});
 	// cube
 	commands.spawn(PbrBundle {
-		mesh: meshes.add(Mesh::from(shape::Cube { size: 0.1 })),
-		material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
+		mesh: meshes.add(Mesh::from(Cuboid::from_size(Vec3::splat(0.1)))),
+		material: materials.add(StandardMaterial::from(Color::rgb(0.8, 0.7, 0.6))),
 		transform: Transform::from_xyz(0.0, 0.5, 0.0),
 		..default()
 	});
@@ -69,7 +69,6 @@ fn hands(
 	xr_input: Res<XrInput>,
 ) {
 	let mut func = || -> color_eyre::Result<()> {
-		let frame_state = *frame_state.lock().unwrap();
 		let grip_space = oculus_controller
 			.grip_space
 			.as_ref()

@@ -9,5 +9,5 @@ rust-version.workspace = true
 [dependencies]
 bevy.workspace = true
 # Will move this when the worldspace stuff is merged. Also my fork only because of the bevy version
-bevy_egui = { git = "https://github.com/Schmarni-Dev/bevy_egui/", branch = "add-worldspace-egui" }
+bevy_egui.workspace = true
 bevy_mod_picking.workspace = true

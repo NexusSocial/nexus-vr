@@ -204,14 +204,19 @@ pub fn ui_interactions(
 				Some(_) => continue,
 			}
 			let local_pos = *position - transform.translation();
+			// info!("pos: {}", position);
+			// info!("local_pos: {}", local_pos);
 			let rotated_point = transform
 				.to_scale_rotation_translation()
 				.1
 				.inverse()
 				.mul_vec3(local_pos);
-			let mut uv = rotated_point.xz() + Vec2::splat(0.5);
+			let mut uv = rotated_point.xz()
+				+ (Vec2::splat(0.5) * Vec2::new(ui.size_x, ui.size_y));
+			// info!("ui_pos: {}", uv);
 			uv.x /= ui.size_x;
 			uv.y /= ui.size_y;
+			// info!("normal_ui_pos: {}", uv);
 			let image = textures.get(texture.0.clone()).unwrap();
 			input.events.push(bevy_egui::egui::Event::PointerMoved(
 				bevy_egui::egui::Pos2 {

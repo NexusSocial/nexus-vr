@@ -2,18 +2,25 @@
 
 use std::time::Duration;
 
-use lightyear::netcode::ClientId;
+use lightyear::connection::netcode::ClientId;
+use lightyear::inputs::native::UserAction;
 use lightyear::{
 	prelude::{
-		component_protocol, message_protocol, Channel, ChannelDirection, ChannelMode,
-		ChannelSettings, LogConfig, ReliableSettings, SharedConfig, TickConfig,
-		UserInput,
+		component_protocol,
+		message_protocol,
+		Channel,
+		ChannelDirection,
+		ChannelMode,
+		ChannelSettings,
+		ReliableSettings,
+		SharedConfig,
+		TickConfig,
+		// UserInput,
 	},
 	protocol::Protocol,
 	protocolize,
 };
 use serde::{Deserialize, Serialize};
-use tracing::Level;
 
 use super::data_model;
 use data_model::PlayerPoseInterp;
@@ -52,7 +59,7 @@ pub enum Components {
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub enum Inputs {}
 
-impl UserInput for Inputs {}
+impl UserAction for Inputs {}
 
 // Channels
 
@@ -67,28 +74,30 @@ pub fn protocol() -> MyProtocol {
 	protocol.add_channel::<Channel1>(ChannelSettings {
 		mode: ChannelMode::OrderedReliable(ReliableSettings::default()),
 		direction: ChannelDirection::Bidirectional,
+		priority: 1.0,
 	});
 	protocol.add_channel::<AudioChannel>(ChannelSettings {
 		mode: ChannelMode::OrderedReliable(ReliableSettings::default()),
 		direction: ChannelDirection::Bidirectional,
+		priority: 1.0,
 	});
 	protocol
 }
 
 pub fn shared_config() -> SharedConfig {
 	SharedConfig {
-        enable_replication: true,
-        client_send_interval: Duration::default(),
-        server_send_interval: Duration::from_millis(100),
-        tick: TickConfig {
-            tick_duration: Duration::from_secs_f64(1.0 / 64.0),
-        },
-        log: LogConfig {
-            level: Level::INFO,
-            filter: "wgpu=error,wgpu_hal=error,naga=warn,bevy_app=info,bevy_render=warn,quinn=warn"
-                .to_string(),
-        },
-    }
+		// enable_replication: true,
+		client_send_interval: Duration::default(),
+		server_send_interval: Duration::from_millis(100),
+		tick: TickConfig {
+			tick_duration: Duration::from_secs_f64(1.0 / 64.0),
+		},
+		// log: LogConfig {
+		//     level: Level::INFO,
+		//     filter: "wgpu=error,wgpu_hal=error,naga=warn,bevy_app=info,bevy_render=warn,quinn=warn"
+		//         .to_string(),
+		// },
+	}
 }
 
 use crate::client::Channels;

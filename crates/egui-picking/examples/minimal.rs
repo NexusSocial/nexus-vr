@@ -45,7 +45,7 @@ fn setup_worldspace(
 	});
 	commands.spawn((
 		PbrBundle {
-			mesh: meshes.add(shape::Plane::default().into()),
+			mesh: meshes.add(Plane3d::new(Vec3::Y).mesh().size(1.0, 1.0)),
 			material: materials.add(StandardMaterial {
 				base_color: Color::WHITE,
 				base_color_texture: Some(Handle::clone(&output_texture)),

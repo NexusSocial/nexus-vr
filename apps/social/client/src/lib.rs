@@ -23,7 +23,7 @@ use bevy::hierarchy::DespawnRecursiveExt;
 use bevy::log::{error, info};
 use bevy::pbr::{AmbientLight, DirectionalLight, PbrBundle, PointLight};
 use bevy::prelude::*;
-use bevy::render::mesh::{shape, Mesh};
+use bevy::render::mesh::Mesh;
 use bevy::render::render_resource::{Extent3d, TextureUsages};
 use bevy::render::texture::Image;
 use bevy::scene::SceneBundle;
@@ -193,7 +193,12 @@ fn vr_ui_helper(mut gizmos: Gizmos, pointers: Query<&CurrentPointers>) {
 		//info!("pointer");
 		for (pos, norm) in e.pointers.values() {
 			//info!("draw");
-			gizmos.circle(*pos + *norm * 0.005, *norm, 0.01, Color::LIME_GREEN);
+			gizmos.circle(
+				*pos + *norm * 0.005,
+				Direction3d::new(*norm).expect("this normal should be of length 1"),
+				0.01,
+				Color::LIME_GREEN,
+			);
 		}
 	}
 }
@@ -287,7 +292,9 @@ fn sync_datamodel(
 		cmds.entity(dm_avi_entity.0).insert(local_avi_entity);
 
 		// spawn avatar on the local avatar entity
-		let avi_url = "https://cdn.discordapp.com/attachments/1190761425396830369/1190863195418677359/malek.vrm".to_owned();
+		let avi_url =
+			"https://cloudcafe-executables.s3.us-west-2.amazonaws.com/malek.vrm"
+				.to_owned();
 		/*assign_avi_evts.send(AssignAvatar {
 			avi_entity: local_avi_entity.0,
 			avi_url,
@@ -342,7 +349,7 @@ fn send_avatar_url_changed_event_when_avatar_url_changed(
 		assign_avi_evts.send(AssignAvatar {
 			avi_entity: local_entity.0,
 			avi_url: player_avatar_url.0.clone(),
-		})
+		});
 	}
 }
 
@@ -372,7 +379,7 @@ fn spawn_avi_swap_ui(
 	});
 	cmds.spawn((
 		PbrBundle {
-			mesh: meshes.add(shape::Plane::default().into()),
+			mesh: meshes.add(Plane3d::new(Vec3::Y).mesh().size(1., 1.)),
 			material: materials.add(StandardMaterial {
 				base_color: Color::WHITE,
 				base_color_texture: Some(Handle::clone(&output_texture)),
@@ -469,15 +476,26 @@ struct AllowedLight;
 /// set up a simple 3D scene
 fn setup(mut cmds: Commands, asset_server: ResMut<bevy::prelude::AssetServer>) {
 	cmds.insert_resource(AmbientLight {
-		color: Color::WHITE,
-		brightness: 0.001,
+		color: Color::BLACK,
+		brightness: 0.0,
 	});
 	cmds.spawn(SceneBundle {
 		scene: asset_server.load("https://cdn.discordapp.com/attachments/1122267109376925738/1190479732819623936/SGB_tutorial_scene_fixed.glb#Scene0"),
 		..default()
 	});
 
-	cmds.spawn(DirectionalLightBundle::default());
+	cmds.spawn((
+		DirectionalLightBundle {
+			directional_light: DirectionalLight {
+				..Default::default()
+			},
+			transform: Transform::from_xyz(1.0, 2.0, 1.0)
+				.looking_at(Vec3::ZERO, Vec3::Y),
+			..Default::default()
+		},
+		AllowedLight,
+		bevy_vrm::mtoon::MtoonSun,
+	));
 	// camera
 	// cmds.spawn((
 	// 	Camera3dBundle {
@@ -499,7 +517,6 @@ fn _hands(
 	frame_state: Res<XrFrameState>,
 	xr_input: Res<XrInput>,
 ) -> Result<()> {
-	let frame_state = *frame_state.lock().unwrap();
 	let grip_space = oculus_controller
 		.grip_space
 		.as_ref()

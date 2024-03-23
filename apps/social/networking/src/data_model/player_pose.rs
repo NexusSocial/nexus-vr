@@ -2,7 +2,8 @@ use bevy::{
 	prelude::{Component, Quat, Vec3},
 	reflect::Reflect,
 };
-use lightyear::prelude::{client::InterpFn, Message};
+use lightyear::client::components::LerpFn;
+use lightyear::prelude::Message;
 use serde::{Deserialize, Serialize};
 
 #[derive(
@@ -11,6 +12,7 @@ use serde::{Deserialize, Serialize};
 	Serialize,
 	Deserialize,
 	Clone,
+	Copy,
 	Debug,
 	PartialEq,
 	Default,
@@ -51,13 +53,14 @@ impl Isometry {
 /// Interpolates between two [`PlayerPose`]s.
 pub struct PlayerPoseInterp;
 
-impl InterpFn<PlayerPose> for PlayerPoseInterp {
-	fn lerp(mut start: PlayerPose, other: PlayerPose, t: f32) -> PlayerPose {
+impl LerpFn<PlayerPose> for PlayerPoseInterp {
+	fn lerp(start: &PlayerPose, other: &PlayerPose, t: f32) -> PlayerPose {
+		let mut start = *start;
 		/// Mutates `start` for every specified field.
 		macro_rules! call_interp {
 			($start:ident, $other:ident, $t:ident, [$($field:ident),+]) => {
                 $(
-                    $start.$field = IsometryInterp::lerp($start.$field, $other.$field, $t);
+                    $start.$field = IsometryInterp::lerp(&$start.$field, &$other.$field, $t);
                 )+
             };
 		}
@@ -69,9 +72,9 @@ impl InterpFn<PlayerPose> for PlayerPoseInterp {
 
 /// Interpolates between two [`Isometry`]s.
 struct IsometryInterp;
-
-impl InterpFn<Isometry> for IsometryInterp {
-	fn lerp(mut start: Isometry, other: Isometry, t: f32) -> Isometry {
+impl LerpFn<Isometry> for IsometryInterp {
+	fn lerp(start: &Isometry, other: &Isometry, t: f32) -> Isometry {
+		let mut start = *start;
 		start.trans = start.trans.lerp(other.trans, t);
 		start.rot = start.rot.lerp(other.rot, t);
 

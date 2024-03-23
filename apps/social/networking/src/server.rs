@@ -1,6 +1,9 @@
 //! Lightyear Client that synchronizes the data model with the server.
 
-use bevy::app::PreUpdate;
+use bevy::{
+	app::PreUpdate,
+	ecs::system::{Res, ResMut},
+};
 use std::{
 	net::{Ipv4Addr, SocketAddr},
 	time::Duration,
@@ -8,15 +11,17 @@ use std::{
 
 use bevy::prelude::{
 	default, Added, App, Commands, Entity, EventReader, IntoSystemConfigs, Name,
-	Plugin, Query, ResMut,
+	Plugin, Query,
 };
-use lightyear::prelude::server::MessageEvent;
-use lightyear::prelude::MainSet::ClientReplication;
 use lightyear::prelude::NetworkTarget;
-use lightyear::server::resource::Server;
+use lightyear::prelude::{
+	server::{NetConfig, NetServer, ServerConnections},
+	MainSet::ClientReplication,
+};
 use lightyear::shared::replication::components::Replicate;
+use lightyear::{prelude::server::MessageEvent, server::config::PacketConfig};
 use lightyear::{
-	prelude::{Io, IoConfig, Key, LinkConditionerConfig, PingConfig, TransportConfig},
+	prelude::{IoConfig, Key, LinkConditionerConfig, PingConfig, TransportConfig},
 	server::{
 		config::{NetcodeConfig, ServerConfig},
 		plugin::PluginConfig,
@@ -24,7 +29,6 @@ use lightyear::{
 };
 use tracing::info;
 
-use crate::data_model::ClientIdComponent;
 use crate::lightyear::{
 	AudioChannel, ClientToServerAudioMsg, MyProtocol, ServerToClientAudioMsg,
 };
@@ -34,6 +38,7 @@ use crate::{
 	lightyear::{protocol, shared_config},
 	Transports,
 };
+use crate::{data_model::ClientIdComponent, lightyear::ServerConnectionManager};
 
 pub const PROTOCOL_ID: u64 = 0;
 pub const KEY: Key = [0; 32];
@@ -71,15 +76,18 @@ impl Plugin for ServerPlugin {
 		let transport = match self.transport {
 			Transports::Udp => TransportConfig::UdpSocket(server_addr),
 		};
-		let io = Io::from_config(
-			IoConfig::from_transport(transport).with_conditioner(link_conditioner),
-		);
+		let io_config =
+			IoConfig::from_transport(transport).with_conditioner(link_conditioner);
 		let config = ServerConfig {
 			shared: shared_config().clone(),
-			netcode: netcode_config,
 			ping: PingConfig::default(),
+			net: vec![NetConfig::Netcode {
+				config: netcode_config,
+				io: io_config,
+			}],
+			packet: PacketConfig::default(),
 		};
-		let plugin_config = PluginConfig::new(config, io, protocol());
+		let plugin_config = PluginConfig::new(config, protocol());
 		app.add_plugins(::lightyear::server::plugin::ServerPlugin::new(
 			plugin_config,
 		));
@@ -94,7 +102,7 @@ impl Plugin for ServerPlugin {
 fn add_replication_for_players(
 	mut cmds: Commands,
 	added_player: Query<(Entity, &ClientIdComponent), Added<data_model::Avatar>>,
-	_server: ResMut<Server<MyProtocol>>,
+	// _server: Server<MyProtocol>,
 ) {
 	//info!("server client ids: {:#?}", server.client_ids().collect::<Vec<_>>());
 	for (entity, client_id) in added_player.iter() {
@@ -117,13 +125,19 @@ impl Plugin for ServerVoiceChat {
 
 fn re_broadcast_audio(
 	mut messages: EventReader<MessageEvent<ClientToServerAudioMsg>>,
-	mut server: ResMut<lightyear::server::resource::Server<MyProtocol>>,
+	mut server: ResMut<ServerConnectionManager>,
+	server_connections: Res<ServerConnections>,
 ) {
 	for message in messages.read() {
 		let id2 = *message.context();
 		let audio = message.message().clone().0;
 		let channels = message.message().1;
-		for id in server.client_ids().collect::<Vec<_>>() {
+		for id in server_connections
+			.servers
+			.iter()
+			.flat_map(|server| server.connected_client_ids())
+			.collect::<Vec<_>>()
+		{
 			if id == id2 {
 				continue;
 			}

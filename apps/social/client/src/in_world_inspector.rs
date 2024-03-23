@@ -117,7 +117,7 @@ fn toggle_inspector(
 	cam_pose: Query<&Transform, With<PlayerHead>>,
 	root: Query<&Transform, With<PlayerRoot>>,
 	open_action: Query<&OpenInspector>,
-	xr_enabled: Option<Res<XrStatus>>,
+	xr_status: Option<Res<XrStatus>>,
 	mut last_pressed: Local<bool>,
 ) {
 	let pressed = match open_action.get_single() {
@@ -130,7 +130,7 @@ fn toggle_inspector(
 				cmds.entity(e).despawn();
 			}
 		} else {
-			let transform = match xr_enabled.as_deref() {
+			let transform = match xr_status.as_deref() {
 				Some(XrStatus::Enabled) => aim_pose.single().0,
 				_ => *cam_pose.single(),
 			};

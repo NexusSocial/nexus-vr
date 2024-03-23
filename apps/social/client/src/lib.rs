@@ -86,8 +86,7 @@ pub fn main() -> Result<()> {
 
 	#[cfg(target_os = "android")]
 	{
-		// server_addr.set_ip(std::net::IpAddr::from(Ipv4Addr::new(45, 56, 95, 177)));
-		server_addr.set_ip(std::net::IpAddr::from(Ipv4Addr::new(192, 168, 2, 100)));
+		server_addr.set_ip(std::net::IpAddr::from(Ipv4Addr::new(45, 56, 95, 177)));
 	}
 
 	App::new()

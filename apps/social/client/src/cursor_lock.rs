@@ -28,8 +28,8 @@ impl Plugin for CursorLockingPlugin {
 	}
 }
 
-fn init_cursor_lock(mut cmds: Commands, xr_enabled: Option<Res<XrStatus>>) {
-	if xr_enabled.is_some_and(|e| *e == XrStatus::Enabled) {
+fn init_cursor_lock(mut cmds: Commands, xr_status: Option<Res<XrStatus>>) {
+	if xr_status.is_some_and(|e| *e == XrStatus::Enabled) {
 		cmds.insert_resource(MouseLocked(false));
 	} else {
 		cmds.insert_resource(MouseLocked(true));

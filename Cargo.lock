@@ -3192,6 +3192,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "educe"
+version = "0.5.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e4bd92664bf78c4d3dba9b7cdafce6fa15b13ed3ed16175218196942e99168a8"
+dependencies = [
+ "enum-ordinalize",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.48",
+]
+
+[[package]]
 name = "eframe"
 version = "0.26.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3358,6 +3370,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7268b386296a025e474d5140678f75d6de9493ae55a5d709eeb9dd08149945e1"
 dependencies = [
  "cfg-if",
+]
+
+[[package]]
+name = "enum-ordinalize"
+version = "4.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fea0dcfa4e54eeb516fe454635a95753ddd39acda650ce703031c6973e315dd5"
+dependencies = [
+ "enum-ordinalize-derive",
+]
+
+[[package]]
+name = "enum-ordinalize-derive"
+version = "4.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0d28318a75d4aead5c4db25382e8ef717932d0346600cacae6357eb5941bc5ff"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.48",
 ]
 
 [[package]]
@@ -5160,10 +5192,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "nexus-voicechat"
-version = "0.0.0"
-
-[[package]]
 name = "nix"
 version = "0.24.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5484,9 +5512,9 @@ dependencies = [
 
 [[package]]
 name = "octets"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3a74f2cda724d43a0a63140af89836d4e7db6138ef67c9f96d3a0f0150d05000"
+checksum = "109983a091271ee8916076731ba5fdc9ee22fea871bc7c6ceab9bfd423eb1d99"
 
 [[package]]
 name = "ogg"
@@ -6297,9 +6325,16 @@ dependencies = [
  "bytes",
  "clap",
  "color-eyre",
+ "eyre",
+ "futures",
+ "pin-project",
  "replicate-common",
+ "serde",
+ "serde_json",
  "thiserror",
  "tokio",
+ "tokio-serde",
+ "tokio-util",
  "tracing",
  "tracing-subscriber",
  "url",
@@ -6311,7 +6346,14 @@ name = "replicate-common"
 version = "0.0.0"
 dependencies = [
  "bytes",
+ "futures",
+ "pin-project",
  "serde",
+ "thiserror",
+ "tokio",
+ "tokio-serde",
+ "tokio-util",
+ "url",
  "uuid 1.7.0",
 ]
 
@@ -6324,11 +6366,17 @@ dependencies = [
  "clap",
  "color-eyre",
  "dashmap",
+ "derive_more",
+ "eyre",
+ "futures",
  "replicate-common",
  "serde",
  "tokio",
+ "tokio-serde",
+ "tokio-util",
  "tracing",
  "tracing-subscriber",
+ "url",
  "uuid 1.7.0",
  "wtransport",
 ]
@@ -6719,9 +6767,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.111"
+version = "1.0.114"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "176e46fa42316f18edd598015a5166857fc835ec732f5215eac6b7bdbf0a84f4"
+checksum = "c5f09b1bd632ef549eaa9f60a1f8de742bdbc698e6cee2095fc84dde5f549ae0"
 dependencies = [
  "itoa",
  "ryu",
@@ -7447,6 +7495,21 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.48",
+]
+
+[[package]]
+name = "tokio-serde"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "caf600e7036b17782571dd44fa0a5cea3c82f60db5137f774a325a76a0d6852b"
+dependencies = [
+ "bytes",
+ "educe",
+ "futures-core",
+ "futures-sink",
+ "pin-project",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -8693,9 +8756,9 @@ dependencies = [
 
 [[package]]
 name = "wtransport"
-version = "0.1.10"
+version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3293b2a7a7fde68e03a4d70f32b1c7dc8619101e270e25413451ff5040c91bd3"
+checksum = "295c6d8c425e11f178e35ed1442eb77c1ffba98248728fecc96fb9c5a707e7f3"
 dependencies = [
  "bytes",
  "quinn",
@@ -8716,9 +8779,9 @@ dependencies = [
 
 [[package]]
 name = "wtransport-proto"
-version = "0.1.10"
+version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "72bc7bc26eaae90d99fafa5c4ba4d51d31d56f98399e2e78344c805df9d80766"
+checksum = "4d19ee96cc428b718c1557e327c47016e12147adf773e050ae86384198699f57"
 dependencies = [
  "httlib-huffman",
  "octets",

@@ -13,17 +13,24 @@ bytes.workspace = true
 clap.workspace = true
 color-eyre.workspace = true
 dashmap = "5.5.3"
-replicate-common.path = "../replicate-common"
+derive_more.workspace = true
+eyre.workspace = true
+futures.workspace = true
+replicate-common.path = "../common"
 serde.workspace = true
+tokio-serde = { workspace = true, features = ["json"] }
+tokio-util = { workspace = true, features = ["codec"] }
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 tracing.workspace = true
+url.workspace = true
 uuid = { version = "1.6.1", features = ["v4", "serde"] }
 wtransport.workspace = true
 
 [dependencies.tokio]
 workspace = true
 features = [
+	"io-util",
+	"macros",
 	"rt",
 	"rt-multi-thread",
-	"macros"
 ]

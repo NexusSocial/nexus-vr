@@ -10,12 +10,23 @@ description = "A client api for state replication"
 [dependencies]
 base64.workspace = true
 bytes.workspace = true
-# TODO: Use cert hashes instead
-wtransport = { workspace = true, features = ["dangerous-configuration"] }
+eyre.workspace = true
+futures.workspace = true
+pin-project.workspace = true
+replicate-common.path = "../common"
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio-serde = { workspace = true, features = ["json"] }
+tokio-util = { workspace = true, features = ["codec"] }
 tracing.workspace = true
-thiserror = "1.0.56"
-replicate-common.path = "../replicate-common"
 url.workspace = true
+wtransport = { workspace = true, features = ["dangerous-configuration"] }
+
+[dependencies.tokio]
+workspace = true
+default-features = false
+features = ["sync"]
 
 [dev-dependencies]
 color-eyre.workspace = true

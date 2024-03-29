@@ -56,11 +56,14 @@ pub type State = bytes::Bytes;
 #[derive(Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Copy, Clone, Default)]
 pub struct Priority(pub u8);
 
+/// The type of state mutation.
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
-enum Changed {
-	Deleted,
-	UnreliableMutation,
-	ReliableMutation,
+enum StateMutation {
+	/// The state has been updated. Subsequent mutations may overwrite this value.
+	Unreliable,
+	/// The state has been updated. Subsequent mutations may overwrite this value. It is
+	/// guaranteed that the remote peer will observe this or a later mutation.
+	Reliable,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -70,11 +73,25 @@ struct EntityData {
 	recv_prio: Priority,
 }
 
+/// Tracks the changes for an entity since the last network sync.
+#[derive(Debug, Clone, Eq, PartialEq, Default)]
+struct PendingChanges {
+	/// The state when spawning is always guaranteed to be observed by the remote peer.
+	spawn_state: Option<State>,
+	/// The state at the time of despawn is always guaranteed to be observed by the
+	/// remote peer.
+	despawn_state: Option<State>,
+	/// Only the latest state at the time of network sync will be sent to the remote
+	/// peer, and whether it is sent reliably or unreliably depends on whether a
+	/// reliable mutation is pending.
+	mutation: Option<StateMutation>,
+}
+
 /// Tracks all state of entities.
 #[derive(Debug, Clone, Default)]
 pub struct DataModel {
 	data: EntityMap<EntityData>,
-	changes: EntityMap<Changed>,
+	changes: EntityMap<PendingChanges>,
 	/// The last index of the locally spawned entities.
 	local_idx: Index,
 }
@@ -96,68 +113,102 @@ impl DataModel {
 		}
 	}
 
-	/// Reliably updates an entity's state.
+	/// Reliably updates an entity's state. Almost always, you should use
+	/// [`Self::update`] instead as it is lower latency.
 	///
-	/// "Reliable" here doesn't mean that writes aren't overwritten by other writes,
-	/// it just means that the other side of the network is guaranteed to observe it
-	/// OR some later write.
+	/// "Reliable" means that on the next network flush, the *latest* state will be sent
+	/// with reliable networking, ensuring that the remote peer observes the change.
 	///
-	/// This is useful to use when setting a state that you don't expect to change for
-	/// a while, to ensure that the other side of the network ends up on the exact
-	/// same value.
+	/// This is useful to use when setting a state that you don't expect to change for a
+	/// while, to ensure that the remote peer ends up on the exact same value.
 	///
-	/// If you need every single update to be propagated to the other side of the
-	/// network, use the events system instead (TODO: make events a thing).
+	/// When the changes are flushed to the network, only the *latest* state rather than
+	/// all intermediate states are sent to the remote peer. This is to ensure the best
+	/// possible latency for a state change, as the fundamental assumption of states is
+	/// that the latest value (other than the value at (de)spawn) is the only one that
+	/// matters.
+	///
+	/// This makes `update_reliable` unsuitable for sending events where there needs to
+	/// be a guarantee that every event is observed by the remote peer. For that use
+	/// case, use the events system instead (TODO: make events a thing).
 	pub fn update_reliable(
 		&mut self,
 		entity: Entity,
 		state: State,
 	) -> Result<(), EntityNotPresent> {
-		self.update_inner(entity, state, Changed::ReliableMutation)
+		self.update_inner(entity, state, StateMutation::Reliable)
 	}
 
-	/// Update's an entity's state.
+	/// Updates an entity's state.
 	///
-	/// If you need to ensure that the server observes this change, use [`Self::update_reliable`].
+	/// When the changes are flushed to the network, only the *latest* state rather than
+	/// all intermediate states are sent to the remote peer. This is to ensure the best
+	/// possible latency for a state change, as the fundamental assumption of states is
+	/// that the latest value (other than the value at (de)spawn) is the only one that
+	/// matters.
+	///
+	/// This makes `update` unsuitable for sending events where there needs to be a
+	/// guarantee that every event is observed by the remote peer. For that use case,
+	/// use the events system instead (TODO: make events a thing).
+	///
+	/// However, if you only want to guarantee that the *latest* value is observed by
+	/// the remote peer, you can use [`Self::update_reliable`] which is more efficient
+	/// than the events system when you only care about the latest value being observed.
 	pub fn update(
 		&mut self,
 		entity: Entity,
 		state: State,
 	) -> Result<(), EntityNotPresent> {
-		self.update_inner(entity, state, Changed::UnreliableMutation)
+		self.update_inner(entity, state, StateMutation::Unreliable)
 	}
 
 	fn update_inner(
 		&mut self,
 		entity: Entity,
 		state: State,
-		changed: Changed,
+		mutation: StateMutation,
 	) -> Result<(), EntityNotPresent> {
 		let Some(old) = self.data.get_mut(&entity) else {
 			return Err(EntityNotPresent);
 		};
 		old.state = state;
-		self.changes
-			.insert(entity, changed)
-			.expect("already checked presence");
+		let pending = self.changes.entry(entity).or_default();
+		pending.mutation = Some(mutation);
 		Ok(())
 	}
 
 	/// Spawns an entity, returning its id.
+	///
+	/// # Panics
+	/// Panics if the number of entities overflows.
 	pub fn spawn(&mut self, state: State) -> Entity {
-		let next = Index(self.local_idx.0 + 1);
-		if next.spawned_by() != SpawnedBy::Local {
-			panic!("ran out of available entities");
-		}
+		let next = self.local_idx.next();
 		let entity = Entity { idx: next };
 		let insert_result = self.data.insert(
 			entity,
 			EntityData {
-				state,
+				state: state.clone(),
 				..Default::default()
 			},
 		);
-		debug_assert!(insert_result.is_none());
+		debug_assert!(
+			insert_result.is_none(),
+			"sanity: can't spawn on top of existing entities"
+		);
+
+		let insert_result = self.changes.insert(
+			entity,
+			PendingChanges {
+				spawn_state: Some(state),
+				..Default::default()
+			},
+		);
+		debug_assert!(
+			insert_result.is_none(),
+			"sanity: can't spawn on top of existing entities"
+		);
+
+		self.local_idx = next;
 		entity
 	}
 
@@ -181,11 +232,11 @@ impl DataModel {
 			.map(|data| &data.state)
 	}
 
-	pub fn remove(&mut self, entity: Entity) -> Result<(), EntityNotPresent> {
-		self.data.remove(&entity).ok_or(EntityNotPresent)?;
-		self.changes
-			.insert(entity, Changed::Deleted)
-			.expect("already checked presence");
+	pub fn despawn(&mut self, entity: Entity) -> Result<(), EntityNotPresent> {
+		let deleted_data = self.data.remove(&entity).ok_or(EntityNotPresent)?;
+		let changes = self.changes.entry(entity).or_default();
+		changes.despawn_state = Some(deleted_data.state);
+
 		Ok(())
 	}
 
@@ -230,7 +281,7 @@ mod test_dm {
 		assert_eq!(dm.changes.capacity(), 0);
 
 		assert_eq!(dm.get(Entity::default()), Err(EntityNotPresent));
-		assert_eq!(dm.remove(Entity::default()), Err(EntityNotPresent));
+		assert_eq!(dm.despawn(Entity::default()), Err(EntityNotPresent));
 		assert_eq!(dm.priority(Entity::default()), Err(EntityNotPresent));
 		assert_eq!(dm.priority_mut(Entity::default()), Err(EntityNotPresent));
 	}
@@ -246,7 +297,7 @@ mod test_dm {
 		assert!(dm.changes.capacity() >= cap);
 
 		assert_eq!(dm.get(Entity::default()), Err(EntityNotPresent));
-		assert_eq!(dm.remove(Entity::default()), Err(EntityNotPresent));
+		assert_eq!(dm.despawn(Entity::default()), Err(EntityNotPresent));
 		assert_eq!(dm.priority(Entity::default()), Err(EntityNotPresent));
 		assert_eq!(dm.priority_mut(Entity::default()), Err(EntityNotPresent));
 	}
@@ -256,16 +307,50 @@ mod test_dm {
 		let mut dm = DataModel::new();
 		// Sanity checks
 		assert_eq!(dm.local_idx, Index::default_local());
+		assert!(dm.changes.is_empty());
 
-		// Make the change we want to test
-		let state = bytes::Bytes::from_static(b"yeet");
-		let entity = dm.spawn(state.clone());
+		// Spawn the first entity
+		let expected_state1 = bytes::Bytes::from_static(&[1]);
+		let expected_index1 = Index::default_local().next();
+		let entity1 = dm.spawn(expected_state1.clone());
 
-		// Check expected values of entity
-		assert_eq!(entity.idx, Index::default_local().next());
+		fn check_entity(
+			dm: &DataModel,
+			entity: Entity,
+			expected_state: &State,
+			expected_idx: Index,
+		) {
+			// Check expected values of entity
+			assert_eq!(entity.idx, expected_idx);
+			// Check expected values of entity's state.
+			assert_eq!(dm.get(entity), Ok(expected_state));
+			// Check expected values of change detection
+			assert_eq!(
+				dm.changes[&entity],
+				PendingChanges {
+					spawn_state: Some(expected_state.clone()),
+					..Default::default()
+				}
+			);
+		}
 
-		// Check expected values of entity's state.
-		assert_eq!(dm.get(entity), Ok(&state));
+		check_entity(&dm, entity1, &expected_state1, expected_index1);
+		// Check expected value of local_idx
+		assert_eq!(dm.local_idx, entity1.idx);
+		// Check expected values of change detection
+		assert_eq!(dm.changes.len(), 1);
+
+		// Spawn another entity
+		let expected_state2 = bytes::Bytes::from_static(&[2]);
+		let expected_index2 = Index::default_local().next().next();
+		let entity2 = dm.spawn(expected_state2.clone());
+
+		check_entity(&dm, entity1, &expected_state1, expected_index1);
+		check_entity(&dm, entity2, &expected_state2, expected_index2);
+		// Check expected value of local_idx
+		assert_eq!(dm.local_idx, entity2.idx);
+		// Check expected values of change detection
+		assert_eq!(dm.changes.len(), 2);
 	}
 }
 

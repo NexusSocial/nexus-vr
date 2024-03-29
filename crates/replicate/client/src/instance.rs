@@ -163,17 +163,6 @@ impl Instance {
 		})
 	}
 
-	/// Asks the server to reserve for this client a list of entity ids and store them
-	/// in `entities`.
-	///
-	/// Entities are not spawned on the server until their state is set.
-	pub async fn reserve_entities(
-		&self,
-		#[allow(clippy::ptr_arg)] _entities: &mut Vec<Entity>,
-	) -> Result<()> {
-		todo!()
-	}
-
 	pub fn data_model(&self) -> RwLockReadGuard<'_, DataModel> {
 		self.dm.read().expect("lock poisoned")
 	}

@@ -8,8 +8,8 @@ pub enum SpawnedBy {
 	Remote,
 }
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, Default, PartialOrd, Ord)]
 /// MSB is whether spawning of the entity was initiated remotely or locally.
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, Default, PartialOrd, Ord)]
 struct Index(u32);
 
 impl Index {
@@ -23,10 +23,22 @@ impl Index {
 
 	fn spawned_by(&self) -> SpawnedBy {
 		if *self >= Self::default_remote() {
-			SpawnedBy::Local
-		} else {
 			SpawnedBy::Remote
+		} else {
+			SpawnedBy::Local
 		}
+	}
+
+	/// The next entity's index.
+	///
+	/// # Panics
+	/// Panics if the number of entities overflows.
+	fn next(&self) -> Self {
+		let before = self.spawned_by();
+		let result = Self(self.0.wrapping_add(1));
+		assert_eq!(result.spawned_by(), before, "ran out of available entities");
+
+		result
 	}
 }
 
@@ -63,6 +75,7 @@ struct EntityData {
 pub struct DataModel {
 	data: EntityMap<EntityData>,
 	changes: EntityMap<Changed>,
+	/// The last index of the locally spawned entities.
 	local_idx: Index,
 }
 
@@ -204,11 +217,11 @@ impl DataModel {
 pub struct EntityNotPresent;
 
 #[cfg(test)]
-mod test {
+mod test_dm {
 	use super::*;
 
 	#[test]
-	fn test_dm_new() {
+	fn test_new() {
 		let mut dm = DataModel::new();
 
 		assert_eq!(dm.local_idx, Index::default_local());
@@ -223,14 +236,14 @@ mod test {
 	}
 
 	#[test]
-	fn test_dm_capacity() {
+	fn test_capacity() {
 		let cap = 10;
 		let mut dm = DataModel::with_capacity(cap);
 
 		assert_eq!(dm.local_idx, Index::default_local());
 
-		assert_eq!(dm.data.capacity(), cap);
-		assert_eq!(dm.changes.capacity(), cap);
+		assert!(dm.data.capacity() >= cap);
+		assert!(dm.changes.capacity() >= cap);
 
 		assert_eq!(dm.get(Entity::default()), Err(EntityNotPresent));
 		assert_eq!(dm.remove(Entity::default()), Err(EntityNotPresent));
@@ -239,8 +252,100 @@ mod test {
 	}
 
 	#[test]
-	fn test_update_dm() {
-		// TODO
+	fn test_spawn() {
+		let mut dm = DataModel::new();
+		// Sanity checks
+		assert_eq!(dm.local_idx, Index::default_local());
+
+		// Make the change we want to test
+		let state = bytes::Bytes::from_static(b"yeet");
+		let entity = dm.spawn(state.clone());
+
+		// Check expected values of entity
+		assert_eq!(entity.idx, Index::default_local().next());
+
+		// Check expected values of entity's state.
+		assert_eq!(dm.get(entity), Ok(&state));
+	}
+}
+
+#[cfg(test)]
+mod test_index {
+	use super::*;
+
+	fn max_local() -> Index {
+		let idx = Index(u32::MAX / 2);
+		assert_eq!(idx.spawned_by(), SpawnedBy::Local);
+
+		let higher = Index(idx.0.wrapping_add(1));
+		assert_eq!(higher.spawned_by(), SpawnedBy::Remote);
+
+		let lower = Index(idx.0.wrapping_sub(1));
+		assert_eq!(lower.spawned_by(), SpawnedBy::Local);
+
+		idx
+	}
+
+	fn min_local() -> Index {
+		let idx = Index(0);
+		assert_eq!(idx.spawned_by(), SpawnedBy::Local);
+
+		let higher = Index(idx.0.wrapping_add(1));
+		assert_eq!(higher.spawned_by(), SpawnedBy::Local);
+
+		let lower = Index(idx.0.wrapping_sub(1));
+		assert_eq!(lower.spawned_by(), SpawnedBy::Remote);
+
+		idx
+	}
+
+	fn max_remote() -> Index {
+		let idx = Index(u32::MAX);
+		assert_eq!(idx.spawned_by(), SpawnedBy::Remote);
+
+		let higher = Index(idx.0.wrapping_add(1));
+		assert_eq!(higher.spawned_by(), SpawnedBy::Local);
+
+		let lower = Index(idx.0.wrapping_sub(1));
+		assert_eq!(lower.spawned_by(), SpawnedBy::Remote);
+
+		idx
+	}
+
+	fn min_remote() -> Index {
+		let idx = Index(u32::MAX / 2 + 1);
+		assert_eq!(idx.spawned_by(), SpawnedBy::Remote);
+
+		let higher = Index(idx.0.wrapping_add(1));
+		assert_eq!(higher.spawned_by(), SpawnedBy::Remote);
+
+		let lower = Index(idx.0.wrapping_sub(1));
+		assert_eq!(lower.spawned_by(), SpawnedBy::Local);
+
+		idx
+	}
+
+	#[test]
+	fn test_next() {
+		let default_local = Index::default_local();
+		assert_eq!(default_local.0, 0);
+		assert_eq!(default_local.next(), Index(1));
+
+		let default_remote = Index::default_remote();
+		assert_eq!(default_remote.0, u32::MAX / 2 + 1);
+		assert_eq!(default_remote.next(), Index(u32::MAX / 2 + 2));
+	}
+
+	#[test]
+	#[should_panic(expected = "ran out of available entities")]
+	fn test_next_max_remote_overflows() {
+		max_remote().next();
+	}
+
+	#[test]
+	#[should_panic(expected = "ran out of available entities")]
+	fn test_next_max_local_overflows() {
+		max_local().next();
 	}
 
 	#[test]
@@ -254,10 +359,7 @@ mod test {
 
 	#[test]
 	fn test_spawned_by_defaults() {
-		assert_eq!(Index::default_local(), Index(0));
-		assert_eq!(2147483648u32, 1u32 << 31);
-		assert_eq!(2147483648u32, 1u32 << 31);
-		assert_eq!(u32::MAX / 2 + 1, 1u32 << 31);
-		assert_eq!(Index::default_remote().0, 1 << 31);
+		assert_eq!(Index::default_local(), min_local());
+		assert_eq!(Index::default_remote(), min_remote());
 	}
 }

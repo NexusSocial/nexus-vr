@@ -1,7 +1,4 @@
 //! Messages for the manager API.
-//!
-//! TODO(thebutlah): we do some inefficient stuff here just for convenience.
-//! Fix it later.
 
 use std::fmt::Debug;
 

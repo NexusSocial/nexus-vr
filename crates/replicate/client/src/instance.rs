@@ -79,7 +79,7 @@
 //! [did:web]: https://w3c-ccg.github.io/did-method-web/
 //! [ABA]: https://en.wikipedia.org/wiki/ABA_problem
 
-use std::sync::{atomic::AtomicU16, RwLock, RwLockReadGuard, RwLockWriteGuard};
+use std::sync::atomic::AtomicU16;
 
 use base64::prelude::{Engine, BASE64_URL_SAFE_NO_PAD};
 use eyre::{bail, ensure, Result, WrapErr};
@@ -113,7 +113,7 @@ pub struct Instance {
 	/// Current sequence number.
 	// TODO: Figure out how sequence numbers work
 	_state_seq: StateSeq,
-	dm: RwLock<DataModel>,
+	dm: DataModel,
 }
 
 impl Instance {
@@ -158,17 +158,19 @@ impl Instance {
 			_conn: conn,
 			_url: url,
 			_state_seq: Default::default(),
-			dm: RwLock::new(DataModel::new()),
+			dm: DataModel::new(),
 			_rpc: rpc,
 		})
 	}
 
-	pub fn data_model(&self) -> RwLockReadGuard<'_, DataModel> {
-		self.dm.read().expect("lock poisoned")
+	/// Accesses the data model read-only.
+	pub fn data_model(&self) -> &DataModel {
+		&self.dm
 	}
 
-	pub fn data_model_mut(&self) -> RwLockWriteGuard<'_, DataModel> {
-		self.dm.write().expect("lock poisoned")
+	/// Accesses the data model read-write.
+	pub fn data_model_mut(&mut self) -> &mut DataModel {
+		&mut self.dm
 	}
 }
 

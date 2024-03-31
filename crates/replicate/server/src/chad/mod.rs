@@ -86,6 +86,7 @@ pub async fn launch_webtransport_server(
 			svr_ctx_l.cert =
 				wtransport::Certificate::self_signed(svr_ctx_l.san.iter()).into();
 
+			#[allow(clippy::question_mark)] // false positive
 			if let Err(err) = server
 				.reload_config(
 					ServerConfig::builder()

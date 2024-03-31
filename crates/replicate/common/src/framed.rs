@@ -104,4 +104,3 @@ where
 		self.project().inner.poll_close(cx)
 	}
 }
-

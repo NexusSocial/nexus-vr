@@ -51,13 +51,13 @@ pub struct Entity {
 }
 
 impl Entity {
-	fn default_local() -> Self {
+	pub fn default_local() -> Self {
 		Self {
 			idx: Index::default_local(),
 		}
 	}
 
-	fn default_remote() -> Self {
+	pub fn default_remote() -> Self {
 		Self {
 			idx: Index::default_remote(),
 		}
@@ -116,6 +116,7 @@ struct PendingLocalChanges {
 }
 
 impl PendingLocalChanges {
+	#[cfg(test)]
 	fn is_empty(&self) -> bool {
 		self.spawns.is_empty() && self.despawns.is_empty() && self.mutations.is_empty()
 	}
@@ -260,7 +261,7 @@ impl DataModel {
 		let Some(old) = self.data.get_mut(&entity) else {
 			return Err(EntityNotPresent);
 		};
-		old.state = state.clone();
+		old.state = state;
 
 		// update pending changes.
 		let entry = self

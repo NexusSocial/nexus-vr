@@ -1,7 +1,10 @@
 use clap::Parser;
 use color_eyre::{eyre::WrapErr, Result};
 use replicate_client::{instance::Instance, manager::Manager};
-use replicate_common::did::{AuthenticationAttestation, Did, DidPrivateKey};
+use replicate_common::{
+	data_model::State,
+	did::{AuthenticationAttestation, Did, DidPrivateKey},
+};
 use tracing::info;
 use tracing_subscriber::{filter::LevelFilter, EnvFilter};
 use url::Url;
@@ -52,10 +55,20 @@ async fn main() -> Result<()> {
 		.wrap_err("failed to get instance url")?;
 	info!("Got instance {instance_id} at: {instance_url}");
 
-	let _instance = Instance::connect(instance_url, auth_attest)
+	let mut instance = Instance::connect(instance_url, auth_attest)
 		.await
 		.wrap_err("failed to connect to instance")?;
 	info!("Connected to instance!");
+
+	let dm = instance.data_model_mut();
+	let e1 = dm.spawn(bytes::Bytes::from_static(&[0]));
+	assert_eq!(dm.get(e1).unwrap()[0], 0, "state mismatched at spawn");
+
+	for i in 0..10u8 {
+		dm.update(e1, bytes::Bytes::from(vec![i])).unwrap();
+		let state: &State = dm.get(e1).unwrap();
+		assert_eq!(state[0], i, "state mismatched at iteration {i}");
+	}
 
 	Ok(())
 }

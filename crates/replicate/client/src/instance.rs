@@ -85,7 +85,7 @@ use base64::prelude::{Engine, BASE64_URL_SAFE_NO_PAD};
 use eyre::{bail, ensure, Result, WrapErr};
 use futures::{SinkExt, StreamExt};
 use replicate_common::{
-	data_model::{DataModel, Entity, State},
+	data_model::{DataModel, Entity, LocalChanges, RemoteChanges, State},
 	did::AuthenticationAttestation,
 };
 use tracing::warn;
@@ -172,6 +172,17 @@ impl Instance {
 	pub fn data_model_mut(&mut self) -> &mut DataModel {
 		&mut self.dm
 	}
+
+	// This retrieves the [`RemoteChanges`] from the networking task, calls [`DataModel::flush`]` to apply the changes, and gives the [`LocalChanges`] to the networking task so that it can asynchronously update the server.
+	pub fn flush_pending_changes(&mut self) {
+		// TODO: Actually get these from a networking task.
+		let remote_changes = RemoteChanges::default();
+		let mut local_changes = LocalChanges::default();
+
+		self.dm.flush(&remote_changes, &mut local_changes);
+
+		// TODO: Actually send the local changes to the networking task.
+	}
 }
 
 /// The results of a state update pushed by the server.
@@ -220,7 +231,7 @@ async fn connect_to_url(
 	.build();
 
 	let client = Endpoint::client(cfg)?;
-	let opts = ConnectOptions::builder(&url)
+	let opts = ConnectOptions::builder(url)
 		.add_header("Authorization", format!("Bearer {}", auth_attest))
 		.build();
 	Ok(client.connect(opts).await?)

@@ -1,5 +1,9 @@
+pub mod data_model;
 pub mod did;
+mod framed;
 pub mod messages;
+
+pub use self::framed::Framed;
 
 use bytes::Bytes;
 use serde::{Deserialize, Serialize};
@@ -25,6 +29,12 @@ macro_rules! make_uuid {
 
             pub fn into_uuid(self) -> Uuid {
                 self.0
+            }
+        }
+
+        impl std::fmt::Display for $ident {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                self.0.fmt(f)
             }
         }
     )*}

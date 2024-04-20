@@ -36,6 +36,7 @@ pub async fn main(args: Args) -> Result<()> {
 		.with_env_filter(env_filter)
 		.init();
 
+	tracing::debug!("debug");
 	let im = Arc::new(InstanceManager::default());
 
 	// let im_join = async {

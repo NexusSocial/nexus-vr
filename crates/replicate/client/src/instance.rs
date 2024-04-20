@@ -42,6 +42,32 @@
 //! with an id, which the server assigns in response to a request to spawn an entity
 //! by the client. The id is used by the client to reference it.
 //!
+//! Internally, entity ids are based on a generational index, which is a tuple of
+//! (generation, index): (u32, u32). In the future we may make this (u16,u16). This is
+//! because using generations avoids the [ABA problem][ABA] where an entity could be
+//! deleted, and then a stale id for it could be held by either the server or client
+//! still, and then a new, distinct entity is later created at that index and accessed
+//! with the stale id.
+//!
+//! # State Priority
+//! Each connection will have a dynamically calculated bandwidth, measured in bytes per
+//! second. Sending data too fast will cause state updates to be dropped. Because state
+//! updates are supposed to happen at a roughly fixed frequency, we often will need to
+//! proactively limit the amount of data being sent. To solve this, the user of the api
+//! will explicitly set a send and recv proirity for each entity.
+//!
+//! On each message sent, the client will take the entity's priority and add it to a
+//! priority ccumulator associated with that entity. Then, it will sort all entities by
+//! their priority accumulators, adding entities with the highest proirity to the packet
+//! until the packet has reached its target size (the one calculated based on bandwidth)
+//! or there are no more entities with a non-negative priority accumulator. When the
+//! entity is included in the packet, its priority accumulator is reset.
+//!
+//! When the client configures the recv priority, it will send a reliable message to
+//! the server informing it of its recv priority for that entity. The server will track
+//! these priorities for each client independently, and will follow a similar priority
+//! accumulation scheme described above to prioritize sending updates to the client.
+//!
 //! [^1]: For anyone concerned if this involves blockchains: There are several DID
 //! methods that don't require any use of blockchain technologies, such as
 //! [did:key][did:key] and [did:web][did:web]. Initially, we intend to support only
@@ -51,34 +77,43 @@
 //! [DID]: https://www.w3.org/TR/did-core/
 //! [did:key]: https://w3c-ccg.github.io/did-method-key/
 //! [did:web]: https://w3c-ccg.github.io/did-method-web/
+//! [ABA]: https://en.wikipedia.org/wiki/ABA_problem
 
-use std::{num::NonZeroU16, sync::atomic::AtomicU16};
+use std::sync::atomic::AtomicU16;
 
 use base64::prelude::{Engine, BASE64_URL_SAFE_NO_PAD};
-use replicate_common::did::AuthenticationAttestation;
+use eyre::{bail, ensure, Result, WrapErr};
+use futures::{SinkExt, StreamExt};
+use replicate_common::{
+	data_model::{DataModel, Entity, LocalChanges, RemoteChanges, State},
+	did::AuthenticationAttestation,
+};
 use tracing::warn;
 use url::Url;
-use wtransport::{endpoint::ConnectOptions, ClientConfig, Endpoint, RecvStream};
+use wtransport::{endpoint::ConnectOptions, ClientConfig, Endpoint};
 
 use crate::CertHashDecodeErr;
 
-/// The state of an [`Entity`].
-pub type State = bytes::Bytes;
+use replicate_common::messages::instance::{Clientbound as Cb, Serverbound as Sb};
+type RpcFramed = replicate_common::Framed<wtransport::stream::BiStream, Cb, Sb>;
 
 /// Client api for interacting with a particular instance on the server.
 /// Instances manage persistent, realtime state updates for many concurrent clients.
 #[derive(Debug)]
 pub struct Instance {
 	_conn: wtransport::Connection,
-	_url: String,
+	_url: Url,
 	/// Used to reliably push state updates from server to client. This happens for all
 	/// entities when the client initially connects, as well as when the server is
 	/// marking an entity as "stable", meaning its state is no longer changing frame to
 	/// frame. This allows the server to reduce network bandwidth.
-	_stable_states: RecvStream,
+	// _stable_states: RecvStream,
+	/// Used for general RPC.
+	_rpc: RpcFramed,
 	/// Current sequence number.
 	// TODO: Figure out how sequence numbers work
 	_state_seq: StateSeq,
+	dm: DataModel,
 }
 
 impl Instance {
@@ -90,107 +125,84 @@ impl Instance {
 	pub async fn connect(
 		url: Url,
 		auth_attest: AuthenticationAttestation,
-	) -> Result<Self, ConnectErr> {
-		let _conn = connect_to_url(url, auth_attest).await?;
-		todo!()
+	) -> Result<Self> {
+		let conn = connect_to_url(&url, auth_attest)
+			.await
+			.wrap_err("failed to connect to server")?;
+
+		let bi = wtransport::stream::BiStream::join(
+			conn.open_bi()
+				.await
+				.wrap_err("could not initiate bi stream")?
+				.await
+				.wrap_err("could not finish opening bi stream")?,
+		);
+		let mut rpc = RpcFramed::new(bi);
+
+		// Do handshake before anything else
+		{
+			rpc.send(Sb::HandshakeRequest)
+				.await
+				.wrap_err("failed to send handshake request")?;
+			let Some(msg) = rpc.next().await else {
+				bail!("Server disconnected before completing handshake");
+			};
+			let msg = msg.wrap_err("error while receiving handshake response")?;
+			ensure!(
+				msg == Cb::HandshakeResponse,
+				"invalid message during handshake"
+			);
+		}
+
+		Ok(Self {
+			_conn: conn,
+			_url: url,
+			_state_seq: Default::default(),
+			dm: DataModel::new(),
+			_rpc: rpc,
+		})
 	}
 
-	/// Asks the server to reserve for this client a list of entity ids and store them
-	/// in `entities`.
-	///
-	/// Entities are not spawned on the server until their state is set.
-	pub async fn reserve_entities(
-		&self,
-		#[allow(clippy::ptr_arg)] _entities: &mut Vec<Entity>,
-	) -> Result<(), ReserveErr> {
-		todo!()
+	/// Accesses the data model read-only.
+	pub fn data_model(&self) -> &DataModel {
+		&self.dm
 	}
 
-	pub async fn delete_entities(
-		&self,
-		_entities: impl IntoIterator<Item = Entity>,
-	) -> Result<(), DeleteErr> {
-		todo!()
+	/// Accesses the data model read-write.
+	pub fn data_model_mut(&mut self) -> &mut DataModel {
+		&mut self.dm
 	}
 
-	/// Updates the state of an entity. Note that delivery of this state is not
-	/// guaranteed.
-	///
-	/// If you want to gurantee delivery, use [`Self::send_reliable_state`] or
-	/// use events or an RPC system.
-	pub fn send_state(
-		_states: impl IntoIterator<Item = (Entity, State)>,
-	) -> Result<(), SendStateErr> {
-		todo!()
-	}
+	// This retrieves the [`RemoteChanges`] from the networking task, calls [`DataModel::flush`]` to apply the changes, and gives the [`LocalChanges`] to the networking task so that it can asynchronously update the server.
+	pub fn flush_pending_changes(&mut self) {
+		// TODO: Actually get these from a networking task.
+		let remote_changes = RemoteChanges::default();
+		let mut local_changes = LocalChanges::default();
 
-	/// Sends a reliable state update. Typically you only do this when you don't expect
-	/// to modify the state for the forseeable future and care about the final result.
-	/// For example, you can use this when a physics object comes to rest.
-	///
-	/// Dont use this for general purpose reliable delivery, use events or an RPC system
-	/// for that.
-	pub async fn send_reliable_state(
-		_states: impl IntoIterator<Item = (Entity, State)>,
-	) -> Result<(), SendReliableStateErr> {
-		todo!()
-	}
+		self.dm.flush(&remote_changes, &mut local_changes);
 
-	// TODO: Handle receiving apis.
+		// TODO: Actually send the local changes to the networking task.
+	}
 }
 
-/// An identifier for an entity in the network datamodel. NOTE: This is not the
-/// same as an ECS entity. This crate is completely independent of bevy.
-///
-/// Entity ID of 1 is guaranteed to never be assigned by the server, so you can
-/// use it for default initialization
-#[derive(Debug, Eq, PartialEq, Copy, Clone)]
-pub struct Entity(NonZeroU16);
+/// The results of a state update pushed by the server.
+// TODO: This is gonna go away now.
+pub enum RecvState<'a> {
+	DeletedEntities(&'a [Entity]),
+	StateUpdates {
+		entities: &'a [Entity],
+		states: &'a [State],
+	},
+}
 
 /// Sequence number for state messages
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct StateSeq(AtomicU16);
 
-mod error {
-	use crate::CertHashDecodeErr;
-	use wtransport::error::{ConnectingError, SendDatagramError, StreamWriteError};
-
-	#[derive(thiserror::Error, Debug)]
-	pub enum ReserveErr {}
-
-	#[derive(thiserror::Error, Debug)]
-	pub enum DeleteErr {}
-
-	#[derive(thiserror::Error, Debug)]
-	pub enum SendStateErr {
-		#[error("error while sending state across network: {0}")]
-		Dgram(#[from] SendDatagramError),
-	}
-
-	#[derive(thiserror::Error, Debug)]
-	pub enum SendReliableStateErr {
-		#[error("error while finalizing state to network: {0}")]
-		StreamWrite(#[from] StreamWriteError),
-	}
-
-	#[derive(thiserror::Error, Debug)]
-	pub enum ConnectErr {
-		#[error("failed to create webtransport client: {0}")]
-		ClientCreate(#[from] std::io::Error),
-		#[error("failed to connect to webtransport endoint: {0}")]
-		WtConnectingError(#[from] ConnectingError),
-		#[error(transparent)]
-		InvalidCertHash(#[from] CertHashDecodeErr),
-		#[error(transparent)]
-		Other(#[from] Box<dyn std::error::Error>),
-	}
-}
-pub use self::error::*;
-
 async fn connect_to_url(
-	url: Url,
+	url: &Url,
 	auth_attest: AuthenticationAttestation,
-) -> Result<wtransport::Connection, ConnectErr> {
+) -> Result<wtransport::Connection> {
 	let cert_hash = if let Some(frag) = url.fragment() {
 		let cert_hash = BASE64_URL_SAFE_NO_PAD
 			.decode(frag)
@@ -219,7 +231,7 @@ async fn connect_to_url(
 	.build();
 
 	let client = Endpoint::client(cfg)?;
-	let opts = ConnectOptions::builder(&url)
+	let opts = ConnectOptions::builder(url)
 		.add_header("Authorization", format!("Bearer {}", auth_attest))
 		.build();
 	Ok(client.connect(opts).await?)

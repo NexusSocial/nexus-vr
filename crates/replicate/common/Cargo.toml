@@ -14,7 +14,7 @@ pin-project.workspace = true
 serde.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true, default-features = false }
-tokio-serde.workspace = true
-tokio-util.workspace = true
-url.workspace = true
+tokio-serde = { workspace = true, features = ["json"] }
+tokio-util = { workspace = true, features = ["codec"] }
+url = { workspace = true, features = ["serde"] }
 uuid = { workspace = true, features = ["v4", "serde"] }

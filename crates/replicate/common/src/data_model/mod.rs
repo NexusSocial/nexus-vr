@@ -320,9 +320,24 @@ impl DataModel {
 	pub fn flush(
 		&mut self,
 		_remote_changes: &RemoteChanges,
-		_local_changes: &mut LocalChanges,
+		local_changes: &mut LocalChanges,
 	) {
-		todo!()
+		// TODO: For now, we aren't actually applying any remote changes, because the
+		// server isn't implemented.
+
+		local_changes.mutations.clear();
+		local_changes.despawns.clear();
+		local_changes.mutations.clear();
+
+		local_changes.spawns.extend(self.pending.spawns.drain());
+		local_changes.despawns.extend(self.pending.despawns.drain());
+		local_changes
+			.mutations
+			.extend(self.pending.mutations.iter().map(|(&entity, &mutation)| {
+				let state = self.get(entity).expect("entity should be present").clone();
+				(entity, (mutation, state))
+			}));
+		self.pending.mutations.clear();
 	}
 }
 
@@ -456,6 +471,113 @@ mod test_dm {
 		assert_eq!(dm.pending.spawns.len(), 2);
 		assert_eq!(dm.pending.despawns.len(), 0);
 		assert_eq!(dm.pending.mutations.len(), 0);
+	}
+
+	#[test]
+	fn test_flush_no_remote() {
+		fn compare_pending_to_local(dm: &DataModel, local: &LocalChanges) {
+			let pending = &dm.pending;
+			// Sanity check, make sure that pending and data model are consistent.
+			pending.spawns.iter().for_each(|(&entity, bytes)| {
+				assert_eq!(bytes, dm.get(entity).unwrap(), "entity {entity:?}")
+			});
+			pending.despawns.iter().for_each(|(&entity, _bytes)| {
+				assert!(
+					matches!(dm.get(entity), Err(EntityNotPresent)),
+					"entity {entity:?}"
+				)
+			});
+			pending.mutations.iter().for_each(|(&entity, _mutation)| {
+				assert!(dm.get(entity).is_ok(), "entity {entity:?}")
+			});
+
+			// Actually compare pending to local
+			assert_eq!(pending.spawns, local.spawns);
+			assert_eq!(pending.despawns, local.despawns);
+			assert_eq!(pending.mutations.len(), local.mutations.len());
+			pending.mutations.iter().for_each(|(&entity, &mutation)| {
+				let l_entry = &local.mutations[&entity];
+				assert_eq!(l_entry.0, mutation, "entity: {entity:?}");
+				assert_eq!(l_entry.1, dm.get(entity).unwrap(), "entity: {entity:?}");
+			});
+		}
+
+		/// What we hard-code our expectation of the computed `LocalChanges` to be.
+		struct ExpectedLocalChanges(LocalChanges);
+
+		/// Used to easily re-run steps of the test.
+		struct Steps {
+			dm: DataModel,
+			states: Vec<State>,
+			entities: Vec<Entity>,
+		}
+
+		impl Steps {
+			fn new() -> Self {
+				Self {
+					dm: DataModel::new(),
+					states: Vec::new(),
+					entities: Vec::new(),
+				}
+			}
+
+			fn step0(&mut self) -> ExpectedLocalChanges {
+				let s0 = State::from_static(&[0]);
+				let e0 = self.dm.spawn(s0.clone());
+				self.states.push(s0.clone());
+				self.entities.push(e0);
+				let expected_local = ExpectedLocalChanges(LocalChanges {
+					spawns: HashMap::from([(e0, s0.clone())]),
+					..Default::default()
+				});
+				compare_pending_to_local(&self.dm, &expected_local.0);
+				expected_local
+			}
+
+			fn step1(&mut self) -> ExpectedLocalChanges {
+				self.step0();
+				let s0 = self.states[0].clone();
+				let e0 = self.entities[0];
+				let s1 = State::from_static(&[1]);
+				let e1 = self.dm.spawn(s1.clone());
+				self.states.push(s1.clone());
+				self.entities.push(e1);
+				let expected_local = ExpectedLocalChanges(LocalChanges {
+					spawns: HashMap::from([(e0, s0), (e1, s1)]),
+					..Default::default()
+				});
+				compare_pending_to_local(&self.dm, &expected_local.0);
+				expected_local
+			}
+
+			// TODO: Try deleting and updating entities next
+
+			fn reset(&mut self) {
+				std::mem::take(self);
+			}
+		}
+
+		impl Default for Steps {
+			fn default() -> Self {
+				Self::new()
+			}
+		}
+
+		let mut steps = Steps::new();
+		let remote = RemoteChanges::default();
+		let mut local = LocalChanges::default();
+
+		macro_rules! do_step {
+			($steps:expr, $step:tt) => {
+				$steps.reset();
+				let expected = $steps.$step();
+				steps.dm.flush(&remote, &mut local);
+				assert_eq!(expected.0, local);
+			};
+		}
+
+		do_step!(steps, step0);
+		do_step!(steps, step1);
 	}
 }
 

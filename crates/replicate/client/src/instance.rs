@@ -88,6 +88,7 @@ use replicate_common::{
 	data_model::{DataModel, Entity, LocalChanges, RemoteChanges, State},
 	did::AuthenticationAttestation,
 };
+use tokio::sync::oneshot;
 use tracing::warn;
 use url::Url;
 use wtransport::{endpoint::ConnectOptions, ClientConfig, Endpoint};
@@ -114,6 +115,7 @@ pub struct Instance {
 	// TODO: Figure out how sequence numbers work
 	_state_seq: StateSeq,
 	dm: DataModel,
+	net_task: NetTaskProxy,
 }
 
 impl Instance {
@@ -160,6 +162,7 @@ impl Instance {
 			_state_seq: Default::default(),
 			dm: DataModel::new(),
 			_rpc: rpc,
+			net_task: NetTaskProxy::spawn(),
 		})
 	}
 
@@ -178,10 +181,19 @@ impl Instance {
 		// TODO: Actually get these from a networking task.
 		let remote_changes = RemoteChanges::default();
 		let mut local_changes = LocalChanges::default();
-
 		self.dm.flush(&remote_changes, &mut local_changes);
 
 		// TODO: Actually send the local changes to the networking task.
+	}
+
+	/// Cleanly stops the `Instance` client, returning any errors.
+	///
+	/// You can also just `Drop` it, but that won't allow explicit error access.
+	pub async fn stop(mut self) -> Result<()> {
+		self.net_task
+			.stop()
+			.await
+			.wrap_err("networking task unexpectedly failed")?
 	}
 }
 
@@ -235,4 +247,52 @@ async fn connect_to_url(
 		.add_header("Authorization", format!("Bearer {}", auth_attest))
 		.build();
 	Ok(client.connect(opts).await?)
+}
+
+/// Allows consuming self
+#[derive(Debug)]
+struct NetTaskProxyInner {
+	stop_tx: tokio::sync::oneshot::Sender<()>,
+	handle: tokio::task::JoinHandle<Result<()>>,
+}
+
+impl NetTaskProxyInner {
+	async fn stop(self) -> std::result::Result<Result<()>, tokio::task::JoinError> {
+		let _ = self.stop_tx.send(()); // Error means it was already stopped
+		self.handle.await
+	}
+}
+
+/// Provides a way to communicate with the net task from the [`Instance`].
+#[derive(Debug)]
+struct NetTaskProxy(Option<NetTaskProxyInner>);
+
+impl NetTaskProxy {
+	pub fn spawn() -> Self {
+		let (stop_tx, stop_rx) = tokio::sync::oneshot::channel();
+		let handle = tokio::task::spawn(net_task(stop_rx));
+		Self(Some(NetTaskProxyInner { stop_tx, handle }))
+	}
+
+	/// The preferred way to cleanly stop the task.
+	///
+	/// Panics if it is already stopped.
+	async fn stop(
+		&mut self,
+	) -> std::result::Result<Result<()>, tokio::task::JoinError> {
+		let i = self.0.take().expect("task was already stopped!");
+		i.stop().await
+	}
+}
+
+impl Drop for NetTaskProxy {
+	fn drop(&mut self) {
+		self.0.take().map(|i| tokio::task::spawn(i.stop()));
+	}
+}
+
+/// The entry point of the networking task.
+async fn net_task(stop_rx: oneshot::Receiver<()>) -> Result<()> {
+	let _ = stop_rx.await; // error discarded because dropped sender means we should stop.
+	Ok(())
 }

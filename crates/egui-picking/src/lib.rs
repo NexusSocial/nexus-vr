@@ -19,6 +19,7 @@ use bevy_mod_picking::{
 };
 use std::borrow::Cow;
 use std::marker::PhantomData;
+use bevy_egui::egui::Key;
 
 #[derive(Clone, Copy, Component, Debug)]
 pub struct WorldUI {
@@ -286,7 +287,13 @@ pub fn keyboard_interactions(
 				modifiers,
 				physical_key,
 			};
-			// println!("pushing: {:#?}", egui_event);
+			if key.eq(&Key::Backspace) {
+				break;
+			}
+			if key.eq(&Key::Escape) {
+				break;
+			}
+			egui_input.events.push(egui::Event::Text(key.symbol_or_name().parse().unwrap()));
 		}
 	}
 }

@@ -1,0 +1,13 @@
+[package]
+name = "bevy_egui_keyboard"
+version.workspace = true
+license.workspace = true
+repository.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+bevy.workspace = true
+bevy_egui = "0.24.0"

@@ -1,15 +1,7 @@
-
-use bevy::ecs::system::SystemParam;
-
-
 use bevy::window::PrimaryWindow;
 use bevy::{ecs::schedule::Condition, prelude::*, utils::HashMap};
-use bevy_egui::egui::Key;
 
-use bevy_egui::{
-	egui, egui::PointerButton, EguiInput, EguiRenderToTexture,
-	EguiSet,
-};
+use bevy_egui::{egui, egui::PointerButton, EguiInput, EguiRenderToTexture, EguiSet};
 use bevy_mod_picking::{
 	events::{Down, Move, Out, Pointer, Up},
 	focus::PickingInteraction,
@@ -17,9 +9,6 @@ use bevy_mod_picking::{
 	pointer::PointerId,
 	prelude::{ListenerInput, On},
 };
-use std::borrow::Cow;
-use std::marker::PhantomData;
-
 #[derive(Clone, Copy, Component, Debug)]
 pub struct WorldUI {
 	pub size_x: f32,
@@ -151,7 +140,6 @@ impl Plugin for PickabelEguiPlugin {
 		app.add_event::<UIPointerLeave>();
 		app.add_event::<UIPointerDown>();
 		app.add_event::<UIPointerUp>();
-		app.add_event::<TextInput>();
 		app.add_systems(
 			Update,
 			ui_interactions.run_if(
@@ -163,7 +151,7 @@ impl Plugin for PickabelEguiPlugin {
 		);
 		app.add_systems(
 			PreUpdate,
-			(keyboard_interactions
+			(forward_egui_events
 				.after(EguiSet::ProcessInput)
 				.before(EguiSet::BeginFrame),),
 		);
@@ -179,61 +167,13 @@ pub struct CurrentPointerInteraction {
 	pub pointer: Option<PointerId>,
 }
 
-#[derive(Event, Clone, Debug)]
-pub struct TextInput(Cow<'static, str>);
-
-#[derive(Resource, Default, Clone, Copy, Debug)]
-pub struct ModifierKeysState {
-	_shift: bool,
-	_ctrl: bool,
-	_alt: bool,
-	_win: bool,
-}
-
-#[allow(missing_docs)]
-#[derive(SystemParam)]
-pub struct InputResources<'w, 's> {
-	#[cfg(all(
-		feature = "manage_clipboard",
-		not(target_os = "android"),
-		not(all(target_arch = "wasm32", not(web_sys_unstable_apis)))
-	))]
-	pub egui_clipboard: bevy::ecs::system::ResMut<'w, crate::EguiClipboard>,
-	pub modifier_keys_state: Local<'s, ModifierKeysState>,
-	#[system_param(ignore)]
-	_marker: PhantomData<&'w ()>,
-}
-
-pub fn keyboard_interactions(
+pub fn forward_egui_events(
 	mut query: Query<&mut EguiInput, With<WorldUI>>,
-	mut text_inputs: EventReader<TextInput>,
 	window_query: Query<&EguiInput, (With<PrimaryWindow>, Without<WorldUI>)>,
 ) {
-	// use std::sync::Once;
-	// static START: Once = Once::new();
-	// START.call_once(|| {
-	// 	// The default for WASM is `false` since the `target_os` is `unknown`.
-	// 	//*context_params.is_macos = cfg!(target_os = "macos");
-	// });
 	let Ok(primary_input) = window_query.get_single() else {
 		warn!("Unable to find one Primary Window!");
 		return;
-	};
-
-	for e in text_inputs.read() {
-		for mut egui_input in query.iter_mut() {
-			egui_input.events.push(egui::Event::Text(e.0.to_string()));
-		}
-	}
-
-	// let keyboard_input_events = keyboard_input.read().cloned().collect::<Vec<_>>();
-
-	let _modifiers = egui::Modifiers {
-		alt: false,
-		ctrl: false,
-		shift: false,
-		mac_cmd: false,
-		command: false,
 	};
 
 	let events = primary_input.events.iter().filter_map(|e| {
@@ -260,98 +200,8 @@ pub fn keyboard_interactions(
 		}
 	});
 
-	// let mut is_not_text = None;
-	//
-	// for event in &keyboard_input_events {
-	// 	for mut egui_input in query.iter_mut() {
-	// 		let (Some(key), _physical_key) = (
-	// 			bevy_to_egui_key(&event.logical_key),
-	// 			bevy_to_egui_physical_key(&event.key_code),
-	// 		) else {
-	// 			continue;
-	// 		};
-	//
-	// 		if event.state.eq(&ButtonState::Released) {
-	// 			break;
-	// 		}
-	// 		if !should_represent_as_text(&key) {
-	// 			is_not_text.replace(true);
-	// 			break;
-	// 		}
-	// 		egui_input
-	// 			.events
-	// 			.push(egui::Event::Text(key.symbol_or_name().to_ascii_lowercase()));
-	// 	}
-	// }
-	//
-	// if let Some(is_not_text) = is_not_text {
-	// 	if is_not_text {
-	// 		for mut egui_input in query.iter_mut() {
-	// 			egui_input.events.extend(events.clone());
-	// 		}
-	// 		return;
-	// 	}
-	// }
-
 	for mut egui_input in query.iter_mut() {
 		egui_input.events.extend(events.clone());
-	}
-}
-
-pub fn should_represent_as_text(key: &Key) -> bool {
-	match key {
-		Key::Colon
-		| Key::Comma
-		| Key::Backslash
-		| Key::Slash
-		| Key::Pipe
-		| Key::Questionmark
-		| Key::OpenBracket
-		| Key::CloseBracket
-		| Key::Backtick
-		| Key::Minus
-		| Key::Period
-		| Key::Plus
-		| Key::Equals
-		| Key::Semicolon
-		| Key::Num0
-		| Key::Num1
-		| Key::Num2
-		| Key::Num3
-		| Key::Num4
-		| Key::Num5
-		| Key::Num6
-		| Key::Num7
-		| Key::Num8
-		| Key::Num9
-		| Key::A
-		| Key::B
-		| Key::C
-		| Key::D
-		| Key::E
-		| Key::F
-		| Key::G
-		| Key::H
-		| Key::I
-		| Key::J
-		| Key::K
-		| Key::L
-		| Key::M
-		| Key::N
-		| Key::O
-		| Key::P
-		| Key::Q
-		| Key::R
-		| Key::S
-		| Key::T
-		| Key::U
-		| Key::V
-		| Key::W
-		| Key::X
-		| Key::Y
-		| Key::Z
-		| Key::Space => true,
-		_ => false,
 	}
 }
 

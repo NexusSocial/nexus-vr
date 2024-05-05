@@ -183,10 +183,10 @@ pub fn draw_keyboard(ui: &mut Ui, primary_window: Entity, previously_pressed: &m
 		}*/
 		show_row(ui, second_row(), &mut key_pressed);
 	});
-	if let Some(previously_pressed) = previously_pressed.as_ref() {
+	if let Some(previously_pressed) = previously_pressed.take() {
 		keyboard_writer.send(KeyboardInput {
-			key_code: *previously_pressed,
-			logical_key: bevy::input::keyboard::Key::Character(bevy_to_egui_physical_key(previously_pressed).unwrap().symbol_or_name().parse().unwrap()),
+			key_code: previously_pressed,
+			logical_key: bevy::input::keyboard::Key::Character(bevy_to_egui_physical_key(&previously_pressed).unwrap().symbol_or_name().parse().unwrap()),
 			state: ButtonState::Released,
 			window: primary_window,
 		});

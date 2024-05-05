@@ -1,10 +1,15 @@
-use std::marker::PhantomData;
-use bevy::{ecs::schedule::Condition, prelude::*, utils::HashMap};
 use bevy::ecs::query::QueryEntityError;
 use bevy::ecs::system::SystemParam;
 use bevy::input::keyboard::KeyboardInput;
-use bevy_egui::{egui, egui::PointerButton, EguiContextQueryItem, EguiInput, EguiRenderToTexture, EguiSet};
+use bevy::window::PrimaryWindow;
+use bevy::{ecs::schedule::Condition, prelude::*, utils::HashMap};
 use bevy_egui::systems::{bevy_to_egui_key, ContextSystemParams};
+use bevy_egui::EguiContextQuery;
+use bevy_egui::{
+	egui, egui::PointerButton, EguiContextQueryItem, EguiInput, EguiRenderToTexture,
+	EguiSet,
+};
+use bevy_egui_keyboard::bevy_to_egui_physical_key;
 use bevy_mod_picking::{
 	events::{Down, Move, Out, Pointer, Up},
 	focus::PickingInteraction,
@@ -12,7 +17,8 @@ use bevy_mod_picking::{
 	pointer::PointerId,
 	prelude::{ListenerInput, On},
 };
-use bevy_egui_keyboard::bevy_to_egui_physical_key;
+use std::borrow::Cow;
+use std::marker::PhantomData;
 
 #[derive(Clone, Copy, Component, Debug)]
 pub struct WorldUI {
@@ -145,14 +151,21 @@ impl Plugin for PickabelEguiPlugin {
 		app.add_event::<UIPointerLeave>();
 		app.add_event::<UIPointerDown>();
 		app.add_event::<UIPointerUp>();
+		app.add_event::<TextInput>();
 		app.add_systems(
 			Update,
-			(ui_interactions.run_if(
+			ui_interactions.run_if(
 				on_event::<UIPointerMove>()
 					.or_else(on_event::<UIPointerLeave>())
 					.or_else(on_event::<UIPointerDown>())
 					.or_else(on_event::<UIPointerUp>()),
-			), keyboard_interactions.after(EguiSet::ProcessInput).before(EguiSet::BeginFrame))
+			),
+		);
+		app.add_systems(
+			PreUpdate,
+			(keyboard_interactions
+				.after(EguiSet::ProcessInput)
+				.before(EguiSet::BeginFrame),),
 		);
 	}
 }
@@ -166,6 +179,9 @@ pub struct CurrentPointerInteraction {
 	pub pointer: Option<PointerId>,
 }
 
+#[derive(Event, Clone, Debug)]
+pub struct TextInput(Cow<'static, str>);
+
 #[derive(Resource, Default, Clone, Copy, Debug)]
 pub struct ModifierKeysState {
 	shift: bool,
@@ -178,70 +194,76 @@ pub struct ModifierKeysState {
 #[derive(SystemParam)]
 pub struct InputResources<'w, 's> {
 	#[cfg(all(
-	feature = "manage_clipboard",
-	not(target_os = "android"),
-	not(all(target_arch = "wasm32", not(web_sys_unstable_apis)))
+		feature = "manage_clipboard",
+		not(target_os = "android"),
+		not(all(target_arch = "wasm32", not(web_sys_unstable_apis)))
 	))]
 	pub egui_clipboard: bevy::ecs::system::ResMut<'w, crate::EguiClipboard>,
 	pub modifier_keys_state: Local<'s, ModifierKeysState>,
 	#[system_param(ignore)]
 	_marker: PhantomData<&'w ()>,
 }
+
 pub fn keyboard_interactions(
 	mut query: Query<&mut EguiInput, With<WorldUI>>,
 	mut keyboard_input: EventReader<KeyboardInput>,
+	mut text_inputs: EventReader<TextInput>,
+	window_query: Query<&EguiInput, (With<PrimaryWindow>, Without<WorldUI>)>,
 ) {
-	use std::sync::Once;
-	static START: Once = Once::new();
-	START.call_once(|| {
-		// The default for WASM is `false` since the `target_os` is `unknown`.
-		//*context_params.is_macos = cfg!(target_os = "macos");
+	// use std::sync::Once;
+	// static START: Once = Once::new();
+	// START.call_once(|| {
+	// 	// The default for WASM is `false` since the `target_os` is `unknown`.
+	// 	//*context_params.is_macos = cfg!(target_os = "macos");
+	// });
+	let Ok(primary_input) = window_query.get_single() else {
+		warn!("Unable to find one Primary Window!");
+		return;
+	};
 
-	});
-
-	let mut keyboard_input_events = Vec::new();
-	for event in keyboard_input.read() {
-		// Copy the events as we might want to pass them to an Egui context later.
-		keyboard_input_events.push(event.clone());
-
-		/*let KeyboardInput {
-			logical_key, state, ..
-		} = event;
-		match logical_key {
-			bevy::input::keyboard::Key::Shift => {
-				input_resources.modifier_keys_state.shift = state.is_pressed();
-			}
-			bevy::input::keyboard::Key::Control => {
-				input_resources.modifier_keys_state.ctrl = state.is_pressed();
-			}
-			bevy::input::keyboard::Key::Alt => {
-				input_resources.modifier_keys_state.alt = state.is_pressed();
-			}
-			bevy::input::keyboard::Key::Super | bevy::input::keyboard::Key::Meta => {
-				input_resources.modifier_keys_state.win = state.is_pressed();
-			}
-			_ => {}
-		};*/
+	for e in text_inputs.read() {
+		for mut egui_input in query.iter_mut() {
+			egui_input.events.push(egui::Event::Text(e.0.to_string()));
+		}
 	}
 
-	/*let ModifierKeysState {
-		shift,
-		ctrl,
-		alt,
-		win,
-	} = *input_resources.modifier_keys_state;
-	let mac_cmd = if *context_params.is_macos { win } else { false };
-	let command = if *context_params.is_macos { win } else { ctrl };
+	let keyboard_input_events = keyboard_input.read().collect::<Vec<_>>();
 
+	let events = primary_input.events.iter().filter_map(|e| {
+		match e {
+			egui::Event::Copy => Some(e.clone()),
+			egui::Event::Cut => Some(e.clone()),
+			egui::Event::Paste(_) => Some(e.clone()),
+			egui::Event::Text(_) => Some(e.clone()),
+			egui::Event::Key {
+				key: _,
+				physical_key: _,
+				pressed: _,
+				repeat: _,
+				modifiers: _,
+			} => Some(e.clone()),
+			// egui::Event::Scroll(_) => Some(e.clone()),
+			// egui::Event::Zoom(_) => Some(e.clone()),
+			// egui::Event::Touch {
+			// 	device_id:_,
+			// 	id:_,
+			// 	phase:_,
+			// 	pos:_,
+			// 	force:_,
+			// } => Some(e.clone()),
+			// egui::Event::MouseWheel {
+			// 	unit:_,
+			// 	delta:_,
+			// 	modifiers:_,
+			// } => Some(e.clone()),
+			_ => None,
+		}
+	});
+
+	for mut egui_input in query.iter_mut() {
+		egui_input.events.extend(events.clone());
+	}
 	let modifiers = egui::Modifiers {
-		alt,
-		ctrl,
-		shift,
-		mac_cmd,
-		command,
-	};
-*/
-	let modifiers= egui::Modifiers {
 		alt: false,
 		ctrl: false,
 		shift: false,
@@ -264,8 +286,7 @@ pub fn keyboard_interactions(
 				modifiers,
 				physical_key,
 			};
-			println!("pushing: {:#?}", egui_event);
-			egui_input.events.push(egui_event);
+			// println!("pushing: {:#?}", egui_event);
 		}
 	}
 }

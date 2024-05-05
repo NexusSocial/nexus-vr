@@ -131,7 +131,7 @@ fn update_worldspace(
 	>,
 	mut contexts2: Query<&mut bevy_egui::EguiContext, With<KeyboardBoi>>,
 	window: Query<Entity, With<PrimaryWindow>>,
-	mut just_pressed: Local<Option<KeyCode>>,
+	_just_pressed: Local<Option<KeyCode>>,
 	mut event_writer: EventWriter<KeyboardInput>,
 	mut previously_pressed: Local<Option<KeyCode>>,
 	mut buf: Local<String>,

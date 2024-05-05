@@ -1,18 +1,18 @@
-use bevy::ecs::query::QueryEntityError;
+
 use bevy::ecs::system::SystemParam;
 use bevy::input::keyboard::KeyboardInput;
 use bevy::input::ButtonState;
-use bevy::utils::hashbrown::Equivalent;
-use bevy::utils::tracing::event;
+
+
 use bevy::window::PrimaryWindow;
 use bevy::{ecs::schedule::Condition, prelude::*, utils::HashMap};
 use bevy_egui::egui::Key;
 use bevy_egui::systems::{
-	bevy_to_egui_key, bevy_to_egui_physical_key, ContextSystemParams,
+	bevy_to_egui_key, bevy_to_egui_physical_key,
 };
-use bevy_egui::EguiContextQuery;
+
 use bevy_egui::{
-	egui, egui::PointerButton, EguiContextQueryItem, EguiInput, EguiRenderToTexture,
+	egui, egui::PointerButton, EguiInput, EguiRenderToTexture,
 	EguiSet,
 };
 use bevy_egui_keyboard::OnScreenKeyboard;
@@ -236,7 +236,7 @@ pub fn keyboard_interactions(
 
 	let keyboard_input_events = keyboard_input.read().cloned().collect::<Vec<_>>();
 
-	let modifiers = egui::Modifiers {
+	let _modifiers = egui::Modifiers {
 		alt: false,
 		ctrl: false,
 		shift: false,
@@ -279,7 +279,7 @@ pub fn keyboard_interactions(
 
 	for event in &keyboard_input_events {
 		for mut egui_input in query.iter_mut() {
-			let (Some(key), physical_key) = (
+			let (Some(key), _physical_key) = (
 				bevy_to_egui_key(&event.logical_key),
 				bevy_to_egui_physical_key(&event.key_code),
 			) else {

@@ -5,9 +5,7 @@ use bevy::{
 	render::render_resource::{Extent3d, TextureUsages},
 };
 use bevy_egui::{egui, EguiContexts, EguiPlugin, EguiRenderToTexture};
-use bevy_egui_keyboard::{
-	draw_keyboard,  KeyValue, ModifierState, 
-};
+use bevy_egui_keyboard::{draw_keyboard, KeyValue, ModifierState};
 use bevy_mod_picking::DefaultPickingPlugins;
 use egui_picking::{PickabelEguiPlugin, WorldSpaceUI};
 

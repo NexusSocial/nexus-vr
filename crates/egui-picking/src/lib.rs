@@ -15,7 +15,7 @@ use bevy_egui::{
 	egui, egui::PointerButton, EguiInput, EguiRenderToTexture,
 	EguiSet,
 };
-use bevy_egui_keyboard::OnScreenKeyboard;
+// use bevy_egui_keyboard::OnScreenKeyboard;
 use bevy_mod_picking::{
 	events::{Down, Move, Out, Pointer, Up},
 	focus::PickingInteraction,
@@ -213,7 +213,7 @@ pub struct InputResources<'w, 's> {
 pub fn keyboard_interactions(
 	mut query: Query<&mut EguiInput, With<WorldUI>>,
 	mut keyboard_input: EventReader<KeyboardInput>,
-	onscreen_keyboard: Res<OnScreenKeyboard>,
+	// onscreen_keyboard: Res<OnScreenKeyboard>,
 	mut text_inputs: EventReader<TextInput>,
 	window_query: Query<&EguiInput, (With<PrimaryWindow>, Without<WorldUI>)>,
 ) {
@@ -234,7 +234,7 @@ pub fn keyboard_interactions(
 		}
 	}
 
-	let keyboard_input_events = keyboard_input.read().cloned().collect::<Vec<_>>();
+	// let keyboard_input_events = keyboard_input.read().cloned().collect::<Vec<_>>();
 
 	let _modifiers = egui::Modifiers {
 		alt: false,
@@ -259,13 +259,6 @@ pub fn keyboard_interactions(
 			} => Some(e.clone()),
 			// egui::Event::Scroll(_) => Some(e.clone()),
 			// egui::Event::Zoom(_) => Some(e.clone()),
-			// egui::Event::Touch {
-			// 	device_id:_,
-			// 	id:_,
-			// 	phase:_,
-			// 	pos:_,
-			// 	force:_,
-			// } => Some(e.clone()),
 			// egui::Event::MouseWheel {
 			// 	unit:_,
 			// 	delta:_,
@@ -275,42 +268,38 @@ pub fn keyboard_interactions(
 		}
 	});
 
-	let mut is_not_text = None;
-
-	for event in &keyboard_input_events {
-		for mut egui_input in query.iter_mut() {
-			let (Some(key), _physical_key) = (
-				bevy_to_egui_key(&event.logical_key),
-				bevy_to_egui_physical_key(&event.key_code),
-			) else {
-				continue;
-			};
-
-			if event.state.eq(&ButtonState::Released) {
-				break;
-			}
-			if !should_represent_as_text(&key) {
-				is_not_text.replace(true);
-				break;
-			}
-			egui_input
-				.events
-				.push(egui::Event::Text(key.symbol_or_name().to_ascii_lowercase()));
-		}
-	}
-
-	if let Some(is_not_text) = is_not_text {
-		if is_not_text {
-			for mut egui_input in query.iter_mut() {
-				egui_input.events.extend(events.clone());
-			}
-			return;
-		}
-	}
-
-	if !onscreen_keyboard.0 {
-		return;
-	}
+	// let mut is_not_text = None;
+	//
+	// for event in &keyboard_input_events {
+	// 	for mut egui_input in query.iter_mut() {
+	// 		let (Some(key), _physical_key) = (
+	// 			bevy_to_egui_key(&event.logical_key),
+	// 			bevy_to_egui_physical_key(&event.key_code),
+	// 		) else {
+	// 			continue;
+	// 		};
+	//
+	// 		if event.state.eq(&ButtonState::Released) {
+	// 			break;
+	// 		}
+	// 		if !should_represent_as_text(&key) {
+	// 			is_not_text.replace(true);
+	// 			break;
+	// 		}
+	// 		egui_input
+	// 			.events
+	// 			.push(egui::Event::Text(key.symbol_or_name().to_ascii_lowercase()));
+	// 	}
+	// }
+	//
+	// if let Some(is_not_text) = is_not_text {
+	// 	if is_not_text {
+	// 		for mut egui_input in query.iter_mut() {
+	// 			egui_input.events.extend(events.clone());
+	// 		}
+	// 		return;
+	// 	}
+	// }
 
 	for mut egui_input in query.iter_mut() {
 		egui_input.events.extend(events.clone());

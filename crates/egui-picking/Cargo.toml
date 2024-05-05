@@ -12,7 +12,6 @@ bevy.workspace = true
 bevy_egui.workspace = true
 bevy_mod_picking.workspace = true
 
-bevy_egui_keyboard.workspace = true
 
 [dev-dependencies]
 bevy_mod_picking = { workspace = true, default-features = false, features = [

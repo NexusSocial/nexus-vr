@@ -1244,6 +1244,8 @@ version = "0.0.0"
 dependencies = [
  "bevy",
  "bevy_egui 0.25.0 (git+https://github.com/Schmarni-Dev/bevy_egui/?branch=nexus-use-bevy-0.13)",
+ "bevy_mod_picking",
+ "egui-picking",
 ]
 
 [[package]]
@@ -3268,7 +3270,6 @@ version = "0.0.0"
 dependencies = [
  "bevy",
  "bevy_egui 0.25.0 (git+https://github.com/Schmarni-Dev/bevy_egui/?branch=nexus-use-bevy-0.13)",
- "bevy_egui_keyboard",
  "bevy_mod_picking",
 ]
 

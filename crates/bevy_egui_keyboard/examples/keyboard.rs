@@ -6,7 +6,7 @@ use bevy::{
 };
 use bevy_egui::{egui, EguiContexts, EguiPlugin, EguiRenderToTexture};
 use bevy_egui_keyboard::{
-	draw_keyboard, EguiKeyboard, ModifierState, OnScreenKeyboard, KeyValue,
+	draw_keyboard, EguiKeyboard, KeyValue, ModifierState, OnScreenKeyboard,
 };
 use bevy_mod_picking::DefaultPickingPlugins;
 use egui_picking::{PickabelEguiPlugin, WorldSpaceUI};

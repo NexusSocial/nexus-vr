@@ -1,7 +1,6 @@
 use bevy::input::keyboard::KeyboardInput;
 use bevy::input::ButtonState;
 use bevy::prelude::*;
-use bevy::window::PrimaryWindow;
 
 use crate::get_egui_keys::{first_row, fn_row, number_row, second_row, third_row};
 use bevy_egui::egui::{Key, Ui, WidgetText};
@@ -364,7 +363,7 @@ mod get_egui_keys {
 	use bevy_egui::egui::Key::*;
 
 	use crate::KeyValue;
-	use crate::KeyValue::Char;
+
 	use crate::KeyValue::Key;
 
 	pub fn fn_row() -> Vec<KeyValue> {

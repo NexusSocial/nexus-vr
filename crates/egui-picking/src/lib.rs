@@ -1,21 +1,15 @@
 
 use bevy::ecs::system::SystemParam;
-use bevy::input::keyboard::KeyboardInput;
-use bevy::input::ButtonState;
 
 
 use bevy::window::PrimaryWindow;
 use bevy::{ecs::schedule::Condition, prelude::*, utils::HashMap};
 use bevy_egui::egui::Key;
-use bevy_egui::systems::{
-	bevy_to_egui_key, bevy_to_egui_physical_key,
-};
 
 use bevy_egui::{
 	egui, egui::PointerButton, EguiInput, EguiRenderToTexture,
 	EguiSet,
 };
-// use bevy_egui_keyboard::OnScreenKeyboard;
 use bevy_mod_picking::{
 	events::{Down, Move, Out, Pointer, Up},
 	focus::PickingInteraction,
@@ -212,8 +206,6 @@ pub struct InputResources<'w, 's> {
 
 pub fn keyboard_interactions(
 	mut query: Query<&mut EguiInput, With<WorldUI>>,
-	mut keyboard_input: EventReader<KeyboardInput>,
-	// onscreen_keyboard: Res<OnScreenKeyboard>,
 	mut text_inputs: EventReader<TextInput>,
 	window_query: Query<&EguiInput, (With<PrimaryWindow>, Without<WorldUI>)>,
 ) {

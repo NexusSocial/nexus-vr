@@ -1,12 +1,14 @@
+use bevy::input::keyboard::KeyboardInput;
+use bevy::window::PrimaryWindow;
 use bevy::{
 	prelude::*,
 	render::render_resource::{Extent3d, TextureUsages},
 };
-use bevy::input::keyboard::KeyboardInput;
-use bevy::window::PrimaryWindow;
 use bevy_egui::{egui, EguiContexts, EguiPlugin, EguiRenderToTexture};
+use bevy_egui_keyboard::{
+	draw_keyboard, EguiKeyboard, ModifierState, OnScreenKeyboard,
+};
 use bevy_mod_picking::DefaultPickingPlugins;
-use bevy_egui_keyboard::draw_keyboard;
 use egui_picking::{PickabelEguiPlugin, WorldSpaceUI};
 
 fn main() {
@@ -15,6 +17,7 @@ fn main() {
 		.add_plugins(DefaultPickingPlugins)
 		.add_plugins(EguiPlugin)
 		.add_plugins(PickabelEguiPlugin)
+		.add_plugins(EguiKeyboard)
 		.insert_resource(AmbientLight {
 			color: Color::WHITE,
 			brightness: 1.,
@@ -96,7 +99,8 @@ fn setup_worldspace(
 				Transform::IDENTITY,
 				Vec3::Y,
 				Vec3::splat(1.5),
-			).with_translation(Vec3::new(1.5, 0.0, 0.0)),
+			)
+			.with_translation(Vec3::new(0.0, 0.0, 1.0)),
 			..default()
 		},
 		WorldSpaceUI::new(output_texture, 1.0, 1.0),
@@ -121,15 +125,29 @@ fn update_screenspace(mut contexts: EguiContexts, mut buf: Local<String>) {
 pub struct KeyboardBoi;
 
 fn update_worldspace(
-	mut contexts: Query<&mut bevy_egui::EguiContext, (With<EguiRenderToTexture>, Without<KeyboardBoi>)>,
+	mut contexts: Query<
+		&mut bevy_egui::EguiContext,
+		(With<EguiRenderToTexture>, Without<KeyboardBoi>),
+	>,
 	mut contexts2: Query<&mut bevy_egui::EguiContext, With<KeyboardBoi>>,
-	window: Query<Entity, With<PrimaryWindow>>, mut just_pressed: Local<Option<KeyCode>>, mut event_writer: EventWriter<KeyboardInput>,
+	window: Query<Entity, With<PrimaryWindow>>,
+	mut just_pressed: Local<Option<KeyCode>>,
+	mut event_writer: EventWriter<KeyboardInput>,
 	mut previously_pressed: Local<Option<KeyCode>>,
 	mut buf: Local<String>,
+	mut modifier_state: Local<ModifierState>,
+	mut on_screen_keyboard: ResMut<OnScreenKeyboard>,
 ) {
 	for mut ctx in contexts2.iter_mut() {
 		egui::Window::new("other_ui").show(ctx.get_mut(), |ui| {
-			draw_keyboard(ui, window.get_single().unwrap(), &mut previously_pressed, &mut event_writer);
+			draw_keyboard(
+				ui,
+				window.get_single().unwrap(),
+				&mut previously_pressed,
+				&mut event_writer,
+				&mut modifier_state,
+				&mut on_screen_keyboard,
+			);
 		});
 	}
 

@@ -5,7 +5,8 @@ use bevy::utils::petgraph::visit::Walker;
 use bevy::window::PrimaryWindow;
 use bevy_egui::{egui, EguiContexts, EguiPlugin};
 use bevy_egui::egui::{Key, Ui};
-use crate::get_egui_keys::{first_row, fn_row, number_row, second_row};
+use bevy_egui::systems::bevy_to_egui_physical_key;
+use crate::get_egui_keys::{first_row, fn_row, number_row, second_row, third_row};
 
 pub struct ModifierState {
 	caps_lock: bool,
@@ -18,50 +19,7 @@ impl Default for ModifierState {
 		}
 	}
 }
-
-fn ui_example_system(window: Query<Entity, With<PrimaryWindow>>, mut just_pressed: Local<Option<KeyCode>>, mut contexts: EguiContexts, mut keys: ResMut<ButtonInput<KeyCode>>, mut event_writer: EventWriter<KeyboardInput>) {
-
-	let window = window.get_single().unwrap();
-
-	egui::Window::new("Hello").show(contexts.ctx_mut(), |ui| {
-		/*draw_keyboard(ui, window, just_pressed, event_writer);*/
-		/*let mut key_pressed = None;
-		ui.horizontal(|ui| {
-			show_row(ui, fn_row(), &mut key_pressed);
-		});
-		ui.horizontal(|ui| {
-			show_row(ui, number_row(), &mut key_pressed)
-		});
-		ui.horizontal(|ui| {
-			show_row(ui, first_row(), &mut key_pressed);
-		});
-		ui.horizontal(|ui| {
-			if ui.checkbox(&mut modifier_state.caps_lock, "Caps Lock").clicked() {
-				keys.press(KeyCode::CapsLock);
-			} else {
-				keys.release(KeyCode::CapsLock);
-			}
-			show_row(ui, second_row(), &mut key_pressed);
-		});
-		if let Some(previously_pressed) = just_pressed.as_ref() {
-			event_writer.send(KeyboardInput {
-				key_code: *previously_pressed,
-				logical_key: bevy::input::keyboard::Key::Character(bevy_to_egui_physical_key(previously_pressed).unwrap().symbol_or_name().parse().unwrap()),
-				state: ButtonState::Released,
-				window,
-			});
-		}
-		if let Some(key) = key_pressed {
-			event_writer.send(KeyboardInput {
-				key_code: key,
-				logical_key: bevy::input::keyboard::Key::Character(bevy_to_egui_physical_key(&key).unwrap().symbol_or_name().parse().unwrap()),
-				state: ButtonState::Pressed,
-				window,
-			});
-			just_pressed.replace(key);
-		}*/
-	});
-}
+/*
 
 pub fn bevy_to_egui_physical_key(key: &KeyCode) -> Option<egui::Key> {
 	let key = match key {
@@ -163,8 +121,9 @@ pub fn bevy_to_egui_physical_key(key: &KeyCode) -> Option<egui::Key> {
 	};
 	Some(key)
 }
+*/
 
-pub fn draw_keyboard(ui: &mut Ui, primary_window: Entity, previously_pressed: &mut Local<Option<KeyCode>>, keyboard_writer: &mut EventWriter<KeyboardInput>) {
+pub fn draw_keyboard(ui: &mut Ui, primary_window: Entity, previously_pressed: &mut Local<Option<KeyCode>>, keyboard_writer: &mut EventWriter<KeyboardInput>, modifier_state: &mut ModifierState, on_screen_keyboard: &mut OnScreenKeyboard) {
 	let mut key_pressed = None;
 	ui.horizontal(|ui| {
 		show_row(ui, fn_row(), &mut key_pressed);
@@ -176,13 +135,26 @@ pub fn draw_keyboard(ui: &mut Ui, primary_window: Entity, previously_pressed: &m
 		show_row(ui, first_row(), &mut key_pressed);
 	});
 	ui.horizontal(|ui| {
-		/*if ui.checkbox(&mut modifier_state.caps_lock, "Caps Lock").clicked() {
-			keys.press(KeyCode::CapsLock);
-		} else {
-			keys.release(KeyCode::CapsLock);
-		}*/
+		if ui.checkbox(&mut modifier_state.caps_lock, "Caps Lock").clicked() {
+			let button_state = match modifier_state.caps_lock {
+				true => ButtonState::Pressed,
+				false => ButtonState::Released,
+			};
+			keyboard_writer.send(KeyboardInput {
+				key_code: KeyCode::CapsLock,
+				logical_key: bevy::input::keyboard::Key::CapsLock,
+				state: button_state,
+				window: primary_window,
+			});
+		}
 		show_row(ui, second_row(), &mut key_pressed);
 	});
+	ui.horizontal(|ui| {
+		show_row(ui, third_row(), &mut key_pressed);
+	});
+
+	on_screen_keyboard.0 = key_pressed.is_some();
+
 	if let Some(previously_pressed) = previously_pressed.take() {
 		keyboard_writer.send(KeyboardInput {
 			key_code: previously_pressed,
@@ -200,20 +172,6 @@ pub fn draw_keyboard(ui: &mut Ui, primary_window: Entity, previously_pressed: &m
 		});
 		previously_pressed.replace(key);
 	}
-}
-
-fn print_keys(mut buffer: Local<String>, keys: Res<ButtonInput<KeyCode>>, mut contexts: EguiContexts) {
-	egui::Window::new("Hello2").show(contexts.ctx_mut(), |ui| {
-		/*for key in keys.get_pressed() {
-            if key.eq(&KeyCode::Backspace) {
-                buffer.pop();
-            } else {
-                buffer.push_str(format!("{:?}", key).as_str());
-            }
-        }*/
-		let mut_string: &mut String = &mut buffer;
-		ui.text_edit_singleline(mut_string);
-	});
 }
 
 fn show_row(ui: &mut Ui, row: Vec<Key>, key_code: &mut Option<KeyCode>){
@@ -240,7 +198,7 @@ fn convert_egui_key(key: bevy_egui::egui::Key) -> KeyCode {
 		Key::Enter => KeyCode::Enter,
 		Key::Space => KeyCode::Space,
 		Key::Delete => KeyCode::Delete,
-	/*	Key::Colon => todo!(),
+		Key::Colon => todo!(),
 		Key::Comma => KeyCode::Comma,
 		Key::Backslash => KeyCode::Backslash,
 		Key::Slash => KeyCode::Slash,
@@ -248,12 +206,12 @@ fn convert_egui_key(key: bevy_egui::egui::Key) -> KeyCode {
 		Key::Questionmark => todo!(),
 		Key::OpenBracket => KeyCode::BracketLeft,
 		Key::CloseBracket => KeyCode::BracketRight,
-		Key::Backtick => KeyCode::Backquote,*/
+		Key::Backtick => KeyCode::Backquote,
 		Key::Minus => KeyCode::Minus,
-	/*	Key::Period => KeyCode::Period,
+		Key::Period => KeyCode::Period,
 		Key::Plus => todo!(),
 		Key::Equals => KeyCode::Equal,
-		Key::Semicolon => KeyCode::Semicolon,*/
+		Key::Semicolon => KeyCode::Semicolon,
 		Key::Num0 => KeyCode::Digit0,
 		Key::Num1 => KeyCode::Digit1,
 		Key::Num2 => KeyCode::Digit2,
@@ -300,11 +258,23 @@ fn convert_egui_key(key: bevy_egui::egui::Key) -> KeyCode {
 		Key::F8 => KeyCode::F8,
 		Key::F9 => KeyCode::F9,
 		Key::F10 => KeyCode::F10,
+		Key::F11 => KeyCode::F11,
+		Key::F12 => KeyCode::F12,
 		_ => panic!("Unhandled key"),
 	}
 
 
 }
+
+pub struct EguiKeyboard;
+
+impl Plugin for EguiKeyboard {
+	fn build(&self, app: &mut App) {
+		app.insert_resource(OnScreenKeyboard(false));
+	}
+}
+#[derive(Resource)]
+pub struct OnScreenKeyboard(pub bool);
 
 mod get_egui_keys {
 	use bevy_egui::egui::Key;
@@ -315,14 +285,18 @@ mod get_egui_keys {
 	}
 
 	pub fn number_row() -> Vec<Key> {
-		vec![/*Backtick,*/ Num0, Num1, Num2, Num3, Num4, Num5, Num6, Num7, Num8, Num9, Num0, Minus, /*Equals,*/ Backspace]
+		vec![Backtick, Num0, Num1, Num2, Num3, Num4, Num5, Num6, Num7, Num8, Num9, Num0, Minus, Equals, Backspace]
 	}
 
 	pub fn first_row() -> Vec<Key> {
-		vec![Tab, Q, W, E, R, T, Y, U, I, O, P,/* CloseBracket, OpenBracket, Backslash*/]
+		vec![Tab, Q, W, E, R, T, Y, U, I, O, P, CloseBracket, OpenBracket, Backslash]
 	}
 
 	pub fn second_row() -> Vec<Key> {
-		vec![A, S, D, F, G, H, J, K, L, /*Semicolon,*/ Enter]
+		vec![A, S, D, F, G, H, J, K, L, Semicolon, Enter]
+	}
+
+	pub fn third_row() -> Vec<Key> {
+		vec![Z, X, C, V, B, N, M, Comma, Period, Slash]
 	}
 }

@@ -1,15 +1,21 @@
 use bevy::ecs::query::QueryEntityError;
 use bevy::ecs::system::SystemParam;
 use bevy::input::keyboard::KeyboardInput;
+use bevy::input::ButtonState;
+use bevy::utils::hashbrown::Equivalent;
+use bevy::utils::tracing::event;
 use bevy::window::PrimaryWindow;
 use bevy::{ecs::schedule::Condition, prelude::*, utils::HashMap};
-use bevy_egui::systems::{bevy_to_egui_key, ContextSystemParams};
+use bevy_egui::egui::Key;
+use bevy_egui::systems::{
+	bevy_to_egui_key, bevy_to_egui_physical_key, ContextSystemParams,
+};
 use bevy_egui::EguiContextQuery;
 use bevy_egui::{
 	egui, egui::PointerButton, EguiContextQueryItem, EguiInput, EguiRenderToTexture,
 	EguiSet,
 };
-use bevy_egui_keyboard::bevy_to_egui_physical_key;
+use bevy_egui_keyboard::OnScreenKeyboard;
 use bevy_mod_picking::{
 	events::{Down, Move, Out, Pointer, Up},
 	focus::PickingInteraction,
@@ -19,7 +25,6 @@ use bevy_mod_picking::{
 };
 use std::borrow::Cow;
 use std::marker::PhantomData;
-use bevy_egui::egui::Key;
 
 #[derive(Clone, Copy, Component, Debug)]
 pub struct WorldUI {
@@ -208,6 +213,7 @@ pub struct InputResources<'w, 's> {
 pub fn keyboard_interactions(
 	mut query: Query<&mut EguiInput, With<WorldUI>>,
 	mut keyboard_input: EventReader<KeyboardInput>,
+	onscreen_keyboard: Res<OnScreenKeyboard>,
 	mut text_inputs: EventReader<TextInput>,
 	window_query: Query<&EguiInput, (With<PrimaryWindow>, Without<WorldUI>)>,
 ) {
@@ -228,7 +234,15 @@ pub fn keyboard_interactions(
 		}
 	}
 
-	let keyboard_input_events = keyboard_input.read().collect::<Vec<_>>();
+	let keyboard_input_events = keyboard_input.read().cloned().collect::<Vec<_>>();
+
+	let modifiers = egui::Modifiers {
+		alt: false,
+		ctrl: false,
+		shift: false,
+		mac_cmd: false,
+		command: false,
+	};
 
 	let events = primary_input.events.iter().filter_map(|e| {
 		match e {
@@ -261,17 +275,9 @@ pub fn keyboard_interactions(
 		}
 	});
 
-	for mut egui_input in query.iter_mut() {
-		egui_input.events.extend(events.clone());
-	}
-	let modifiers = egui::Modifiers {
-		alt: false,
-		ctrl: false,
-		shift: false,
-		mac_cmd: false,
-		command: false,
-	};
-	for event in keyboard_input_events {
+	let mut is_not_text = None;
+
+	for event in &keyboard_input_events {
 		for mut egui_input in query.iter_mut() {
 			let (Some(key), physical_key) = (
 				bevy_to_egui_key(&event.logical_key),
@@ -280,23 +286,94 @@ pub fn keyboard_interactions(
 				continue;
 			};
 
-			let egui_event = egui::Event::Key {
-				key,
-				pressed: event.state.is_pressed(),
-				repeat: false,
-				modifiers,
-				physical_key,
-			};
-			if key.eq(&Key::Backspace) {
+			if event.state.eq(&ButtonState::Released) {
 				break;
 			}
-			if key.eq(&Key::Escape) {
+			if !should_represent_as_text(&key) {
+				is_not_text.replace(true);
 				break;
 			}
-			egui_input.events.push(egui::Event::Text(key.symbol_or_name().parse().unwrap()));
+			egui_input
+				.events
+				.push(egui::Event::Text(key.symbol_or_name().to_ascii_lowercase()));
 		}
 	}
+
+	if let Some(is_not_text) = is_not_text {
+		if is_not_text {
+			for mut egui_input in query.iter_mut() {
+				egui_input.events.extend(events.clone());
+			}
+			return;
+		}
+	}
+
+	if !onscreen_keyboard.0 {
+		return;
+	}
+
+	for mut egui_input in query.iter_mut() {
+		egui_input.events.extend(events.clone());
+	}
 }
+
+pub fn should_represent_as_text(key: &Key) -> bool {
+	match key {
+		Key::Colon
+		| Key::Comma
+		| Key::Backslash
+		| Key::Slash
+		| Key::Pipe
+		| Key::Questionmark
+		| Key::OpenBracket
+		| Key::CloseBracket
+		| Key::Backtick
+		| Key::Minus
+		| Key::Period
+		| Key::Plus
+		| Key::Equals
+		| Key::Semicolon
+		| Key::Num0
+		| Key::Num1
+		| Key::Num2
+		| Key::Num3
+		| Key::Num4
+		| Key::Num5
+		| Key::Num6
+		| Key::Num7
+		| Key::Num8
+		| Key::Num9
+		| Key::A
+		| Key::B
+		| Key::C
+		| Key::D
+		| Key::E
+		| Key::F
+		| Key::G
+		| Key::H
+		| Key::I
+		| Key::J
+		| Key::K
+		| Key::L
+		| Key::M
+		| Key::N
+		| Key::O
+		| Key::P
+		| Key::Q
+		| Key::R
+		| Key::S
+		| Key::T
+		| Key::U
+		| Key::V
+		| Key::W
+		| Key::X
+		| Key::Y
+		| Key::Z
+		| Key::Space => true,
+		_ => false,
+	}
+}
+
 pub fn ui_interactions(
 	mut inputs: Query<(
 		&mut EguiInput,

@@ -9,6 +9,7 @@ members = [
 	"apps/social/common",
 	"apps/social/networking",
 	"apps/social/server",
+	"crates/bevy_egui_keyboard",
 	"crates/egui-picking",
 	"crates/picking-xr",
 	"crates/replicate/client",
@@ -64,6 +65,7 @@ tracing-subscriber = "0.3.18"
 url = "2.5.0"
 uuid = "1.7.0"
 wtransport = "0.1.11"
+bevy_egui_keyboard.path = "crates/bevy_egui_keyboard"
 
 [workspace.dependencies.derive_more]
 version = "0.99"

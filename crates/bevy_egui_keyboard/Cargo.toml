@@ -10,4 +10,4 @@ rust-version.workspace = true
 
 [dependencies]
 bevy.workspace = true
-bevy_egui = "0.24.0"
+bevy_egui.workspace = true

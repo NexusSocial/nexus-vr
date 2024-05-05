@@ -1239,6 +1239,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy_egui_keyboard"
+version = "0.0.0"
+dependencies = [
+ "bevy",
+ "bevy_egui 0.25.0 (git+https://github.com/Schmarni-Dev/bevy_egui/?branch=nexus-use-bevy-0.13)",
+]
+
+[[package]]
 name = "bevy_encase_derive"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3260,6 +3268,7 @@ version = "0.0.0"
 dependencies = [
  "bevy",
  "bevy_egui 0.25.0 (git+https://github.com/Schmarni-Dev/bevy_egui/?branch=nexus-use-bevy-0.13)",
+ "bevy_egui_keyboard",
  "bevy_mod_picking",
 ]
 

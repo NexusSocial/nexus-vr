@@ -190,10 +190,10 @@ pub struct TextInput(Cow<'static, str>);
 
 #[derive(Resource, Default, Clone, Copy, Debug)]
 pub struct ModifierKeysState {
-	shift: bool,
-	ctrl: bool,
-	alt: bool,
-	win: bool,
+	_shift: bool,
+	_ctrl: bool,
+	_alt: bool,
+	_win: bool,
 }
 
 #[allow(missing_docs)]

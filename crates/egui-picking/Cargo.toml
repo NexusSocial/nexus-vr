@@ -11,3 +11,12 @@ bevy.workspace = true
 # Will move this when the worldspace stuff is merged. Also my fork only because of the bevy version
 bevy_egui.workspace = true
 bevy_mod_picking.workspace = true
+
+[dev-dependencies]
+bevy_mod_picking = { workspace = true, default-features = false, features = [
+	"backend_raycast",
+	"backend_bevy_ui",
+	"backend_sprite",
+	"selection",
+	"highlight",
+] }

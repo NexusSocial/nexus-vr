@@ -6,7 +6,7 @@ use bevy::{
 };
 use bevy_egui::{egui, EguiContexts, EguiPlugin, EguiRenderToTexture};
 use bevy_egui_keyboard::{
-	draw_keyboard, EguiKeyboard, KeyValue, ModifierState, OnScreenKeyboard,
+	draw_keyboard,  KeyValue, ModifierState, 
 };
 use bevy_mod_picking::DefaultPickingPlugins;
 use egui_picking::{PickabelEguiPlugin, WorldSpaceUI};
@@ -17,7 +17,6 @@ fn main() {
 		.add_plugins(DefaultPickingPlugins)
 		.add_plugins(EguiPlugin)
 		.add_plugins(PickabelEguiPlugin)
-		.add_plugins(EguiKeyboard)
 		.insert_resource(AmbientLight {
 			color: Color::WHITE,
 			brightness: 1.,
@@ -124,6 +123,7 @@ fn update_screenspace(mut contexts: EguiContexts, mut buf: Local<String>) {
 #[derive(Component)]
 pub struct KeyboardBoi;
 
+#[allow(clippy::too_many_arguments)]
 fn update_worldspace(
 	mut contexts: Query<
 		&mut bevy_egui::EguiContext,
@@ -137,7 +137,6 @@ fn update_worldspace(
 	mut previously_pressed: Local<Option<KeyValue>>,
 	mut buf: Local<String>,
 	mut modifier_state: Local<ModifierState>,
-	mut on_screen_keyboard: ResMut<OnScreenKeyboard>,
 ) {
 	for mut ctx in contexts2.iter_mut() {
 		egui::Window::new("other_ui").show(ctx.get_mut(), |ui| {
@@ -148,7 +147,6 @@ fn update_worldspace(
 				&mut event_writer,
 				&mut char_writer,
 				&mut modifier_state,
-				&mut on_screen_keyboard,
 			);
 		});
 	}

@@ -55,7 +55,7 @@ async fn main() -> Result<()> {
 		.wrap_err("failed to get instance url")?;
 	info!("Got instance {instance_id} at: {instance_url}");
 
-	let mut instance = Instance::connect(instance_url, auth_attest)
+	let (mut instance, net_task) = Instance::connect(instance_url, auth_attest)
 		.await
 		.wrap_err("failed to connect to instance")?;
 	info!("Connected to instance!");
@@ -70,5 +70,9 @@ async fn main() -> Result<()> {
 		assert_eq!(state[0], i, "state mismatched at iteration {i}");
 	}
 
-	Ok(())
+	net_task
+		.handle
+		.await
+		.wrap_err("net task died unexpectedly")?
+		.wrap_err("net task returned an error")
 }

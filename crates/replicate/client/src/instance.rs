@@ -79,43 +79,51 @@
 //! [did:web]: https://w3c-ccg.github.io/did-method-web/
 //! [ABA]: https://en.wikipedia.org/wiki/ABA_problem
 
-use std::sync::atomic::AtomicU16;
+use std::{
+	sync::{atomic::AtomicU16, Arc, Mutex},
+	time::Duration,
+};
 
 use base64::prelude::{Engine, BASE64_URL_SAFE_NO_PAD};
+use bytes::{Bytes, BytesMut};
 use eyre::{bail, ensure, Result, WrapErr};
-use futures::{SinkExt, StreamExt};
+use futures::{Sink, SinkExt, StreamExt, TryStream};
 use replicate_common::{
-	data_model::{DataModel, Entity, LocalChanges, RemoteChanges, State},
+	data_model::{DataModel, LocalChanges, RemoteChanges},
 	did::AuthenticationAttestation,
 };
-use tokio::sync::oneshot;
-use tracing::warn;
+use tokio::{
+	io::{AsyncRead, AsyncWrite},
+	select,
+	sync::oneshot,
+};
+use tracing::{info, warn};
 use url::Url;
 use wtransport::{endpoint::ConnectOptions, ClientConfig, Endpoint};
 
-use crate::CertHashDecodeErr;
+use crate::{unreliable::BiUnreliable, CertHashDecodeErr};
 
-use replicate_common::messages::instance::{Clientbound as Cb, Serverbound as Sb};
-type RpcFramed = replicate_common::Framed<wtransport::stream::BiStream, Cb, Sb>;
+use replicate_common::messages::instance::{
+	ClientboundReliable as CbR, ClientboundUnreliable as CbU, Mutations,
+	ServerboundReliable as SbR, ServerboundUnreliable as SbU,
+};
+
+/// "Reliable Framed"
+type RFramed<T = wtransport::stream::BiStream> = replicate_common::Framed<T, CbR, SbR>;
+/// "Unreliable Framed"
+type UFramed<T> =
+	tokio_serde::Framed<T, CbU, SbU, tokio_serde::formats::Json<CbU, SbU>>;
 
 /// Client api for interacting with a particular instance on the server.
 /// Instances manage persistent, realtime state updates for many concurrent clients.
+///
+/// Other than the initial connect function, the `Instance` doesn't use async and is nonblocking,
+/// so that it can be used inside synchronous code, such as a bevy system.
 #[derive(Debug)]
 pub struct Instance {
-	_conn: wtransport::Connection,
-	_url: Url,
-	/// Used to reliably push state updates from server to client. This happens for all
-	/// entities when the client initially connects, as well as when the server is
-	/// marking an entity as "stable", meaning its state is no longer changing frame to
-	/// frame. This allows the server to reduce network bandwidth.
-	// _stable_states: RecvStream,
-	/// Used for general RPC.
-	_rpc: RpcFramed,
-	/// Current sequence number.
-	// TODO: Figure out how sequence numbers work
-	_state_seq: StateSeq,
 	dm: DataModel,
-	net_task: NetTaskProxy,
+	_local: Arc<Mutex<LocalChanges>>,
+	_remote: Arc<Mutex<RemoteChanges>>,
 }
 
 impl Instance {
@@ -127,43 +135,30 @@ impl Instance {
 	pub async fn connect(
 		url: Url,
 		auth_attest: AuthenticationAttestation,
-	) -> Result<Self> {
+	) -> Result<(Self, NetTaskHandle)> {
 		let conn = connect_to_url(&url, auth_attest)
 			.await
 			.wrap_err("failed to connect to server")?;
 
-		let bi = wtransport::stream::BiStream::join(
+		let reliable = wtransport::stream::BiStream::join(
 			conn.open_bi()
 				.await
 				.wrap_err("could not initiate bi stream")?
 				.await
 				.wrap_err("could not finish opening bi stream")?,
 		);
-		let mut rpc = RpcFramed::new(bi);
+		let unreliable = BiUnreliable::new(conn);
 
-		// Do handshake before anything else
-		{
-			rpc.send(Sb::HandshakeRequest)
-				.await
-				.wrap_err("failed to send handshake request")?;
-			let Some(msg) = rpc.next().await else {
-				bail!("Server disconnected before completing handshake");
-			};
-			let msg = msg.wrap_err("error while receiving handshake response")?;
-			ensure!(
-				msg == Cb::HandshakeResponse,
-				"invalid message during handshake"
-			);
-		}
-
-		Ok(Self {
-			_conn: conn,
-			_url: url,
-			_state_seq: Default::default(),
+		let local = Arc::new(Mutex::new(LocalChanges::default()));
+		let remote = Arc::new(Mutex::new(RemoteChanges::default()));
+		let net_task =
+			NetTaskHandle::spawn(local.clone(), remote.clone(), reliable, unreliable);
+		let self_ = Self {
 			dm: DataModel::new(),
-			_rpc: rpc,
-			net_task: NetTaskProxy::spawn(),
-		})
+			_local: local,
+			_remote: remote,
+		};
+		Ok((self_, net_task))
 	}
 
 	/// Accesses the data model read-only.
@@ -185,26 +180,6 @@ impl Instance {
 
 		// TODO: Actually send the local changes to the networking task.
 	}
-
-	/// Cleanly stops the `Instance` client, returning any errors.
-	///
-	/// You can also just `Drop` it, but that won't allow explicit error access.
-	pub async fn stop(mut self) -> Result<()> {
-		self.net_task
-			.stop()
-			.await
-			.wrap_err("networking task unexpectedly failed")?
-	}
-}
-
-/// The results of a state update pushed by the server.
-// TODO: This is gonna go away now.
-pub enum RecvState<'a> {
-	DeletedEntities(&'a [Entity]),
-	StateUpdates {
-		entities: &'a [Entity],
-		states: &'a [State],
-	},
 }
 
 /// Sequence number for state messages
@@ -249,50 +224,120 @@ async fn connect_to_url(
 	Ok(client.connect(opts).await?)
 }
 
-/// Allows consuming self
+/// Provides access to the networking task. You can join on errors and also kill it using this.
 #[derive(Debug)]
-struct NetTaskProxyInner {
-	stop_tx: tokio::sync::oneshot::Sender<()>,
-	handle: tokio::task::JoinHandle<Result<()>>,
+pub struct NetTaskHandle {
+	pub stop_tx: oneshot::Sender<()>,
+	pub handle: tokio::task::JoinHandle<Result<()>>,
 }
 
-impl NetTaskProxyInner {
-	async fn stop(self) -> std::result::Result<Result<()>, tokio::task::JoinError> {
-		let _ = self.stop_tx.send(()); // Error means it was already stopped
-		self.handle.await
-	}
-}
-
-/// Provides a way to communicate with the net task from the [`Instance`].
-#[derive(Debug)]
-struct NetTaskProxy(Option<NetTaskProxyInner>);
-
-impl NetTaskProxy {
-	pub fn spawn() -> Self {
+impl NetTaskHandle {
+	pub fn spawn<R, U>(
+		local: Arc<Mutex<LocalChanges>>,
+		remote: Arc<Mutex<RemoteChanges>>,
+		rpc_bi_transport: R,
+		unreliable_updates: U,
+	) -> Self
+	where
+		R: AsyncRead + AsyncWrite + Send + Unpin + 'static,
+		U: TryStream<Ok = BytesMut, Error = eyre::Report>
+			+ Sink<Bytes, Error = eyre::Report>
+			+ Send
+			+ Unpin
+			+ 'static,
+	{
 		let (stop_tx, stop_rx) = tokio::sync::oneshot::channel();
-		let handle = tokio::task::spawn(net_task(stop_rx));
-		Self(Some(NetTaskProxyInner { stop_tx, handle }))
-	}
-
-	/// The preferred way to cleanly stop the task.
-	///
-	/// Panics if it is already stopped.
-	async fn stop(
-		&mut self,
-	) -> std::result::Result<Result<()>, tokio::task::JoinError> {
-		let i = self.0.take().expect("task was already stopped!");
-		i.stop().await
-	}
-}
-
-impl Drop for NetTaskProxy {
-	fn drop(&mut self) {
-		self.0.take().map(|i| tokio::task::spawn(i.stop()));
+		let handle = tokio::task::spawn(net_task(
+			stop_rx,
+			local,
+			remote,
+			rpc_bi_transport,
+			unreliable_updates,
+		));
+		NetTaskHandle { stop_tx, handle }
 	}
 }
 
 /// The entry point of the networking task.
-async fn net_task(stop_rx: oneshot::Receiver<()>) -> Result<()> {
-	let _ = stop_rx.await; // error discarded because dropped sender means we should stop.
+/// # Arguments
+async fn net_task<R, U>(
+	mut stop_rx: oneshot::Receiver<()>,
+	_local: Arc<Mutex<LocalChanges>>,
+	_remote: Arc<Mutex<RemoteChanges>>,
+	rpc_transport: R,
+	unreliable_updates: U,
+) -> Result<()>
+where
+	R: StreamTransport,
+	U: MessageTransport,
+{
+	let mut rf = RFramed::new(rpc_transport);
+	let json_codec: tokio_serde::formats::Json<CbU, SbU> = Default::default();
+	let mut uf: UFramed<U> = tokio_serde::Framed::new(unreliable_updates, json_codec);
+
+	// Do handshake before anything else
+	{
+		rf.send(SbR::HandshakeRequest)
+			.await
+			.wrap_err("failed to send handshake request")?;
+		let Some(msg) = rf.next().await else {
+			bail!("Server disconnected before completing handshake");
+		};
+		let msg = msg.wrap_err("error while receiving handshake response")?;
+		ensure!(
+			msg == CbR::HandshakeResponse,
+			"invalid message during handshake"
+		);
+	}
+
+	const SYNC_PERIOD: Duration = Duration::from_millis(100);
+	let mut sync_interval = tokio::time::interval(SYNC_PERIOD);
+
+	loop {
+		select! {
+			_ = &mut stop_rx => break,
+			_ = sync_interval.tick() => push_unreliable(&mut uf).await.wrap_err("error in on_sync")?,
+		}
+	}
+	info!("Stopping networking task...");
+
 	Ok(())
 }
+
+async fn push_unreliable<U>(uf: &mut UFramed<U>) -> Result<()>
+where
+	U: TryStream<Ok = BytesMut, Error = eyre::Report>
+		+ Sink<Bytes, Error = eyre::Report>
+		+ Unpin,
+{
+	let cb: CbU = uf
+		.next()
+		.await
+		.unwrap()
+		.wrap_err("failed to receive ClientboundUnreliable")?;
+	println!("received {cb:?}");
+	let payload = SbU::Mutations(Mutations::default());
+	uf.send(payload)
+		.await
+		.wrap_err("failed to send ServerboundUnreliable")?;
+	Ok(())
+}
+
+/// Trait alias for a message-oriented bidirectional transport.
+/// The items are still raw byte buffers.
+trait MessageTransport:
+	TryStream<Ok = BytesMut, Error = eyre::Report>
+	+ Sink<Bytes, Error = eyre::Report>
+	+ Unpin
+{
+}
+impl<T> MessageTransport for T where
+	T: TryStream<Ok = BytesMut, Error = eyre::Report>
+		+ Sink<Bytes, Error = eyre::Report>
+		+ Unpin
+{
+}
+
+/// Trait alias for a byte-oriented bidirectional transport.
+trait StreamTransport: AsyncRead + AsyncWrite + Unpin {}
+impl<T> StreamTransport for T where T: AsyncRead + AsyncWrite + Unpin {}

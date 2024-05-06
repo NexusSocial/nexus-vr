@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use serde::{Deserialize, Serialize};
+
 pub type EntityMap<T> = HashMap<Entity, T>;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
@@ -9,7 +11,9 @@ pub enum SpawnedBy {
 }
 
 /// MSB is whether spawning of the entity was initiated remotely or locally.
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, PartialOrd, Ord)]
+#[derive(
+	Serialize, Deserialize, Debug, Copy, Clone, Eq, PartialEq, Hash, PartialOrd, Ord,
+)]
 struct Index(u32);
 
 impl Index {
@@ -44,7 +48,7 @@ impl Index {
 
 /// An identifier for an entity in the network datamodel. NOTE: This is not the
 /// same as an ECS entity. This crate is completely independent of bevy.
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+#[derive(Serialize, Deserialize, Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub struct Entity {
 	// TODO: Maybe there should be no difference between the index and the entity?
 	idx: Index,

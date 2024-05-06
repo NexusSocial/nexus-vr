@@ -1,11 +1,26 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Eq, PartialEq)]
-pub enum Serverbound {
+use crate::data_model::{EntityMap, State};
+
+#[derive(Debug, Serialize, Deserialize, Eq, PartialEq)]
+pub enum ServerboundReliable {
 	HandshakeRequest,
 }
 
-#[derive(Serialize, Deserialize, Eq, PartialEq)]
-pub enum Clientbound {
+#[derive(Debug, Serialize, Deserialize, Eq, PartialEq)]
+pub enum ClientboundReliable {
 	HandshakeResponse,
 }
+
+#[derive(Debug, Serialize, Deserialize, Eq, PartialEq)]
+pub enum ServerboundUnreliable {
+	Mutations(Mutations),
+}
+
+#[derive(Debug, Serialize, Deserialize, Eq, PartialEq)]
+pub enum ClientboundUnreliable {
+	Mutations(Mutations),
+}
+
+#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Default)]
+pub struct Mutations(EntityMap<State>);

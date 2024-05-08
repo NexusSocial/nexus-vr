@@ -90,3 +90,58 @@ impl Sink<Bytes> for BiUnreliable {
 		Poll::Ready(Ok(()))
 	}
 }
+
+#[cfg(test)]
+mod test {
+	use super::*;
+	use eyre::Result;
+	use wtransport::{ClientConfig, Endpoint, ServerConfig};
+
+	type Server = wtransport::Endpoint<wtransport::endpoint::endpoint_side::Server>;
+
+	async fn run_server() -> Result<(u16, tokio::task::JoinHandle<()>)> {
+		let cert = wtransport::Certificate::self_signed(["localhost"]);
+		let server = Server::server(
+			ServerConfig::builder()
+				.with_bind_default(0)
+				.with_certificate(cert)
+				.build(),
+		)
+		.wrap_err("failed to create wtransport server")?;
+
+		let port = server
+			.local_addr()
+			.expect("could not determine port")
+			.port();
+
+		let incoming_session = server.accept().await;
+		let incoming_request = incoming_session
+			.await
+			.expect("failed to accept incoming request");
+		let c = incoming_request
+			.accept()
+			.await
+			.expect("failed to accept connection");
+		let handle = tokio::task::spawn(async {
+            loop {
+                let dg = c.receive_datagram().await.expect("failed to receive datagram");
+                c.send_datagram(dg.payload()).expect("failed to send datagram")
+            }
+        );
+
+		Ok((port, handle))
+	}
+
+	async fn create_loopback() -> wtransport::Connection {
+		let connection = Endpoint::client(ClientConfig::default())
+			.unwrap()
+			.connect("https://localhost:4433")
+			.await
+			.unwrap();
+	}
+
+	#[test]
+	fn test_poll_sink() {
+		//
+	}
+}

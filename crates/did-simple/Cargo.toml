@@ -1,0 +1,15 @@
+[package]
+name = "did-simple"
+version.workspace = true
+license.workspace = true
+repository.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description = "Dead simple DIDs"
+
+[dependencies]
+thiserror = "1.0.60"
+bytes = "1.6.0"
+
+[dev-dependencies]
+eyre = "0.6.12"

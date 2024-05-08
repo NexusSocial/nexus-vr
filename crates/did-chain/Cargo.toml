@@ -1,0 +1,11 @@
+[package]
+name = "did-chain"
+version.workspace = true
+license.workspace = true
+repository.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description = "A chain of Decentralized Identifiers"
+
+[dependencies]
+did-simple = { version = "0.0.0", path = "../did-simple" }

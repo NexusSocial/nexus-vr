@@ -6,5 +6,6 @@ repository.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 description = "A rust based wireless PCVR solution"
+publish = false
 
 [dependencies]

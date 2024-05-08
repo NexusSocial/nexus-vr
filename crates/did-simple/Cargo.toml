@@ -6,6 +6,7 @@ repository.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 description = "Dead simple DIDs"
+publish = false
 
 [dependencies]
 thiserror = "1.0.60"

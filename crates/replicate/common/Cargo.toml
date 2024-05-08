@@ -6,6 +6,7 @@ repository.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 description = "Shared code between replicate-client and replicate-server"
+publish = false
 
 [dependencies]
 bytes.workspace = true

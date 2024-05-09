@@ -6,6 +6,7 @@ repository.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 description = "A client api for state replication"
+publish = false
 
 [dependencies]
 base64.workspace = true

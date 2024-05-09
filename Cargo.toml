@@ -10,6 +10,8 @@ members = [
 	"apps/social/networking",
 	"apps/social/server",
 	"crates/bevy_egui_keyboard",
+	"crates/did-chain",
+	"crates/did-simple",
 	"crates/egui-picking",
 	"crates/picking-xr",
 	"crates/replicate/client",

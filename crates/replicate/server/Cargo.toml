@@ -6,6 +6,7 @@ repository.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 description = "A general purpose distributed authority game server"
+publish = false
 
 [dependencies]
 base64.workspace = true

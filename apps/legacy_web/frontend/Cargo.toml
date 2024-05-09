@@ -5,6 +5,7 @@ license.workspace = true
 repository.workspace = true
 edition.workspace = true
 rust-version.workspace = true
+publish = false
 
 [dependencies]
 egui = "0.26.0"

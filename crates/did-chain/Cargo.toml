@@ -1,11 +1,11 @@
 [package]
-name = "rvid-server"
+name = "did-chain"
 version.workspace = true
 license.workspace = true
 repository.workspace = true
 edition.workspace = true
 rust-version.workspace = true
-description = "A rust based wireless PCVR solution"
-publish = false
+description = "A chain of Decentralized Identifiers"
 
 [dependencies]
+did-simple = { version = "0.0.0", path = "../did-simple" }

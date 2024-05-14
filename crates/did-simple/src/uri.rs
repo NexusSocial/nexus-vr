@@ -1,6 +1,4 @@
-use std::str::FromStr;
-
-use bytes::Bytes;
+use std::{fmt::Display, str::FromStr};
 
 use crate::utf8bytes::Utf8Bytes;
 
@@ -40,7 +38,7 @@ impl MethodSpecificId<'_> {
 	}
 }
 
-#[derive(Debug, Eq, PartialEq, Hash)]
+#[derive(Debug, Eq, PartialEq, Hash, Clone)]
 pub struct DidUri {
 	method: DidMethod,
 	/// The string representation of the DID.
@@ -60,14 +58,10 @@ impl DidUri {
 		self.s.as_slice()
 	}
 
-	/// Gets the buffer representing the uri as a byte slice that is guaranteed to be utf8.
-	pub fn utf8_bytes(&self) -> &Utf8Bytes {
+	/// Gets the buffer representing the uri as a reference counted slice that
+	/// is guaranteed to be utf8.
+	pub fn as_utf8_bytes(&self) -> &Utf8Bytes {
 		&self.s
-	}
-
-	/// Gets the buffer representing the uri as bytes.
-	pub fn bytes(&self) -> &Bytes {
-		self.s.bytes()
 	}
 
 	/// The method of the did.
@@ -78,10 +72,6 @@ impl DidUri {
 	/// Method-specific identity info.
 	pub fn method_specific_id(&self) -> MethodSpecificId {
 		MethodSpecificId(self)
-	}
-
-	pub fn into_inner(self) -> Utf8Bytes {
-		self.s
 	}
 }
 
@@ -135,19 +125,28 @@ pub enum ParseError {
 	UnknownMethod,
 }
 
+impl Display for DidUri {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		self.as_str().fmt(f)
+	}
+}
+
 #[cfg(test)]
 mod test {
 	use super::*;
 	use eyre::{Result, WrapErr};
 
-	#[test]
-	fn test_parse() -> Result<()> {
-		let test_cases = [DidUri {
+	fn common_test_cases() -> Vec<DidUri> {
+		vec![DidUri {
 			method: DidMethod::Key,
 			s: String::from("did:key:123456").into(),
 			method_specific_id: (8..),
-		}];
-		for expected in test_cases {
+		}]
+	}
+
+	#[test]
+	fn test_parse() -> Result<()> {
+		for expected in common_test_cases() {
 			let s = expected.s.as_str().to_owned();
 			let from_str = DidUri::from_str(&s).wrap_err("failed to from_str")?;
 			let try_from = DidUri::try_from(s).wrap_err("failed to try_from")?;
@@ -155,5 +154,12 @@ mod test {
 			assert_eq!(from_str, expected);
 		}
 		Ok(())
+	}
+
+	#[test]
+	fn test_display() {
+		for example in common_test_cases() {
+			assert_eq!(example.as_str(), format!("{example}"));
+		}
 	}
 }

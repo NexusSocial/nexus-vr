@@ -1,4 +1,82 @@
-pub const fn decode_varint(encoded: &[u8]) -> Result<u16, DecodeError> {
+/// bitmask for 7 least significant bits
+const LSB_7: u8 = u8::MAX / 2;
+/// bitmask for most significant bit
+const MSB: u8 = !LSB_7;
+
+#[inline]
+const fn msb_is_1(val: u8) -> bool {
+	val & MSB == MSB
+}
+
+#[derive(Debug, Eq, PartialEq, Copy, Clone, Hash)]
+pub(crate) struct VarintEncoding {
+	buf: [u8; 3],
+	len: u8,
+}
+
+impl VarintEncoding {
+	#[allow(dead_code)]
+	pub const fn as_slice(&self) -> &[u8] {
+		self.buf.split_at(self.len as usize).0
+	}
+}
+
+/// Encodes a value as a varint.
+/// Returns an array as well as the length of the array to slice., along  well as an array.
+#[allow(dead_code)]
+pub(crate) const fn encode_varint(value: u16) -> VarintEncoding {
+	let mut out_buf = [0; 3];
+	// ilog2 can be used to get the (0-indexed from LSB position) of the MSB.
+	// We then add one to it, since we are trying to indicate length, not position.
+	let in_bit_length: u16 = if let Some(x) = value.checked_ilog2() {
+		(x + 1) as u16
+	} else {
+		return VarintEncoding {
+			buf: out_buf,
+			len: 0,
+		};
+	};
+
+	let mut out = 0u32;
+	let mut in_bit_pos = 0u16;
+	// Each time we need to write a carry bit into the MSB, we increment this.
+	let mut carry_counter = 0;
+	// Have to use macro because consts can't use closures or &mut in functions :(
+	macro_rules! copy_chunk {
+		() => {
+			let retrieved_bits = value & ((LSB_7 as u16) << in_bit_pos);
+			// if the carry bits weren't a thing, we could keep the position intact
+			// and just directly copy the chunk. But we need to shift left to account
+			// for prior carry bits
+			out |= (retrieved_bits as u32) << carry_counter;
+			in_bit_pos += 7;
+		};
+	}
+	copy_chunk!();
+	while in_bit_pos < in_bit_length {
+		carry_counter += 1;
+		out |= 1 << (carry_counter * 8 - 1); // turns on MSB to indicate carry.
+		copy_chunk!();
+	}
+
+	// the number of bytes to write is equivalent to the carry counter + 1.
+	let num_output_bytes = carry_counter + 1;
+
+	// No for loops or copy_from_slice in const fn :(
+	let mut idx = 0;
+	let output_bytes = out.to_le_bytes();
+	while idx < num_output_bytes {
+		out_buf[idx] = output_bytes[idx];
+		idx += 1;
+	}
+
+	VarintEncoding {
+		buf: out_buf,
+		len: num_output_bytes as u8,
+	}
+}
+
+pub(crate) const fn decode_varint(encoded: &[u8]) -> Result<u16, DecodeError> {
 	// TODO: Technically, some three byte encodings could fit into a u16, we
 	// should support those in the future.
 	// Luckily none of them are used for did:key afaik.
@@ -7,16 +85,6 @@ pub const fn decode_varint(encoded: &[u8]) -> Result<u16, DecodeError> {
 	}
 	if encoded.is_empty() {
 		return Err(DecodeError::MissingBytes);
-	}
-
-	/// bitmask for 7 least significant bits
-	const LSB_7: u8 = u8::MAX / 2;
-	/// bitmask for most significant bit
-	const MSB: u8 = !LSB_7;
-
-	#[inline]
-	const fn msb_is_1(val: u8) -> bool {
-		val & MSB == MSB
 	}
 
 	let a = encoded[0];
@@ -71,7 +139,8 @@ mod test {
 		];
 
 		for (decoded, encoded) in examples1.into_iter().chain(examples2) {
-			assert_eq!(Ok(decoded), decode_varint(encoded))
+			assert_eq!(Ok(decoded), decode_varint(encoded));
+			assert_eq!(encoded, encode_varint(decoded).as_slice());
 		}
 	}
 }

@@ -98,7 +98,7 @@ impl TryFrom<DidUri> for DidKey {
 		// TODO: Instead of comparing decoded versions which requires running the decode
 		// function at runtime, compare the encoded versions. We can do the encode at
 		// compile time.
-		let multicodec_key_type = decode_varint(decoded[0..2].try_into().unwrap())?;
+		let multicodec_key_type = decode_varint(&decoded[0..2])?;
 		let key_algo = match multicodec_key_type {
 			Ed25519::MULTICODEC_VALUE => DynKeyAlgo::Ed25519,
 			_ => return Err(FromUriError::UnknownKeyAlgo(multicodec_key_type)),

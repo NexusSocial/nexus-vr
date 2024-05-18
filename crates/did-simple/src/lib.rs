@@ -24,9 +24,11 @@
 
 use std::str::FromStr;
 
+pub mod key_algos;
 pub mod methods;
 pub mod uri;
 pub mod utf8bytes;
+pub mod varint;
 
 pub trait Did: FromStr {
 	fn uri(&self) -> self::uri::DidUri;

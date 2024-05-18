@@ -5,25 +5,27 @@
 use std::fmt::Display;
 
 use crate::{
+	key_algos::{DynKeyAlgo, Ed25519, StaticKeyAlgo},
 	uri::{DidMethod, DidUri},
 	utf8bytes::Utf8Bytes,
+	varint::decode_varint,
 };
-
-#[derive(Debug, Eq, PartialEq, Hash, Clone)]
-pub enum PubKeyKind {}
 
 /// An implementation of the `did:key` method. See the [module](self) docs for more
 /// info.
 #[derive(Debug, Eq, PartialEq, Hash, Clone)]
-pub struct DidKey {
+pub struct DidKey<A = DynKeyAlgo> {
 	/// The string representation of the DID.
 	s: Utf8Bytes,
 	/// The decoded multibase portion of the DID.
-	decoded: Vec<u8>,
+	mb_value: Vec<u8>,
+	key_algo: A,
 }
 
-impl DidKey {
-	pub const PREFIX: &'static str = "did:key:";
+pub const PREFIX: &str = "did:key:";
+
+impl<A> DidKey<A> {
+	pub const PREFIX: &'static str = PREFIX;
 
 	/// Gets the buffer representing the did:key uri as a str.
 	pub fn as_str(&self) -> &str {
@@ -42,13 +44,19 @@ impl DidKey {
 	}
 }
 
+impl<A: Clone> DidKey<A> {
+	pub fn key_algo(&self) -> A {
+		self.key_algo.clone()
+	}
+}
+
 fn decode_multibase(
 	s: &Utf8Bytes,
 	out_buf: &mut Vec<u8>,
 ) -> Result<(), MultibaseDecodeError> {
 	out_buf.clear();
 	// did:key only uses base58-btc, so its not actually any arbitrary multibase.
-	let multibase_part = &s.as_slice()[DidKey::PREFIX.len()..];
+	let multibase_part = &s.as_slice()[PREFIX.len()..];
 	// the first character should always be 'z'
 	let base = multibase_part[0];
 	if base != b'z' {
@@ -59,6 +67,7 @@ fn decode_multibase(
 		.onto(out_buf)?;
 	Ok(())
 }
+
 #[derive(thiserror::Error, Debug)]
 pub enum MultibaseDecodeError {
 	#[error(
@@ -79,15 +88,26 @@ impl TryFrom<DidUri> for DidKey {
 		}
 		debug_assert_eq!(
 			value.as_slice().len() - value.method_specific_id().as_slice().len(),
-			Self::PREFIX.len(),
+			PREFIX.len(),
 			"sanity check that prefix has expected length"
 		);
 
 		let s = value.as_utf8_bytes().clone();
 		let mut decoded = Vec::new();
 		decode_multibase(&s, &mut decoded)?;
-
-		Ok(Self { s, decoded })
+		// TODO: Instead of comparing decoded versions which requires running the decode
+		// function at runtime, compare the encoded versions. We can do the encode at
+		// compile time.
+		let multicodec_key_type = decode_varint(decoded[0..2].try_into().unwrap())?;
+		let key_algo = match multicodec_key_type {
+			Ed25519::MULTICODEC_VALUE => DynKeyAlgo::Ed25519,
+			_ => return Err(FromUriError::UnknownKeyAlgo(multicodec_key_type)),
+		};
+		Ok(Self {
+			s,
+			mb_value: decoded,
+			key_algo,
+		})
 	}
 }
 
@@ -97,6 +117,10 @@ pub enum FromUriError {
 	WrongMethod(DidMethod),
 	#[error(transparent)]
 	MultibaseDecode(#[from] MultibaseDecodeError),
+	#[error("unknown multicodec value for key algorithm: decoded varint as {0}")]
+	UnknownKeyAlgo(u16),
+	#[error(transparent)]
+	Varint(#[from] crate::varint::DecodeError),
 }
 
 impl Display for DidKey {
@@ -112,7 +136,7 @@ mod test {
 	use eyre::WrapErr;
 	use hex_literal::hex;
 	use std::str::FromStr;
-
+	//0xed
 	// From: https://w3c-ccg.github.io/did-method-key/#example-5
 	fn ed25519_examples() -> &'static [&'static str] {
 		&[
@@ -131,6 +155,7 @@ mod test {
 			let key_from_uri = DidKey::try_from(uri.clone())
 				.wrap_err_with(|| format!("failed to parse DidKey from {uri}"))?;
 			assert_eq!(example, key_from_uri.as_str());
+			assert_eq!(key_from_uri.key_algo(), Ed25519);
 		}
 		Ok(())
 	}
@@ -160,7 +185,7 @@ mod test {
 
 		let mut buf = Vec::new();
 		for e @ Example { decoded, encoded } in examples {
-			let s = format!("{}z{encoded}", DidKey::PREFIX).into();
+			let s = format!("{}z{encoded}", PREFIX).into();
 			decode_multibase(&s, &mut buf)
 				.wrap_err_with(|| format!("Failed to decode example {e:?}"))?;
 			assert_eq!(buf, decoded, "failed comparison in example {e:?}");

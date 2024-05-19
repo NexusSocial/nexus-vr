@@ -10,12 +10,13 @@ const fn msb_is_1(val: u8) -> bool {
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone, Hash)]
 pub(crate) struct VarintEncoding {
-	buf: [u8; 3],
+	buf: [u8; Self::MAX_LEN],
 	len: u8,
 }
 
 impl VarintEncoding {
-	#[allow(dead_code)]
+	pub const MAX_LEN: usize = 3;
+
 	pub const fn as_slice(&self) -> &[u8] {
 		self.buf.split_at(self.len as usize).0
 	}
@@ -23,9 +24,8 @@ impl VarintEncoding {
 
 /// Encodes a value as a varint.
 /// Returns an array as well as the length of the array to slice., along  well as an array.
-#[allow(dead_code)]
 pub(crate) const fn encode_varint(value: u16) -> VarintEncoding {
-	let mut out_buf = [0; 3];
+	let mut out_buf = [0; VarintEncoding::MAX_LEN];
 	// ilog2 can be used to get the (0-indexed from LSB position) of the MSB.
 	// We then add one to it, since we are trying to indicate length, not position.
 	let in_bit_length: u16 = if let Some(x) = value.checked_ilog2() {
@@ -33,7 +33,7 @@ pub(crate) const fn encode_varint(value: u16) -> VarintEncoding {
 	} else {
 		return VarintEncoding {
 			buf: out_buf,
-			len: 0,
+			len: 1,
 		};
 	};
 
@@ -76,33 +76,34 @@ pub(crate) const fn encode_varint(value: u16) -> VarintEncoding {
 	}
 }
 
-pub(crate) const fn decode_varint(encoded: &[u8]) -> Result<u16, DecodeError> {
-	// TODO: Technically, some three byte encodings could fit into a u16, we
-	// should support those in the future.
-	// Luckily none of them are used for did:key afaik.
-	if encoded.len() > 2 {
-		return Err(DecodeError::WouldOverflow);
-	}
+/// Returns tuple of decoded varint and rest of buffer
+pub(crate) const fn decode_varint(encoded: &[u8]) -> Result<(u16, &[u8]), DecodeError> {
 	if encoded.is_empty() {
 		return Err(DecodeError::MissingBytes);
 	}
-
-	let a = encoded[0];
-	let mut result: u16 = (a & LSB_7) as u16;
-	if msb_is_1(a) {
-		// There is another 7 bits to decode.
-		if encoded.len() < 2 {
+	let mut decoded: u16 = 0;
+	let mut current_encoded_idx = 0;
+	let mut current_decoded_bit = 0;
+	while current_decoded_bit < u16::BITS {
+		if current_encoded_idx >= encoded.len() {
 			return Err(DecodeError::MissingBytes);
 		}
-		let b = encoded[1];
-
-		result |= ((b & LSB_7) as u16) << 7;
-		if msb_is_1(b) {
-			// We were provided a varint that ought to have had at least another byte.
-			return Err(DecodeError::MissingBytes);
+		let current_byte = encoded[current_encoded_idx];
+		let Some(shifted) =
+			((current_byte & LSB_7) as u16).checked_shl(current_decoded_bit)
+		else {
+			return Err(DecodeError::WouldOverflow);
+		};
+		decoded |= shifted;
+		current_decoded_bit += 7;
+		current_encoded_idx += 1;
+		if !msb_is_1(current_byte) {
+			break;
 		}
 	}
-	Ok(result)
+	let bytes_in_varint = current_encoded_idx;
+
+	Ok((decoded, encoded.split_at(bytes_in_varint).1))
 }
 
 #[derive(thiserror::Error, Debug, Eq, PartialEq)]
@@ -118,6 +119,20 @@ pub enum DecodeError {
 #[cfg(test)]
 mod test {
 	use super::*;
+
+	fn test_roundtrip(decoded: u16) {
+		let extra_bytes = [1, 2, 3, 4].as_slice();
+		let empty = [].as_slice();
+		let encoded = encode_varint(decoded);
+		println!("encoded {:?}", encoded.as_slice());
+
+		let round_tripped = decode_varint(encoded.as_slice());
+		assert_eq!(Ok((decoded, empty)), round_tripped);
+		let mut encoded_with_extra = encoded.as_slice().to_vec();
+		encoded_with_extra.extend_from_slice(extra_bytes);
+		let round_tripped_with_extra = decode_varint(&encoded_with_extra);
+		assert_eq!(Ok((decoded, extra_bytes)), round_tripped_with_extra)
+	}
 
 	#[test]
 	fn test_known_examples() {
@@ -138,9 +153,46 @@ mod test {
 			(0xe7, &[0xe7, 0x01]),           // Secp256k1
 		];
 
+		let empty: &[u8] = &[];
+		let extra_bytes = [1, 2, 3, 4];
 		for (decoded, encoded) in examples1.into_iter().chain(examples2) {
-			assert_eq!(Ok(decoded), decode_varint(encoded));
 			assert_eq!(encoded, encode_varint(decoded).as_slice());
+			assert_eq!(Ok((decoded, empty)), decode_varint(encoded));
+			// Do another check with some additional extra bytes in the encoding
+			let mut extended_encoded = encoded.to_vec();
+			extended_encoded.extend_from_slice(&extra_bytes);
+			assert_eq!(
+				Ok((decoded, extra_bytes.as_slice())),
+				decode_varint(&extended_encoded)
+			);
+			test_roundtrip(decoded);
+		}
+	}
+
+	#[test]
+	fn test_all_u16_roundtrip() {
+		for i in 0..u16::MAX {
+			test_roundtrip(i);
+		}
+	}
+
+	#[test]
+	fn test_decode_boundary_conditions() {
+		let examples = [
+			([].as_slice(), Err(DecodeError::MissingBytes)),
+			(&[0], Ok((0, [].as_slice()))),
+			(&[0, 0], Ok((0, &[0]))),
+			(&[0, 1], Ok((0, &[1]))),
+			(&[0, u8::MAX], Ok((0, &[u8::MAX]))),
+			(&[u8::MAX], Err(DecodeError::MissingBytes)),
+			(&[1 << 7], Err(DecodeError::MissingBytes)),
+			(&[LSB_7], Ok((LSB_7 as u16, &[]))),
+			(&[LSB_7, 0], Ok((LSB_7 as u16, &[0]))),
+			(&[LSB_7, u8::MAX], Ok((LSB_7 as u16, &[u8::MAX]))),
+		];
+
+		for (encoded, result) in examples {
+			assert_eq!(decode_varint(encoded), result, "decoded from {encoded:?}");
 		}
 	}
 }

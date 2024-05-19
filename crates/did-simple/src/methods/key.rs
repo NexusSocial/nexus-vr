@@ -2,10 +2,11 @@
 //!
 //! [did:key]: https://w3c-ccg.github.io/did-method-key/
 
+use ref_cast::RefCast;
 use std::fmt::Display;
 
 use crate::{
-	key_algos::{DynKeyAlgo, Ed25519, KeyAlgo, StaticKeyAlgo},
+	key_algos::{DynKeyAlgo, DynPubKeyRef, Ed25519, KeyAlgo, PubKey, StaticKeyAlgo},
 	uri::{DidMethod, DidUri},
 	utf8bytes::Utf8Bytes,
 	varint::decode_varint,
@@ -14,19 +15,19 @@ use crate::{
 /// An implementation of the `did:key` method. See the [module](self) docs for more
 /// info.
 #[derive(Debug, Eq, PartialEq, Hash, Clone)]
-pub struct DidKey<A = DynKeyAlgo> {
+pub struct DidKey {
 	/// The string representation of the DID.
 	s: Utf8Bytes,
 	/// The decoded multibase portion of the DID.
 	mb_value: Vec<u8>,
-	key_algo: A,
+	key_algo: DynKeyAlgo,
 	/// The index into [`Self::mb_value`] that is the public key.
 	pubkey_bytes: std::ops::RangeFrom<usize>,
 }
 
 pub const PREFIX: &str = "did:key:";
 
-impl<A> DidKey<A> {
+impl DidKey {
 	pub const PREFIX: &'static str = PREFIX;
 
 	/// Gets the buffer representing the did:key uri as a str.
@@ -44,11 +45,25 @@ impl<A> DidKey<A> {
 	pub fn as_utf8_bytes(&self) -> &Utf8Bytes {
 		&self.s
 	}
-}
 
-impl<A: Clone> DidKey<A> {
-	pub fn key_algo(&self) -> A {
-		self.key_algo.clone()
+	pub fn key_algo(&self) -> DynKeyAlgo {
+		self.key_algo
+	}
+
+	/// Gets the decoded bytes of the public key.
+	pub fn pub_key(&self) -> DynPubKeyRef<'_> {
+		match self.key_algo {
+			DynKeyAlgo::Ed25519 => {
+				// with a cast.
+				let bytes: &[u8] = &self.mb_value[self.pubkey_bytes.clone()];
+				debug_assert_eq!(bytes.len(), Ed25519::PUB_KEY_SIZE);
+				// TODO: Convert to an unsafe cast behind a feature flag later.
+				// This is because the slice is guaranteed by our parsing logic
+				// to match the key algo size.
+				let bytes: &[u8; Ed25519::PUB_KEY_SIZE] = bytes.try_into().unwrap();
+				PubKey::<Ed25519>::ref_cast(bytes).into()
+			}
+		}
 	}
 }
 

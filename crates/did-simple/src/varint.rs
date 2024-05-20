@@ -22,15 +22,36 @@ impl VarintEncoding {
 	}
 }
 
+/// Counts the length of the bits in `value`.
+const fn bitlength(value: u16) -> u8 {
+	// ilog2 can be used to get the (0-indexed from LSB position) of the MSB.
+	// We then add one to it, since we are trying to indicate length, not position.
+	if let Some(x) = value.checked_ilog2() {
+		(x + 1) as u8
+	} else {
+		0
+	}
+}
+
+#[cfg(test)]
+mod bitlength_test {
+	use super::bitlength;
+	#[test]
+	fn test_bitlength() {
+		assert_eq!(bitlength(0b000), 0);
+		assert_eq!(bitlength(0b001), 1);
+		assert_eq!(bitlength(0b010), 2);
+		assert_eq!(bitlength(0b011), 2);
+		assert_eq!(bitlength(0b100), 3);
+	}
+}
+
 /// Encodes a value as a varint.
 /// Returns an array as well as the length of the array to slice., along  well as an array.
 pub(crate) const fn encode_varint(value: u16) -> VarintEncoding {
 	let mut out_buf = [0; VarintEncoding::MAX_LEN];
-	// ilog2 can be used to get the (0-indexed from LSB position) of the MSB.
-	// We then add one to it, since we are trying to indicate length, not position.
-	let in_bit_length: u16 = if let Some(x) = value.checked_ilog2() {
-		(x + 1) as u16
-	} else {
+	let in_bit_length: u16 = bitlength(value) as u16;
+	if in_bit_length == 0 {
 		return VarintEncoding {
 			buf: out_buf,
 			len: 1,
@@ -89,21 +110,22 @@ pub(crate) const fn decode_varint(encoded: &[u8]) -> Result<(u16, &[u8]), Decode
 			return Err(DecodeError::MissingBytes);
 		}
 		let current_byte = encoded[current_encoded_idx];
-		let Some(shifted) =
-			((current_byte & LSB_7) as u16).checked_shl(current_decoded_bit)
-		else {
+		let current_byte_lower7 = current_byte & LSB_7;
+		if current_decoded_bit
+			> u16::BITS - (bitlength(current_byte_lower7 as u16) as u32)
+		{
 			return Err(DecodeError::WouldOverflow);
-		};
+		}
+		let shifted = (current_byte_lower7 as u16) << current_decoded_bit;
 		decoded |= shifted;
 		current_decoded_bit += 7;
 		current_encoded_idx += 1;
 		if !msb_is_1(current_byte) {
-			break;
+			let bytes_in_varint = current_encoded_idx;
+			return Ok((decoded, encoded.split_at(bytes_in_varint).1));
 		}
 	}
-	let bytes_in_varint = current_encoded_idx;
-
-	Ok((decoded, encoded.split_at(bytes_in_varint).1))
+	Err(DecodeError::WouldOverflow)
 }
 
 #[derive(thiserror::Error, Debug, Eq, PartialEq)]
@@ -118,13 +140,16 @@ pub enum DecodeError {
 
 #[cfg(test)]
 mod test {
+	use std::collections::HashMap;
+
+	use itertools::Itertools;
+
 	use super::*;
 
 	fn test_roundtrip(decoded: u16) {
 		let extra_bytes = [1, 2, 3, 4].as_slice();
 		let empty = [].as_slice();
 		let encoded = encode_varint(decoded);
-		println!("encoded {:?}", encoded.as_slice());
 
 		let round_tripped = decode_varint(encoded.as_slice());
 		assert_eq!(Ok((decoded, empty)), round_tripped);
@@ -171,7 +196,7 @@ mod test {
 
 	#[test]
 	fn test_all_u16_roundtrip() {
-		for i in 0..u16::MAX {
+		for i in 0..=u16::MAX {
 			test_roundtrip(i);
 		}
 	}
@@ -193,6 +218,67 @@ mod test {
 
 		for (encoded, result) in examples {
 			assert_eq!(decode_varint(encoded), result, "decoded from {encoded:?}");
+		}
+	}
+
+	fn generate_all_valid_varints() -> HashMap<Vec<u8>, u16> {
+		let mut result = HashMap::with_capacity(u16::MAX as usize);
+		for i in 0..=u16::MAX {
+			let encoded = encode_varint(i);
+			result.insert(encoded.as_slice().to_vec(), i);
+		}
+		result
+	}
+
+	const SPECIAL_BYTES: &[u8] =
+		&[0, 1, u8::MAX, u8::MAX - 1, LSB_7, LSB_7 + 1, LSB_7 - 1];
+
+	fn generate_all_byte_patterns() -> impl Iterator<Item = Vec<u8>> {
+		let mut iterators = Vec::new();
+		const LEN: usize = 3;
+		for i in 1..=LEN {
+			iterators.push((0..=u8::MAX).combinations_with_replacement(i));
+		}
+		iterators
+			.into_iter()
+			.flatten()
+			.chain([vec![]])
+			// We do this instead of increasting the LEN to avoid the test taking too long, since
+			// the time is exponential in LEN
+			.chain(
+				(0..=u8::MAX)
+					.combinations_with_replacement(LEN)
+					.cartesian_product(SPECIAL_BYTES)
+					.map(|(mut bytes, special)| {
+						bytes.push(*special);
+						bytes
+					}),
+			)
+	}
+
+	#[test]
+	fn test_all_varints() {
+		let valid_varints = generate_all_valid_varints();
+		for bytes in generate_all_byte_patterns() {
+			match decode_varint(&bytes) {
+				Ok((decoded, tail_bytes)) => {
+					let head_bytes = &bytes[0..(bytes.len() - tail_bytes.len())];
+					assert_eq!(
+						head_bytes,
+						encode_varint(decoded).as_slice(),
+						"expected head bytes {head_bytes:?} of bytes {bytes:?} to match encoding of decoded value {decoded}"
+					);
+					if let Some(&expected_decoded) = valid_varints.get(head_bytes) {
+						assert_eq!(
+							decoded, expected_decoded,
+							"expected successful decode of {bytes:?} to match expected decode value"
+						);
+					} else {
+						panic!("expected all successful decodes to have a matching entry in the valid varint set. Offending bytes: {bytes:?}");
+					}
+				}
+				Err(_err) => assert!(valid_varints.get(&bytes).is_none()),
+			}
 		}
 	}
 }

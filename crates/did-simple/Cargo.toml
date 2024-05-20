@@ -16,3 +16,4 @@ bs58 = "0.5.1"
 [dev-dependencies]
 eyre = "0.6.12"
 hex-literal = "0.4.1"
+itertools = "0.13.0"

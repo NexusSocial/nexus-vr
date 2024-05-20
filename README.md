@@ -12,6 +12,8 @@ libraries and `apps` for application-specific crates.
 
 - [universal-capture](crates/universal-capture) - A cross platform solution for
   window capture.
+- [did-simple](crates/did-simple) - An easy to use crate for working with 
+  Decentralized Identifiers (DIDs).
 
 ## First Time Setup
 

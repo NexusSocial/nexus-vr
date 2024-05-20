@@ -1,17 +1,25 @@
 [package]
 name = "did-simple"
-version.workspace = true
+version = "0.0.1-beta.0"
 license.workspace = true
 repository.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 description = "Dead simple DIDs"
-publish = false
+publish = true
+
+[features]
+default = []
+
+# Only applications should enable this! If you use did-simple as a dependency,
+# don't enable this feature - let applications set it instead.
+# Enabling this feature removes the #[forbid(unsafe_code)] crate attribute.
+allow-unsafe = []
 
 [dependencies]
-thiserror = "1.0.60"
-bytes = "1.6.0"
 bs58 = "0.5.1"
+bytes = "1.6.0"
+thiserror = "1.0.60"
 
 [dev-dependencies]
 eyre = "0.6.12"

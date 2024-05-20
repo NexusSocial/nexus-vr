@@ -20,7 +20,7 @@
 //!
 //! [spec]: https://www.w3.org/TR/did-core/
 
-#![forbid(unsafe_code)]
+#![cfg_attr(not(feature = "allow-unsafe"), forbid(unsafe_code))]
 
 use std::str::FromStr;
 

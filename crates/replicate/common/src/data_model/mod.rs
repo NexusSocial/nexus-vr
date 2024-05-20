@@ -527,7 +527,7 @@ mod test_dm {
 			};
 			assert_eq!(dm.data.len(), expected_states.len());
 			for (e, entity_data) in dm.data.iter() {
-				assert_eq!(entity_data.state, expected_states[&e], "entity: {e:?}");
+				assert_eq!(entity_data.state, expected_states[e], "entity: {e:?}");
 			}
 		}
 

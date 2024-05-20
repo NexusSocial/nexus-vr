@@ -21,8 +21,8 @@ impl FromStr for DidMethod {
 	}
 }
 
-/// Helper type to access data in the method-specific-id of a [`DidUri`].
-pub struct MethodSpecificId<'a>(&'a DidUri);
+/// Helper type to access data in the method-specific-id of a [`DidUrl`].
+pub struct MethodSpecificId<'a>(&'a DidUrl);
 
 impl MethodSpecificId<'_> {
 	pub fn as_str(&self) -> &str {
@@ -38,8 +38,9 @@ impl MethodSpecificId<'_> {
 	}
 }
 
+/// A Decentralized Identifier, including any path information, as a url.
 #[derive(Debug, Eq, PartialEq, Hash, Clone)]
-pub struct DidUri {
+pub struct DidUrl {
 	method: DidMethod,
 	/// The string representation of the DID.
 	s: Utf8Bytes,
@@ -47,18 +48,18 @@ pub struct DidUri {
 	method_specific_id: std::ops::RangeFrom<usize>,
 }
 
-impl DidUri {
-	/// Gets the buffer representing the uri as a str.
+impl DidUrl {
+	/// Gets the buffer representing the url as a str.
 	pub fn as_str(&self) -> &str {
 		self.s.as_str()
 	}
 
-	/// Gets the buffer representing the uri as a byte slice.
+	/// Gets the buffer representing the url as a byte slice.
 	pub fn as_slice(&self) -> &[u8] {
 		self.s.as_slice()
 	}
 
-	/// Gets the buffer representing the uri as a reference counted slice that
+	/// Gets the buffer representing the url as a reference counted slice that
 	/// is guaranteed to be utf8.
 	pub fn as_utf8_bytes(&self) -> &Utf8Bytes {
 		&self.s
@@ -75,7 +76,7 @@ impl DidUri {
 	}
 }
 
-impl FromStr for DidUri {
+impl FromStr for DidUrl {
 	type Err = ParseError;
 
 	fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -87,7 +88,7 @@ impl FromStr for DidUri {
 		let method = DidMethod::from_str(method)?;
 		let start_idx = s.len() - remaining.len();
 
-		Ok(DidUri {
+		Ok(DidUrl {
 			method,
 			s: Utf8Bytes::from(s.to_owned()),
 			method_specific_id: (start_idx..),
@@ -95,7 +96,7 @@ impl FromStr for DidUri {
 	}
 }
 
-impl TryFrom<String> for DidUri {
+impl TryFrom<String> for DidUrl {
 	type Error = ParseError;
 
 	fn try_from(s: String) -> Result<Self, Self::Error> {
@@ -107,7 +108,7 @@ impl TryFrom<String> for DidUri {
 		let method = DidMethod::from_str(method)?;
 		let start_idx = s.len() - remaining.len();
 
-		Ok(DidUri {
+		Ok(DidUrl {
 			method,
 			s: Utf8Bytes::from(s),
 			method_specific_id: (start_idx..),
@@ -125,7 +126,7 @@ pub enum ParseError {
 	UnknownMethod,
 }
 
-impl Display for DidUri {
+impl Display for DidUrl {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		self.as_str().fmt(f)
 	}
@@ -136,8 +137,8 @@ mod test {
 	use super::*;
 	use eyre::{Result, WrapErr};
 
-	fn common_test_cases() -> Vec<DidUri> {
-		vec![DidUri {
+	fn common_test_cases() -> Vec<DidUrl> {
+		vec![DidUrl {
 			method: DidMethod::Key,
 			s: String::from("did:key:123456").into(),
 			method_specific_id: (8..),
@@ -148,8 +149,8 @@ mod test {
 	fn test_parse() -> Result<()> {
 		for expected in common_test_cases() {
 			let s = expected.s.as_str().to_owned();
-			let from_str = DidUri::from_str(&s).wrap_err("failed to from_str")?;
-			let try_from = DidUri::try_from(s).wrap_err("failed to try_from")?;
+			let from_str = DidUrl::from_str(&s).wrap_err("failed to from_str")?;
+			let try_from = DidUrl::try_from(s).wrap_err("failed to try_from")?;
 			assert_eq!(from_str, try_from);
 			assert_eq!(from_str, expected);
 		}

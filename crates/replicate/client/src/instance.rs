@@ -79,8 +79,6 @@
 //! [did:web]: https://w3c-ccg.github.io/did-method-web/
 //! [ABA]: https://en.wikipedia.org/wiki/ABA_problem
 
-use std::sync::atomic::AtomicU16;
-
 use base64::prelude::{Engine, BASE64_URL_SAFE_NO_PAD};
 use eyre::{bail, ensure, Result, WrapErr};
 use futures::{SinkExt, StreamExt};
@@ -197,7 +195,7 @@ pub enum RecvState<'a> {
 
 /// Sequence number for state messages
 #[derive(Debug, Default)]
-pub struct StateSeq(AtomicU16);
+pub struct StateSeq;
 
 async fn connect_to_url(
 	url: &Url,

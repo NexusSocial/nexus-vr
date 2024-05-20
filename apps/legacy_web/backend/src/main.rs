@@ -141,7 +141,7 @@ async fn delete_avatar(
 
 async fn ensure_user_in_db(db: &mut Database, username: &str) {
 	db.transaction(|data| {
-		if data.users.get(username).is_none() {
+		if data.users.contains_key(username) {
 			println!("creating user: {}", username);
 			data.users
 				.insert(username.to_owned(), User::new(username.to_owned()));

@@ -12,7 +12,6 @@ publish = false
 thiserror = "1.0.60"
 bytes = "1.6.0"
 bs58 = "0.5.1"
-ref-cast = "1.0.23"
 
 [dev-dependencies]
 eyre = "0.6.12"

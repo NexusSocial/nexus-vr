@@ -17,6 +17,7 @@ pub(crate) struct VarintEncoding {
 impl VarintEncoding {
 	pub const MAX_LEN: usize = 3;
 
+	#[allow(dead_code)]
 	pub const fn as_slice(&self) -> &[u8] {
 		self.buf.split_at(self.len as usize).0
 	}
@@ -48,6 +49,7 @@ mod bitlength_test {
 
 /// Encodes a value as a varint.
 /// Returns an array as well as the length of the array to slice., along  well as an array.
+#[allow(dead_code)]
 pub(crate) const fn encode_varint(value: u16) -> VarintEncoding {
 	let mut out_buf = [0; VarintEncoding::MAX_LEN];
 	let in_bit_length: u16 = bitlength(value) as u16;
@@ -277,7 +279,7 @@ mod test {
 						panic!("expected all successful decodes to have a matching entry in the valid varint set. Offending bytes: {bytes:?}");
 					}
 				}
-				Err(_err) => assert!(valid_varints.get(&bytes).is_none()),
+				Err(_err) => assert!(!valid_varints.contains_key(&bytes)),
 			}
 		}
 	}

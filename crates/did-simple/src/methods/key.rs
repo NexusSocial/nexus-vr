@@ -2,12 +2,11 @@
 //!
 //! [did:key]: https://w3c-ccg.github.io/did-method-key/
 
-use ref_cast::RefCast;
 use std::fmt::Display;
 
 use crate::{
-	key_algos::{DynKeyAlgo, DynPubKeyRef, Ed25519, KeyAlgo, PubKey, StaticKeyAlgo},
-	uri::{DidMethod, DidUri},
+	key_algos::{Ed25519, KeyAlgo, StaticKeyAlgo},
+	url::{DidMethod, DidUrl},
 	utf8bytes::Utf8Bytes,
 	varint::decode_varint,
 };
@@ -20,7 +19,7 @@ pub struct DidKey {
 	s: Utf8Bytes,
 	/// The decoded multibase portion of the DID.
 	mb_value: Vec<u8>,
-	key_algo: DynKeyAlgo,
+	key_algo: KeyAlgo,
 	/// The index into [`Self::mb_value`] that is the public key.
 	pubkey_bytes: std::ops::RangeFrom<usize>,
 }
@@ -30,40 +29,33 @@ pub const PREFIX: &str = "did:key:";
 impl DidKey {
 	pub const PREFIX: &'static str = PREFIX;
 
-	/// Gets the buffer representing the did:key uri as a str.
+	/// Gets the buffer representing the did:key url as a str.
 	pub fn as_str(&self) -> &str {
 		self.s.as_str()
 	}
 
-	/// Gets the buffer representing the did:key uri as a byte slice.
+	/// Gets the buffer representing the did:key url as a byte slice.
 	pub fn as_slice(&self) -> &[u8] {
 		self.s.as_slice()
 	}
 
-	/// Gets the buffer representing the did:key uri as a reference counted slice
+	/// Gets the buffer representing the did:key url as a reference counted slice
 	/// that is guaranteed to be utf8.
 	pub fn as_utf8_bytes(&self) -> &Utf8Bytes {
 		&self.s
 	}
 
-	pub fn key_algo(&self) -> DynKeyAlgo {
+	pub fn key_algo(&self) -> KeyAlgo {
 		self.key_algo
 	}
 
 	/// Gets the decoded bytes of the public key.
-	pub fn pub_key(&self) -> DynPubKeyRef<'_> {
-		match self.key_algo {
-			DynKeyAlgo::Ed25519 => {
-				// with a cast.
-				let bytes: &[u8] = &self.mb_value[self.pubkey_bytes.clone()];
-				debug_assert_eq!(bytes.len(), Ed25519::PUB_KEY_SIZE);
-				// TODO: Convert to an unsafe cast behind a feature flag later.
-				// This is because the slice is guaranteed by our parsing logic
-				// to match the key algo size.
-				let bytes: &[u8; Ed25519::PUB_KEY_SIZE] = bytes.try_into().unwrap();
-				PubKey::<Ed25519>::ref_cast(bytes).into()
-			}
-		}
+	pub fn pub_key(&self) -> &[u8] {
+		let result = match self.key_algo {
+			KeyAlgo::Ed25519 => &self.mb_value[self.pubkey_bytes.clone()],
+		};
+		debug_assert_eq!(result.len(), self.key_algo.pub_key_len());
+		result
 	}
 }
 
@@ -95,13 +87,13 @@ pub enum MultibaseDecodeError {
 	Bs58(#[from] bs58::decode::Error),
 }
 
-impl TryFrom<DidUri> for DidKey {
-	type Error = FromUriError;
+impl TryFrom<DidUrl> for DidKey {
+	type Error = FromUrlError;
 
-	fn try_from(value: DidUri) -> Result<Self, Self::Error> {
+	fn try_from(value: DidUrl) -> Result<Self, Self::Error> {
 		let m = value.method();
 		if m != DidMethod::Key {
-			return Err(FromUriError::WrongMethod(m));
+			return Err(FromUrlError::WrongMethod(m));
 		}
 		debug_assert_eq!(
 			value.as_slice().len() - value.method_specific_id().as_slice().len(),
@@ -113,21 +105,18 @@ impl TryFrom<DidUri> for DidKey {
 		let mut decoded_multibase = Vec::new();
 		decode_multibase(&s, &mut decoded_multibase)?;
 
-		// TODO: Instead of comparing decoded versions which requires running the decode
-		// function at runtime, compare the encoded versions. We can do the encode at
-		// compile time.
-		let (multicodec_key_algo, pubkey_bytes) = decode_varint(&decoded_multibase)?;
-		let key_algo = match multicodec_key_algo {
-			Ed25519::MULTICODEC_VALUE => DynKeyAlgo::Ed25519,
-			_ => return Err(FromUriError::UnknownKeyAlgo(multicodec_key_algo)),
+		// tail bytes will end up being the pubkey bytes if everything passes validation
+		let (multicodec_key_algo, tail_bytes) = decode_varint(&decoded_multibase)?;
+		let (key_algo, pub_key_len) = match multicodec_key_algo {
+			Ed25519::MULTICODEC_VALUE => (KeyAlgo::Ed25519, Ed25519::PUB_KEY_LEN),
+			_ => return Err(FromUrlError::UnknownKeyAlgo(multicodec_key_algo)),
 		};
 
-		let pubkey_len = pubkey_bytes.len();
-		if pubkey_len != key_algo.pub_key_size() {
-			return Err(FromUriError::MismatchedPubkeyLen(key_algo, pubkey_len));
+		if tail_bytes.len() != pub_key_len {
+			return Err(FromUrlError::MismatchedPubkeyLen(key_algo, pub_key_len));
 		}
 
-		let pubkey_bytes = decoded_multibase.len() - pubkey_len..;
+		let pubkey_bytes = (decoded_multibase.len() - pub_key_len)..;
 
 		Ok(Self {
 			s,
@@ -139,7 +128,7 @@ impl TryFrom<DidUri> for DidKey {
 }
 
 #[derive(thiserror::Error, Debug)]
-pub enum FromUriError {
+pub enum FromUrlError {
 	#[error("Expected \"key\" method but got {0:?}")]
 	WrongMethod(DidMethod),
 	#[error(transparent)]
@@ -148,8 +137,8 @@ pub enum FromUriError {
 	UnknownKeyAlgo(u16),
 	#[error(transparent)]
 	Varint(#[from] crate::varint::DecodeError),
-	#[error("{0:?} requires pubkeys of length {} but got {1} bytes", .0.pub_key_size())]
-	MismatchedPubkeyLen(DynKeyAlgo, usize),
+	#[error("{0:?} requires pubkeys of length {} but got {1} bytes", .0.pub_key_len())]
+	MismatchedPubkeyLen(KeyAlgo, usize),
 }
 
 impl Display for DidKey {
@@ -176,15 +165,15 @@ mod test {
 	}
 
 	#[test]
-	fn test_try_from_uri() -> eyre::Result<()> {
+	fn test_try_from_url() -> eyre::Result<()> {
 		for &example in ed25519_examples() {
-			let uri = DidUri::from_str(example)
-				.wrap_err_with(|| format!("failed to parse DidUri from {example}"))?;
-			assert_eq!(example, uri.as_str());
-			let key_from_uri = DidKey::try_from(uri.clone())
-				.wrap_err_with(|| format!("failed to parse DidKey from {uri}"))?;
-			assert_eq!(example, key_from_uri.as_str());
-			assert_eq!(key_from_uri.key_algo(), Ed25519);
+			let url = DidUrl::from_str(example)
+				.wrap_err_with(|| format!("failed to parse DidUrl from {example}"))?;
+			assert_eq!(example, url.as_str());
+			let key_from_url = DidKey::try_from(url.clone())
+				.wrap_err_with(|| format!("failed to parse DidKey from {url}"))?;
+			assert_eq!(example, key_from_url.as_str());
+			assert_eq!(key_from_url.key_algo(), Ed25519);
 		}
 		Ok(())
 	}

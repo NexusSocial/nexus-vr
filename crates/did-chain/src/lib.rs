@@ -30,7 +30,7 @@ use did_simple::{methods::key::DidKey, methods::DidDyn};
 /// This is like an account UUID, it provides a unique identifier for the
 /// account. Changing it is impossible.
 #[derive(Debug)]
-pub struct DidRoot(DidKey);
+pub struct DidRoot(pub DidKey);
 
 #[derive(Debug)]
 pub struct DidChain {

@@ -204,10 +204,6 @@ impl ServerCtx {
 	}
 }
 
-/// Connection state
-#[derive(Debug)]
-struct ConnectionCtx {}
-
 /// Newtype on [`wtransport::Certificate`].
 #[derive(Clone)]
 struct Certificate {

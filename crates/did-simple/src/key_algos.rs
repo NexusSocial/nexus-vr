@@ -1,3 +1,5 @@
+use crate::varint::encode_varint;
+
 /// A key algorithm.
 pub trait KeyAlgo {
 	fn pub_key_size(&self) -> usize;
@@ -8,6 +10,8 @@ pub trait KeyAlgo {
 pub trait StaticKeyAlgo: KeyAlgo {
 	const PUB_KEY_SIZE: usize;
 	const MULTICODEC_VALUE: u16;
+	const MULTICODEC_VALUE_ENCODED: &'static [u8] =
+		encode_varint(Self::MULTICODEC_VALUE).as_slice();
 }
 
 impl<T: StaticKeyAlgo> KeyAlgo for T {

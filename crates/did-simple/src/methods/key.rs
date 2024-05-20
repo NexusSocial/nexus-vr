@@ -5,7 +5,7 @@
 use std::fmt::Display;
 
 use crate::{
-	key_algos::{DynKeyAlgo, Ed25519, StaticKeyAlgo},
+	key_algos::{DynKeyAlgo, Ed25519, KeyAlgo, StaticKeyAlgo},
 	uri::{DidMethod, DidUri},
 	utf8bytes::Utf8Bytes,
 	varint::decode_varint,
@@ -20,6 +20,8 @@ pub struct DidKey<A = DynKeyAlgo> {
 	/// The decoded multibase portion of the DID.
 	mb_value: Vec<u8>,
 	key_algo: A,
+	/// The index into [`Self::mb_value`] that is the public key.
+	pubkey_bytes: std::ops::RangeFrom<usize>,
 }
 
 pub const PREFIX: &str = "did:key:";
@@ -93,20 +95,30 @@ impl TryFrom<DidUri> for DidKey {
 		);
 
 		let s = value.as_utf8_bytes().clone();
-		let mut decoded = Vec::new();
-		decode_multibase(&s, &mut decoded)?;
+		let mut decoded_multibase = Vec::new();
+		decode_multibase(&s, &mut decoded_multibase)?;
+
 		// TODO: Instead of comparing decoded versions which requires running the decode
 		// function at runtime, compare the encoded versions. We can do the encode at
 		// compile time.
-		let multicodec_key_type = decode_varint(&decoded[0..2])?;
-		let key_algo = match multicodec_key_type {
+		let (multicodec_key_algo, pubkey_bytes) = decode_varint(&decoded_multibase)?;
+		let key_algo = match multicodec_key_algo {
 			Ed25519::MULTICODEC_VALUE => DynKeyAlgo::Ed25519,
-			_ => return Err(FromUriError::UnknownKeyAlgo(multicodec_key_type)),
+			_ => return Err(FromUriError::UnknownKeyAlgo(multicodec_key_algo)),
 		};
+
+		let pubkey_len = pubkey_bytes.len();
+		if pubkey_len != key_algo.pub_key_size() {
+			return Err(FromUriError::MismatchedPubkeyLen(key_algo, pubkey_len));
+		}
+
+		let pubkey_bytes = decoded_multibase.len() - pubkey_len..;
+
 		Ok(Self {
 			s,
-			mb_value: decoded,
+			mb_value: decoded_multibase,
 			key_algo,
+			pubkey_bytes,
 		})
 	}
 }
@@ -121,6 +133,8 @@ pub enum FromUriError {
 	UnknownKeyAlgo(u16),
 	#[error(transparent)]
 	Varint(#[from] crate::varint::DecodeError),
+	#[error("{0:?} requires pubkeys of length {} but got {1} bytes", .0.pub_key_size())]
+	MismatchedPubkeyLen(DynKeyAlgo, usize),
 }
 
 impl Display for DidKey {

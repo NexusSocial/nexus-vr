@@ -24,6 +24,7 @@
 
 use std::str::FromStr;
 
+pub mod crypto;
 pub(crate) mod key_algos;
 pub mod methods;
 pub mod url;

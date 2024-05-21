@@ -9,7 +9,11 @@ description = "Dead simple DIDs"
 publish = true
 
 [features]
-default = []
+default = ["ed25519"]
+ed25519 = [
+	"dep:curve25519-dalek",
+	"dep:ed25519-dalek",
+]
 
 # Only applications should enable this! If you use did-simple as a dependency,
 # don't enable this feature - let applications set it instead.
@@ -20,6 +24,8 @@ allow-unsafe = []
 bs58 = "0.5.1"
 bytes = "1.6.0"
 thiserror = "1.0.60"
+ed25519-dalek = { version = "2.1.1", optional = true }
+curve25519-dalek = { version = "4.1.2", optional = true }
 
 [dev-dependencies]
 eyre = "0.6.12"

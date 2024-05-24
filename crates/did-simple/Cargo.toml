@@ -9,11 +9,12 @@ description = "Dead simple DIDs"
 publish = true
 
 [features]
-default = ["ed25519"]
+default = ["ed25519", "random"]
 ed25519 = [
 	"dep:curve25519-dalek",
 	"dep:ed25519-dalek",
 ]
+random = ["dep:rand_core", "ed25519-dalek?/rand_core"]
 
 # Only applications should enable this! If you use did-simple as a dependency,
 # don't enable this feature - let applications set it instead.
@@ -24,8 +25,9 @@ allow-unsafe = []
 bs58 = "0.5.1"
 bytes = "1.6.0"
 thiserror = "1.0.60"
-ed25519-dalek = { version = "2.1.1", optional = true }
+ed25519-dalek = { version = "2.1.1", optional = true, features = ["digest"] }
 curve25519-dalek = { version = "4.1.2", optional = true }
+rand_core = { version = "0.6.4", optional = true, features = ["getrandom"] }
 
 [dev-dependencies]
 eyre = "0.6.12"

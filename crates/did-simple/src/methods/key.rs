@@ -5,7 +5,7 @@
 use std::fmt::Display;
 
 use crate::{
-	key_algos::{Ed25519, KeyAlgo, StaticKeyAlgo},
+	key_algos::{Ed25519, KeyAlgo, StaticSigningAlgo},
 	url::{DidMethod, DidUrl},
 	utf8bytes::Utf8Bytes,
 	varint::decode_varint,
@@ -54,7 +54,7 @@ impl DidKey {
 		let result = match self.key_algo {
 			KeyAlgo::Ed25519 => &self.mb_value[self.pubkey_bytes.clone()],
 		};
-		debug_assert_eq!(result.len(), self.key_algo.pub_key_len());
+		debug_assert_eq!(result.len(), self.key_algo.verifying_key_len());
 		result
 	}
 }
@@ -108,7 +108,7 @@ impl TryFrom<DidUrl> for DidKey {
 		// tail bytes will end up being the pubkey bytes if everything passes validation
 		let (multicodec_key_algo, tail_bytes) = decode_varint(&decoded_multibase)?;
 		let (key_algo, pub_key_len) = match multicodec_key_algo {
-			Ed25519::MULTICODEC_VALUE => (KeyAlgo::Ed25519, Ed25519::PUB_KEY_LEN),
+			Ed25519::MULTICODEC_VALUE => (KeyAlgo::Ed25519, Ed25519::SIGNING_KEY_LEN),
 			_ => return Err(FromUrlError::UnknownKeyAlgo(multicodec_key_algo)),
 		};
 
@@ -137,7 +137,7 @@ pub enum FromUrlError {
 	UnknownKeyAlgo(u16),
 	#[error(transparent)]
 	Varint(#[from] crate::varint::DecodeError),
-	#[error("{0:?} requires pubkeys of length {} but got {1} bytes", .0.pub_key_len())]
+	#[error("{0:?} requires pubkeys of length {} but got {1} bytes", .0.verifying_key_len())]
 	MismatchedPubkeyLen(KeyAlgo, usize),
 }
 

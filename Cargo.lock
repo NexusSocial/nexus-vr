@@ -5899,6 +5899,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "physnet_client"
+version = "0.0.0"
+dependencies = [
+ "bevy",
+ "bevy_oxr",
+ "color-eyre",
+ "openxr",
+]
+
+[[package]]
+name = "physnet_server"
+version = "0.0.0"
+
+[[package]]
 name = "picking-xr"
 version = "0.0.0"
 dependencies = [

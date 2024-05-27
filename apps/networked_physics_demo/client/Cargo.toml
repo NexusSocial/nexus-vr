@@ -1,0 +1,18 @@
+[package]
+name = "physnet_client"
+version.workspace = true
+license.workspace = true
+repository.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description = "A demo for Networked Physics in VR"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+bevy.workspace = true
+bevy_oxr.workspace = true
+color-eyre.workspace = true
+openxr.workspace = true

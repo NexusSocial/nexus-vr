@@ -2,6 +2,8 @@
 resolver = "2"
 members = [
 	"apps/legacy_web/backend",
+	"apps/networked_physics_demo/client",
+	"apps/networked_physics_demo/server",
 	"apps/legacy_web/frontend",
 	"apps/rvid/client",
 	"apps/rvid/server",

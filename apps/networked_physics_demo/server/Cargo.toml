@@ -1,0 +1,11 @@
+[package]
+name = "physnet_server"
+version.workspace = true
+license.workspace = true
+repository.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description = "A demo for Networked Physics in VR"
+publish = false
+
+[dependencies]

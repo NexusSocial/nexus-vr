@@ -12,7 +12,10 @@ publish = false
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+bevy-inspector-egui.workspace = true
 bevy.workspace = true
-bevy_oxr.workspace = true
+bevy_flycam.workspace = true
+bevy_rapier3d.workspace = true
 color-eyre.workspace = true
-openxr.workspace = true
+rand.workspace = true
+rand_xoshiro.workspace = true

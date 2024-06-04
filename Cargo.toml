@@ -2,9 +2,9 @@
 resolver = "2"
 members = [
 	"apps/legacy_web/backend",
+	"apps/legacy_web/frontend",
 	"apps/networked_physics_demo/client",
 	"apps/networked_physics_demo/server",
-	"apps/legacy_web/frontend",
 	"apps/rvid/client",
 	"apps/rvid/server",
 	"apps/social/client",
@@ -35,11 +35,14 @@ base64 = "0.21.7"
 bevy = "0.13"
 bevy-inspector-egui = "0.23.4"
 bevy_egui = { git = "https://github.com/Schmarni-Dev/bevy_egui/", branch = "nexus-use-bevy-0.13" }
+bevy_egui_keyboard.path = "crates/bevy_egui_keyboard"
+bevy_flycam = "0.13"
 bevy_mod_inverse_kinematics = "0.6"
 bevy_mod_picking = { version = "0.18",default-features = false}
 bevy_mod_raycast = "0.17.0"
 bevy_oxr = { git = "https://github.com/awtterpip/bevy_oxr", rev = "c6d0686" }
 bevy_picking_core = "0.18"
+bevy_rapier3d = "0.26"
 bevy_schminput = { git = "https://github.com/Schmarni-Dev/Schminput", rev = "d5695bb" }
 bevy_vrm = "0.0.8"
 bevy_web_asset = { git = "https://github.com/Schmarni-Dev/bevy_web_asset", rev = "f10a2df" }
@@ -54,6 +57,8 @@ lightyear = "0.12"
 openxr = "0.18"
 picking-xr = { path = "crates/picking-xr" }
 pin-project = "1"
+rand = "0.8.5"
+rand_xoshiro = "0.6.0"
 random-number = "0.1.8"
 serde = { version = "1.0.193", features = ["derive"] }
 serde_json = "1.0.114"
@@ -69,7 +74,6 @@ tracing-subscriber = "0.3.18"
 url = "2.5.0"
 uuid = "1.7.0"
 wtransport = "0.1.11"
-bevy_egui_keyboard.path = "crates/bevy_egui_keyboard"
 
 [workspace.dependencies.derive_more]
 version = "0.99"
@@ -99,5 +103,5 @@ opt-level = 1
 # Seems to cause crashes on mac on opt-level 3
 opt-level = 2
 
-[patch.crates-io]
-# bevy_pbr = { package = "bevy_pbr", git = "https://github.com/MalekiRe/bevy", branch = "release-0.12.1" }
+[profile.dev.package.rapier3d]
+opt-level = 3

@@ -6039,6 +6039,7 @@ dependencies = [
  "bevy_flycam",
  "bevy_rapier3d",
  "color-eyre",
+ "derive_more",
  "rand 0.8.5",
  "rand_xoshiro",
 ]

@@ -150,11 +150,16 @@ mod ui {
 }
 
 fn draw_title_screen(mut state: ResMut<ui::TitleScreen>, mut contexts: EguiContexts) {
-	egui::CentralPanel::default().show(contexts.ctx_mut(), |ui| {
-		// need ownership of state, so replace with the default temporarily
-		let stolen = std::mem::take(state.as_mut());
-		*state = stolen.draw(ui);
-	});
+	egui::Window::new("Instances")
+		.resizable(false)
+		.movable(false)
+		.collapsible(false)
+		.anchor(egui::Align2::CENTER_CENTER, egui::Vec2::ZERO)
+		.show(contexts.ctx_mut(), |ui: &mut egui::Ui| {
+			// need ownership of state, so replace with the default temporarily
+			let stolen = std::mem::take(state.as_mut());
+			*state = stolen.draw(ui);
+		});
 }
 
 /// Emits a state change under certain conditions.

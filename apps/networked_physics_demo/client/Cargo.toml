@@ -20,3 +20,4 @@ color-eyre.workspace = true
 derive_more.workspace = true
 rand.workspace = true
 rand_xoshiro.workspace = true
+replicate-client.workspace = true

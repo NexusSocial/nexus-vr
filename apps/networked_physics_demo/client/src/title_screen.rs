@@ -3,14 +3,20 @@
 use bevy::{
 	app::{Plugin, Update},
 	ecs::{
-		schedule::{common_conditions::in_state, IntoSystemConfigs as _, NextState},
-		system::{Res, ResMut},
+		event::{Event, EventWriter},
+		schedule::{
+			common_conditions::in_state, IntoSystemConfigs as _, NextState, OnEnter,
+		},
+		system::{Commands, Res, ResMut},
 	},
 	input::{keyboard::KeyCode, ButtonInput},
+	reflect::Reflect,
 };
 use bevy_inspector_egui::bevy_egui::{egui, EguiContexts};
 
-use crate::{AppExt, GameModeState};
+use crate::{netcode::ConnectToManager, AppExt, GameModeState};
+
+use self::ui::EventWriters;
 
 #[derive(Debug, Default)]
 pub struct TitleScreenPlugin;
@@ -18,9 +24,9 @@ pub struct TitleScreenPlugin;
 impl Plugin for TitleScreenPlugin {
 	fn build(&self, app: &mut bevy::prelude::App) {
 		app.add_if_not_added(bevy_inspector_egui::bevy_egui::EguiPlugin)
-			// TODO: init this every time we enter the title screen state, instead
-			// of just once at plugin build.
-			.init_resource::<ui::TitleScreen>()
+			.add_if_not_added(crate::netcode::NetcodePlugin)
+			.register_type::<ui::TitleScreen>()
+			.add_systems(OnEnter(GameModeState::TitleScreen), setup)
 			.add_systems(
 				Update,
 				(should_transition, draw_title_screen)
@@ -31,10 +37,35 @@ impl Plugin for TitleScreenPlugin {
 
 /// Contains ui state.
 mod ui {
-	use super::egui;
-	use bevy::{ecs::system::Resource, reflect::Reflect, utils::default};
+	use bevy::{ecs::system::Resource, prelude::default};
 
-	#[derive(Default, Resource, Reflect, Eq, PartialEq, derive_more::From)]
+	use super::*;
+
+	/// [`EventWriter`]s needed by the UI.
+	pub(super) struct EventWriters<'a> {
+		pub connect_to_manager: EventWriter<'a, ConnectToManager>,
+	}
+
+	impl EventWriters<'_> {
+		/// Sends the ui event `evt`.
+		fn send(&mut self, evt: impl UiEvent) {
+			evt.send(self)
+		}
+	}
+
+	/// Events that can be sent with [`EventWriters`].
+	trait UiEvent: Sized + Event {
+		/// Sends the event with `evw`
+		fn send(self, evw: &mut EventWriters<'_>);
+	}
+
+	impl UiEvent for ConnectToManager {
+		fn send(self, evw: &mut EventWriters<'_>) {
+			evw.connect_to_manager.send(self);
+		}
+	}
+
+	#[derive(Debug, Default, Resource, Reflect, Eq, PartialEq, derive_more::From)]
 	pub enum TitleScreen {
 		#[default]
 		Initial,
@@ -43,7 +74,7 @@ mod ui {
 	}
 
 	impl TitleScreen {
-		pub fn draw(self, ui: &mut egui::Ui) -> Self {
+		pub fn draw(self, ui: &mut egui::Ui, evw: EventWriters) -> Self {
 			match self {
 				Self::Initial => {
 					if ui.button("Create Instance").clicked() {
@@ -54,14 +85,14 @@ mod ui {
 					}
 					self
 				}
-				Self::Create(create) => create.draw(ui),
-				Self::Join(join) => join.draw(ui),
+				Self::Create(create) => create.draw(ui, evw),
+				Self::Join(join) => join.draw(ui, evw),
 			}
 		}
 	}
 
 	/// User has chosen to create an instance.
-	#[derive(Reflect, Eq, PartialEq)]
+	#[derive(Debug, Reflect, Eq, PartialEq)]
 	pub enum CreateInstance {
 		Initial { manager_url: String },
 		WaitingForConnection,
@@ -70,16 +101,23 @@ mod ui {
 	}
 
 	impl CreateInstance {
-		fn draw(mut self, ui: &mut egui::Ui) -> TitleScreen {
+		fn draw(mut self, ui: &mut egui::Ui, mut evw: EventWriters) -> TitleScreen {
 			match self {
 				CreateInstance::Initial {
 					ref mut manager_url,
 				} => {
-					ui.add(
-						egui::TextEdit::singleline(manager_url)
-							.hint_text("Manager Url"),
-					);
-					if ui.button("Submit").clicked() {
+					ui.add(egui::TextEdit::singleline(manager_url).hint_text(
+						"Manager Url (leave blank to spin up server locally)",
+					));
+					let text = if manager_url.is_empty() {
+						"Locally Host"
+					} else {
+						"Remotely Host"
+					};
+					if ui.button(text).clicked() {
+						evw.send(ConnectToManager {
+							manager_url: manager_url.to_owned(),
+						});
 						return CreateInstance::WaitingForConnection.into();
 					}
 					if ui.button("Back").clicked() {
@@ -106,7 +144,7 @@ mod ui {
 	}
 
 	/// User has chosen to join an instance.
-	#[derive(Reflect, Eq, PartialEq)]
+	#[derive(Debug, Reflect, Eq, PartialEq)]
 	pub enum JoinInstance {
 		Initial { instance_url: String },
 		WaitingForConnection,
@@ -114,7 +152,7 @@ mod ui {
 	}
 
 	impl JoinInstance {
-		fn draw(mut self, ui: &mut egui::Ui) -> TitleScreen {
+		fn draw(mut self, ui: &mut egui::Ui, _evw: EventWriters) -> TitleScreen {
 			match self {
 				JoinInstance::Initial {
 					ref mut instance_url,
@@ -149,16 +187,25 @@ mod ui {
 	}
 }
 
-fn draw_title_screen(mut state: ResMut<ui::TitleScreen>, mut contexts: EguiContexts) {
+fn setup(mut commands: Commands) {
+	commands.init_resource::<ui::TitleScreen>()
+}
+
+fn draw_title_screen(
+	mut state: ResMut<ui::TitleScreen>,
+	mut contexts: EguiContexts,
+	connect_to_manager: EventWriter<ConnectToManager>,
+) {
 	egui::Window::new("Instances")
 		.resizable(false)
 		.movable(false)
 		.collapsible(false)
 		.anchor(egui::Align2::CENTER_CENTER, egui::Vec2::ZERO)
 		.show(contexts.ctx_mut(), |ui: &mut egui::Ui| {
+			let evw = EventWriters { connect_to_manager };
 			// need ownership of state, so replace with the default temporarily
 			let stolen = std::mem::take(state.as_mut());
-			*state = stolen.draw(ui);
+			*state = stolen.draw(ui, evw);
 		});
 }
 

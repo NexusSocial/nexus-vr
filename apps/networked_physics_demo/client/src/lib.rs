@@ -12,6 +12,7 @@ use bevy::{
 
 mod debug;
 mod game;
+mod netcode;
 mod rng;
 mod title_screen;
 

@@ -17,5 +17,7 @@ bevy.workspace = true
 bevy_flycam.workspace = true
 bevy_rapier3d.workspace = true
 color-eyre.workspace = true
+derive_more.workspace = true
 rand.workspace = true
 rand_xoshiro.workspace = true
+replicate-client.workspace = true

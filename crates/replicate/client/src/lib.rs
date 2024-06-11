@@ -1,3 +1,5 @@
+pub use replicate_common as common;
+
 pub mod instance;
 pub mod manager;
 

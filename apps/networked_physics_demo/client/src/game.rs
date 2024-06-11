@@ -39,6 +39,7 @@ use bevy_rapier3d::{
 };
 use rand::Rng;
 
+use crate::netcode::LocalAuthority;
 use crate::rng::seed_rng;
 use crate::{AppExt, GameModeState};
 
@@ -160,6 +161,8 @@ fn handle_spawn_cube(
 				RigidBody::Dynamic,
 				spawner.collider.clone(),
 			));
+			cube_entity.insert(LocalAuthority);
+
 			if let Some(name) = &spawn_cube_evt.name {
 				cube_entity.insert(Name::new(name.clone()));
 			} else {

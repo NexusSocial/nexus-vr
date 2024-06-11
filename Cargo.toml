@@ -32,7 +32,7 @@ rust-version = "1.78.0"
 
 [workspace.dependencies]
 base64 = "0.21.7"
-bevy = "0.13"
+bevy = { version = "0.13", features = ["serialize"] }
 bevy-inspector-egui = "0.23.4"
 bevy_egui = { git = "https://github.com/Schmarni-Dev/bevy_egui/", branch = "nexus-use-bevy-0.13" }
 bevy_egui_keyboard.path = "crates/bevy_egui_keyboard"

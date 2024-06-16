@@ -1,5 +1,4 @@
 pub mod data_model;
-pub mod did;
 mod framed;
 pub mod messages;
 

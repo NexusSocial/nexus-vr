@@ -1,10 +1,7 @@
 use clap::Parser;
 use color_eyre::{eyre::WrapErr, Result};
 use replicate_client::{instance::Instance, manager::Manager};
-use replicate_common::{
-	data_model::State,
-	did::{AuthenticationAttestation, Did, DidPrivateKey},
-};
+use replicate_common::data_model::State;
 use tracing::info;
 use tracing_subscriber::{filter::LevelFilter, EnvFilter};
 use url::Url;
@@ -14,8 +11,9 @@ use url::Url;
 pub struct Args {
 	#[clap(long)]
 	url: Url,
+	/// Optional bearer token to use for authenticating.
 	#[clap(long)]
-	username: String,
+	token: Option<String>,
 }
 
 #[tokio::main]
@@ -34,12 +32,7 @@ async fn main() -> Result<()> {
 
 	let args = Args::parse();
 
-	let did = Did(args.username);
-	let did_private_key = DidPrivateKey;
-
-	let auth_attest = AuthenticationAttestation::new(did, &did_private_key);
-
-	let mut manager = Manager::connect(args.url, &auth_attest)
+	let mut manager = Manager::connect(args.url, args.token.as_deref())
 		.await
 		.wrap_err("failed to connect to manager")?;
 	info!("Connected to manager!");
@@ -55,7 +48,7 @@ async fn main() -> Result<()> {
 		.wrap_err("failed to get instance url")?;
 	info!("Got instance {instance_id} at: {instance_url}");
 
-	let mut instance = Instance::connect(instance_url, auth_attest)
+	let mut instance = Instance::connect(instance_url, args.token.as_deref())
 		.await
 		.wrap_err("failed to connect to instance")?;
 	info!("Connected to instance!");

@@ -2,20 +2,17 @@
 
 use std::fmt::Debug;
 
-use base64::prelude::{Engine, BASE64_URL_SAFE_NO_PAD};
 use eyre::{bail, ensure, eyre, Context};
 use futures::sink::SinkExt;
 use futures::stream::StreamExt;
 use replicate_common::{
-	did::AuthenticationAttestation,
 	messages::manager::{Clientbound as Cb, Serverbound as Sb},
 	InstanceId,
 };
-use tracing::warn;
 use url::Url;
-use wtransport::{endpoint::ConnectOptions, ClientConfig, Endpoint};
 
-use crate::CertHashDecodeErr;
+use crate::connect_to_url;
+use crate::Ascii;
 
 type Result<T> = eyre::Result<T>;
 type Framed = replicate_common::Framed<wtransport::stream::BiStream, Cb, Sb>;
@@ -37,44 +34,14 @@ impl Manager {
 	/// # Arguments
 	/// - `url`: Url of the manager api. For example, `https://foobar.com/my/manager`
 	///   or `192.168.1.1:1337/uwu/some_manager`.
-	/// - `auth_attest`: Used to provide to the server proof of our identity, based on
-	///   our DID.
-	pub async fn connect(
-		url: Url,
-		auth_attest: &AuthenticationAttestation,
-	) -> Result<Self> {
-		let cert_hash = if let Some(frag) = url.fragment() {
-			let cert_hash = BASE64_URL_SAFE_NO_PAD
-				.decode(frag)
-				.map_err(CertHashDecodeErr::from)?;
-			let len = cert_hash.len();
-			let cert_hash: [u8; 32] = cert_hash
-				.try_into()
-				.map_err(|_| CertHashDecodeErr::InvalidLen(len))?;
-			Some(cert_hash)
-		} else {
-			None
-		};
-
-		let cfg = ClientConfig::builder().with_bind_default();
-		let cfg = if let Some(_cert_hash) = cert_hash {
-			warn!(
-				"`serverCertificateHashes` is not yet supported, turning off \
-                cert validation."
-			);
-			// TODO: Use the cert hash as the root cert instead of no validation
-			cfg.with_no_cert_validation()
-		} else {
-			cfg.with_native_certs()
-		}
-		.build();
-
-		let client = Endpoint::client(cfg)?;
-		let opts = ConnectOptions::builder(&url)
-			.add_header("Authorization", format!("Bearer {}", auth_attest))
-			.build();
-		let conn = client
-			.connect(opts)
+	/// - `bearer_token`: optional, must be ascii otherwise we will panic.
+	pub async fn connect(url: Url, bearer_token: Option<&str>) -> Result<Self> {
+		let bearer_token = bearer_token.map(|s| {
+			// Technically, bearer tokens only permit a *subset* of ascii. But I
+			// didn't care enough to be that precise.
+			Ascii::try_from(s).expect("to be in-spec, bearer tokens must be ascii")
+		});
+		let conn = connect_to_url(&url, bearer_token)
 			.await
 			.wrap_err("failed to connect to server")?;
 		let bi = wtransport::stream::BiStream::join(

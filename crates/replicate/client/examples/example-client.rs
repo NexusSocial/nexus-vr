@@ -32,7 +32,7 @@ async fn main() -> Result<()> {
 
 	let args = Args::parse();
 
-	let mut manager = Manager::connect(args.url, args.token.as_deref())
+	let manager = Manager::connect(args.url, args.token.as_deref())
 		.await
 		.wrap_err("failed to connect to manager")?;
 	info!("Connected to manager!");

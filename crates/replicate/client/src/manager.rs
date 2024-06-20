@@ -30,7 +30,7 @@ type Framed = replicate_common::Framed<wtransport::stream::BiStream, Cb, Sb>;
 #[derive(Debug)]
 pub struct Manager {
 	_conn: wtransport::Connection,
-	_url: Url,
+	url: Url,
 	task: tokio::task::JoinHandle<Result<()>>,
 	request_tx: mpsc::Sender<(Sb, oneshot::Sender<Cb>)>,
 }
@@ -80,7 +80,7 @@ impl Manager {
 
 		Ok(Self {
 			_conn: conn,
-			_url: url,
+			url,
 			task,
 			request_tx,
 		})
@@ -120,6 +120,11 @@ impl Manager {
 			.await
 			.wrap_err("panic in manager task, file a bug report on github uwu")?
 			.wrap_err("error in task")
+	}
+
+	/// The url of this Manager.
+	pub fn url(&self) -> &Url {
+		&self.url
 	}
 }
 

@@ -11,12 +11,16 @@ use bevy::{
 		system::{Commands, Res, ResMut},
 	},
 	input::{keyboard::KeyCode, ButtonInput},
+	log::trace,
 	reflect::Reflect,
 };
 use bevy_inspector_egui::bevy_egui::{egui, EguiContexts};
 
 use crate::{
-	netcode::{ConnectToManagerRequest, ConnectToManagerResponse},
+	netcode::{
+		ConnectToManagerRequest, ConnectToManagerResponse, CreateInstanceRequest,
+		CreateInstanceResponse,
+	},
 	AppExt, GameModeState,
 };
 
@@ -38,7 +42,11 @@ impl Plugin for TitleScreenPlugin {
 			.add_systems(
 				Update,
 				(
-					handle_connect_to_manager_response.in_set(UiStateSystems),
+					(
+						handle_connect_to_manager_response,
+						handle_create_instance_response,
+					)
+						.in_set(UiStateSystems),
 					(should_transition, draw_ui.after(UiStateSystems))
 						.run_if(in_state(GameModeState::TitleScreen)),
 				),
@@ -50,13 +58,14 @@ impl Plugin for TitleScreenPlugin {
 mod ui {
 	use bevy::{ecs::system::Resource, prelude::default};
 
-	use crate::netcode::ConnectToManagerRequest;
+	use crate::netcode::{ConnectToManagerRequest, CreateInstanceRequest};
 
 	use super::*;
 
 	/// [`EventWriter`]s needed by the UI.
 	pub(super) struct EventWriters<'a> {
 		pub connect_to_manager: EventWriter<'a, ConnectToManagerRequest>,
+		pub create_instance: EventWriter<'a, CreateInstanceRequest>,
 	}
 
 	impl EventWriters<'_> {
@@ -75,6 +84,12 @@ mod ui {
 	impl UiEvent for ConnectToManagerRequest {
 		fn send(self, evw: &mut EventWriters<'_>) {
 			evw.connect_to_manager.send(self);
+		}
+	}
+
+	impl UiEvent for CreateInstanceRequest {
+		fn send(self, evw: &mut EventWriters<'_>) {
+			evw.create_instance.send(self);
 		}
 	}
 
@@ -117,7 +132,9 @@ mod ui {
 			manager_url: String,
 		},
 		Connected,
-		InstanceCreated,
+		InstanceCreated {
+			instance_url: String,
+		},
 	}
 
 	impl CreateInstance {
@@ -178,7 +195,18 @@ mod ui {
 					ui.spinner();
 					self.into()
 				}
-				CreateInstance::InstanceCreated => todo!(),
+				CreateInstance::InstanceCreated {
+					ref mut instance_url,
+				} => {
+					ui.label("Created instance!");
+					ui.label(&*instance_url);
+					ui.output_mut(|o| instance_url.clone_into(&mut o.copied_text));
+					if ui.button("Join Instance").clicked() {
+						// TODO: Spawn event to connect to instance
+						return JoinInstance::WaitingForConnection.into();
+					}
+					self.into()
+				}
 			}
 		}
 	}
@@ -211,6 +239,7 @@ mod ui {
 							.hint_text("Instance Url"),
 					);
 					if ui.button("Submit").clicked() {
+						// TODO: spawn event for joining instance
 						return JoinInstance::WaitingForConnection.into();
 					}
 					if ui.button("Back").clicked() {
@@ -247,13 +276,16 @@ struct UiStateSystems;
 fn handle_connect_to_manager_response(
 	mut ui_state: ResMut<ui::TitleScreen>,
 	mut connect_to_manager_response: EventReader<ConnectToManagerResponse>,
+	mut create_instance_request: EventWriter<CreateInstanceRequest>,
 ) {
 	let ui::TitleScreen::Create(ref mut create_state) = *ui_state else {
 		return;
 	};
 	for response in connect_to_manager_response.read() {
+		trace!("handling ConnectToManagerResponse");
 		let Err(ref _response_err) = response.0 else {
 			*create_state = ui::CreateInstance::Connected;
+			create_instance_request.send(CreateInstanceRequest);
 			continue;
 		};
 		if let ui::CreateInstance::WaitingForConnection {
@@ -268,10 +300,40 @@ fn handle_connect_to_manager_response(
 	}
 }
 
+fn handle_create_instance_response(
+	manager: Option<Res<crate::netcode::NetcodeManager>>,
+	mut ui_state: ResMut<ui::TitleScreen>,
+	mut create_instance_response: EventReader<CreateInstanceResponse>,
+) {
+	let ui::TitleScreen::Create(ref mut create_state) = *ui_state else {
+		return;
+	};
+	for response in create_instance_response.read() {
+		trace!("handling CreateInstanceResponse");
+		match &response.0 {
+			Ok(url) => {
+				*create_state = ui::CreateInstance::InstanceCreated {
+					instance_url: url.to_string(),
+				}
+			}
+			Err(_err) => {
+				*create_state = ui::CreateInstance::Initial {
+					error_msg: "error while creating instance".to_owned(),
+					manager_url: manager
+						.as_ref()
+						.map(|m| m.url().to_string())
+						.unwrap_or_default(),
+				}
+			}
+		}
+	}
+}
+
 fn draw_ui(
 	mut state: ResMut<ui::TitleScreen>,
 	mut contexts: EguiContexts,
 	connect_to_manager: EventWriter<ConnectToManagerRequest>,
+	create_instance: EventWriter<CreateInstanceRequest>,
 ) {
 	egui::Window::new("Instances")
 		.resizable(false)
@@ -279,7 +341,10 @@ fn draw_ui(
 		.collapsible(false)
 		.anchor(egui::Align2::CENTER_CENTER, egui::Vec2::ZERO)
 		.show(contexts.ctx_mut(), |ui: &mut egui::Ui| {
-			let evw = EventWriters { connect_to_manager };
+			let evw = EventWriters {
+				connect_to_manager,
+				create_instance,
+			};
 			// need ownership of state, so replace with the default temporarily
 			let stolen = std::mem::take(state.as_mut());
 			*state = stolen.draw(ui, evw);

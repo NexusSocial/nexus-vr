@@ -1,4 +1,7 @@
-use std::ops::{Deref, DerefMut};
+use std::{
+	ops::{Deref, DerefMut},
+	sync::Arc,
+};
 
 use bevy::{
 	app::{Plugin, PostUpdate, PreUpdate, Update},
@@ -7,15 +10,19 @@ use bevy::{
 		entity::Entity,
 		event::{Event, EventReader, EventWriter},
 		query::{Added, With, Without},
+		schedule::{common_conditions::resource_exists, IntoSystemConfigs as _},
 		system::{CommandQueue, Commands, Query, Res, ResMut, Resource},
 		world::World,
 	},
-	log::{error, trace},
+	log::{debug, error, trace},
 	tasks::IoTaskPool,
 	transform::components::{GlobalTransform, Transform},
 };
 use color_eyre::eyre::{Result, WrapErr as _};
-use replicate_client::common::data_model::{DataModel, Entity as DmEntity};
+use replicate_client::{
+	common::data_model::{DataModel, Entity as DmEntity},
+	url::Url,
+};
 use tokio::sync::mpsc;
 
 const BOUNDED_CHAN_COMMAND_QUEUE_SIZE: usize = 16;
@@ -27,16 +34,25 @@ impl Plugin for NetcodePlugin {
 	fn build(&self, app: &mut bevy::prelude::App) {
 		app.add_event::<ConnectToManagerRequest>()
 			.add_event::<ConnectToManagerResponse>()
+			.add_event::<CreateInstanceRequest>()
+			.add_event::<CreateInstanceResponse>()
 			.init_resource::<CommandQueueChannel>()
 			.init_resource::<NetcodeDataModel>()
 			.add_systems(PreUpdate, (apply_queued_commands, from_data_model))
 			.add_systems(PostUpdate, (spawn_entities, to_data_model))
-			.add_systems(Update, on_connect_to_manager_evt);
+			.add_systems(
+				Update,
+				(
+					handle_connect_to_manager_evt,
+					handle_create_instance_evt
+						.run_if(resource_exists::<NetcodeManager>),
+				),
+			);
 	}
 }
 
-#[derive(Debug, Resource)]
-struct NetcodeManager(#[allow(unused)] replicate_client::manager::Manager);
+#[derive(Debug, Resource, derive_more::Deref)]
+pub struct NetcodeManager(Arc<replicate_client::manager::Manager>);
 
 /// Convenient way to receive commands sent from the async tasks.
 #[derive(Debug, Resource)]
@@ -65,14 +81,14 @@ fn apply_queued_commands(
 #[derive(Debug, Event, Eq, PartialEq)]
 pub struct ConnectToManagerRequest {
 	/// The URL of the manager to connect to. If `None`, locally host.
-	pub manager_url: Option<replicate_client::url::Url>,
+	pub manager_url: Option<Url>,
 }
 
 /// Produced in response to [`ConnectToManagerRequest`].
 #[derive(Debug, Event)]
 pub struct ConnectToManagerResponse(pub Result<()>);
 
-fn on_connect_to_manager_evt(
+fn handle_connect_to_manager_evt(
 	command_queue: Res<CommandQueueChannel>,
 	mut request: EventReader<ConnectToManagerRequest>,
 	mut response: EventWriter<ConnectToManagerResponse>,
@@ -82,9 +98,10 @@ fn on_connect_to_manager_evt(
 			response.send(ConnectToManagerResponse(Ok(())));
 			continue;
 		};
-		let pool = IoTaskPool::get();
 		let manager_url = manager_url.to_owned();
 		let tx = command_queue.tx.clone();
+		let pool = IoTaskPool::get();
+		debug!("spawned async task for connecting to manager");
 		pool.spawn(async_compat::Compat::new(async move {
 			let connect_result =
 				replicate_client::manager::Manager::connect(manager_url, None)
@@ -98,17 +115,63 @@ fn on_connect_to_manager_evt(
 			// async code.
 			let mut queue = CommandQueue::default();
 			let response_event = ConnectToManagerResponse(connect_result.map(|mngr| {
-				queue.push(|w: &mut World| w.insert_resource(NetcodeManager(mngr)));
+				queue.push(|w: &mut World| {
+					w.insert_resource(NetcodeManager(Arc::new(mngr)))
+				});
 			}));
 			queue.push(|w: &mut World| {
 				w.send_event(response_event).expect("failed to send event");
 			});
-			match tx.send(queue).await {
-				Ok(()) | Err(mpsc::error::SendError(_)) => (),
-			}
+			let _ = tx.send(queue).await;
 		}))
 		// We don't need to explicitly retrieve the return value.
 		.detach();
+	}
+}
+
+/// Other plugins can send this to create and then connect to a new instance.
+#[derive(Debug, Event, Eq, PartialEq)]
+pub struct CreateInstanceRequest;
+
+/// Produced in response to [`CreateInstanceRequest`].
+#[derive(Debug, Event)]
+pub struct CreateInstanceResponse(pub Result<Url>);
+
+fn handle_create_instance_evt(
+	command_queue: Res<CommandQueueChannel>,
+	manager: Res<NetcodeManager>,
+	mut request: EventReader<CreateInstanceRequest>,
+) {
+	for _ in request.read() {
+		let mngr = manager.0.clone();
+		let url_fut = async move {
+			let id = mngr
+				.instance_create()
+				.await
+				.wrap_err("failed to create instance")?;
+			mngr.instance_url(id)
+				.await
+				.wrap_err("failed to get instance url")
+		};
+		let tx = command_queue.tx.clone();
+		let pool = IoTaskPool::get();
+		debug!("spawned async task for creating instance");
+		pool.spawn(async_compat::Compat::new(async move {
+			let url_result = url_fut.await;
+			if let Err(ref err) = url_result {
+				error!("{err:?}");
+			}
+
+			// We use a command queue to enqueue commands back to bevy from the
+			// async code.
+			let mut queue = CommandQueue::default();
+			let response = CreateInstanceResponse(url_result);
+			queue.push(|w: &mut World| {
+				w.send_event(response).expect("failed to send event");
+			});
+			let _ = tx.send(queue).await;
+		}))
+		.detach()
 	}
 }
 

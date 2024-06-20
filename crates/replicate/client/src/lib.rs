@@ -3,8 +3,10 @@ use eyre::Result;
 use tracing::warn;
 use url::Url;
 
-pub use replicate_common as common;
 use wtransport::{endpoint::ConnectOptions, ClientConfig, Endpoint};
+
+pub use replicate_common as common;
+pub use url;
 
 pub mod instance;
 pub mod manager;

@@ -23,3 +23,5 @@ rand.workspace = true
 rand_xoshiro.workspace = true
 replicate-client.workspace = true
 serde_json.workspace = true
+tokio.workspace = true
+async-compat.workspace = true

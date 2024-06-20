@@ -3,9 +3,10 @@
 use bevy::{
 	app::{Plugin, Update},
 	ecs::{
-		event::{Event, EventWriter},
+		event::{Event, EventReader, EventWriter},
 		schedule::{
-			common_conditions::in_state, IntoSystemConfigs as _, NextState, OnEnter,
+			common_conditions::in_state, IntoSystemConfigs as _,
+			IntoSystemSetConfigs as _, NextState, OnEnter,
 		},
 		system::{Commands, Res, ResMut},
 	},
@@ -14,7 +15,10 @@ use bevy::{
 };
 use bevy_inspector_egui::bevy_egui::{egui, EguiContexts};
 
-use crate::{netcode::ConnectToManager, AppExt, GameModeState};
+use crate::{
+	netcode::{ConnectToManagerRequest, ConnectToManagerResponse},
+	AppExt, GameModeState,
+};
 
 use self::ui::EventWriters;
 
@@ -24,13 +28,20 @@ pub struct TitleScreenPlugin;
 impl Plugin for TitleScreenPlugin {
 	fn build(&self, app: &mut bevy::prelude::App) {
 		app.add_if_not_added(bevy_inspector_egui::bevy_egui::EguiPlugin)
-			.add_if_not_added(crate::netcode::NetcodePlugin)
+			.add_if_not_added(crate::netcode::NetcodePlugin::default())
 			.register_type::<ui::TitleScreen>()
+			.configure_sets(
+				Update,
+				UiStateSystems.run_if(in_state(GameModeState::TitleScreen)),
+			)
 			.add_systems(OnEnter(GameModeState::TitleScreen), setup)
 			.add_systems(
 				Update,
-				(should_transition, draw_title_screen)
-					.run_if(in_state(GameModeState::TitleScreen)),
+				(
+					handle_connect_to_manager_response.in_set(UiStateSystems),
+					(should_transition, draw_ui.after(UiStateSystems))
+						.run_if(in_state(GameModeState::TitleScreen)),
+				),
 			);
 	}
 }
@@ -39,11 +50,13 @@ impl Plugin for TitleScreenPlugin {
 mod ui {
 	use bevy::{ecs::system::Resource, prelude::default};
 
+	use crate::netcode::ConnectToManagerRequest;
+
 	use super::*;
 
 	/// [`EventWriter`]s needed by the UI.
 	pub(super) struct EventWriters<'a> {
-		pub connect_to_manager: EventWriter<'a, ConnectToManager>,
+		pub connect_to_manager: EventWriter<'a, ConnectToManagerRequest>,
 	}
 
 	impl EventWriters<'_> {
@@ -59,7 +72,7 @@ mod ui {
 		fn send(self, evw: &mut EventWriters<'_>);
 	}
 
-	impl UiEvent for ConnectToManager {
+	impl UiEvent for ConnectToManagerRequest {
 		fn send(self, evw: &mut EventWriters<'_>) {
 			evw.connect_to_manager.send(self);
 		}
@@ -94,8 +107,15 @@ mod ui {
 	/// User has chosen to create an instance.
 	#[derive(Debug, Reflect, Eq, PartialEq)]
 	pub enum CreateInstance {
-		Initial { manager_url: String },
-		WaitingForConnection,
+		Initial {
+			manager_url: String,
+			/// Non-empty will display this as the error.
+			error_msg: String,
+		},
+		WaitingForConnection {
+			/// The url given in `Initial`
+			manager_url: String,
+		},
 		Connected,
 		InstanceCreated,
 	}
@@ -105,31 +125,59 @@ mod ui {
 			match self {
 				CreateInstance::Initial {
 					ref mut manager_url,
+					ref mut error_msg,
 				} => {
-					ui.add(egui::TextEdit::singleline(manager_url).hint_text(
-						"Manager Url (leave blank to spin up server locally)",
-					));
+					ui.add(
+						egui::TextEdit::singleline(manager_url)
+							.hint_text(
+								"Manager Url (leave blank to spin up server locally)",
+							)
+							.text_color_opt(
+								(!error_msg.is_empty()).then_some(egui::Color32::RED),
+							),
+					);
 					let text = if manager_url.is_empty() {
+						error_msg.clear();
 						"Locally Host"
+					} else if !error_msg.is_empty() {
+						error_msg.as_str()
 					} else {
 						"Remotely Host"
 					};
 					if ui.button(text).clicked() {
-						evw.send(ConnectToManager {
-							manager_url: manager_url.to_owned(),
-						});
-						return CreateInstance::WaitingForConnection.into();
+						match (!manager_url.is_empty())
+							.then(|| manager_url.parse())
+							.transpose()
+						{
+							Ok(parsed_manager_url) => {
+								evw.send(ConnectToManagerRequest {
+									manager_url: parsed_manager_url,
+								});
+								return CreateInstance::WaitingForConnection {
+									manager_url: std::mem::take(manager_url),
+								}
+								.into();
+							}
+							Err(_parse_err) => {
+								error_msg.clear();
+								error_msg.push_str("Invalid URL");
+							}
+						}
 					}
 					if ui.button("Back").clicked() {
 						return default();
 					}
 					self.into()
 				}
-				CreateInstance::WaitingForConnection => {
+				CreateInstance::WaitingForConnection { .. } => {
 					ui.spinner();
 					self.into()
 				}
-				CreateInstance::Connected => todo!(),
+				CreateInstance::Connected => {
+					ui.label("Connected to Manager, creating instance...");
+					ui.spinner();
+					self.into()
+				}
 				CreateInstance::InstanceCreated => todo!(),
 			}
 		}
@@ -139,6 +187,7 @@ mod ui {
 		fn default() -> Self {
 			Self::Initial {
 				manager_url: default(),
+				error_msg: String::new(),
 			}
 		}
 	}
@@ -191,10 +240,38 @@ fn setup(mut commands: Commands) {
 	commands.init_resource::<ui::TitleScreen>()
 }
 
-fn draw_title_screen(
+/// Systems related to transition of UI state
+#[derive(bevy::prelude::SystemSet, Hash, Debug, Eq, PartialEq, Clone)]
+struct UiStateSystems;
+
+fn handle_connect_to_manager_response(
+	mut ui_state: ResMut<ui::TitleScreen>,
+	mut connect_to_manager_response: EventReader<ConnectToManagerResponse>,
+) {
+	let ui::TitleScreen::Create(ref mut create_state) = *ui_state else {
+		return;
+	};
+	for response in connect_to_manager_response.read() {
+		let Err(ref _response_err) = response.0 else {
+			*create_state = ui::CreateInstance::Connected;
+			continue;
+		};
+		if let ui::CreateInstance::WaitingForConnection {
+			ref mut manager_url,
+		} = *create_state
+		{
+			*create_state = ui::CreateInstance::Initial {
+				error_msg: "Could not connect to server".to_owned(),
+				manager_url: std::mem::take(manager_url),
+			}
+		}
+	}
+}
+
+fn draw_ui(
 	mut state: ResMut<ui::TitleScreen>,
 	mut contexts: EguiContexts,
-	connect_to_manager: EventWriter<ConnectToManager>,
+	connect_to_manager: EventWriter<ConnectToManagerRequest>,
 ) {
 	egui::Window::new("Instances")
 		.resizable(false)

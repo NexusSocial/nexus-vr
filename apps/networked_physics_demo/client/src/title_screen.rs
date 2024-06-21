@@ -10,9 +10,7 @@ use bevy::{
 		},
 		system::{Commands, Res, ResMut},
 	},
-	input::{keyboard::KeyCode, ButtonInput},
 	log::{info, trace},
-	prelude::default,
 	reflect::Reflect,
 };
 use bevy_inspector_egui::bevy_egui::{egui, EguiContexts};
@@ -21,7 +19,6 @@ use crate::{
 	netcode::{
 		ConnectToInstanceRequest, ConnectToInstanceResponse, ConnectToManagerRequest,
 		ConnectToManagerResponse, CreateInstanceRequest, CreateInstanceResponse,
-		NetcodeDataModel,
 	},
 	AppExt, GameModeState,
 };
@@ -178,7 +175,7 @@ mod ui {
 							.then(|| manager_url.parse())
 							.transpose()
 						{
-							Ok(parsed_manager_url) => {
+							Ok(Some(parsed_manager_url)) => {
 								evw.send(ConnectToManagerRequest {
 									manager_url: parsed_manager_url,
 								});
@@ -186,6 +183,13 @@ mod ui {
 									manager_url: std::mem::take(manager_url),
 								}
 								.into();
+							}
+							Ok(None) => {
+								// Locally host
+								evw.send(ConnectToInstanceRequest {
+									instance_url: None,
+								});
+								return JoinInstance::WaitingForConnection.into();
 							}
 							Err(_parse_err) => {
 								error_msg.clear();

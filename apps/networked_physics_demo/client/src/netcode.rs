@@ -83,8 +83,8 @@ fn apply_queued_commands(
 /// Other plugins create this when they want to connect to a manager.
 #[derive(Debug, Event, Eq, PartialEq)]
 pub struct ConnectToManagerRequest {
-	/// The URL of the manager to connect to. If `None`, locally host.
-	pub manager_url: Option<Url>,
+	/// The URL of the manager to connect to.
+	pub manager_url: Url,
 }
 
 /// Produced in response to [`ConnectToManagerRequest`].
@@ -94,13 +94,8 @@ pub struct ConnectToManagerResponse(pub Result<()>);
 fn handle_connect_to_manager_evt(
 	command_queue: Res<CommandQueueChannel>,
 	mut request: EventReader<ConnectToManagerRequest>,
-	mut response: EventWriter<ConnectToManagerResponse>,
 ) {
 	for ConnectToManagerRequest { manager_url } in request.read() {
-		let Some(manager_url) = manager_url else {
-			response.send(ConnectToManagerResponse(Ok(())));
-			continue;
-		};
 		let manager_url = manager_url.to_owned();
 		let tx = command_queue.tx.clone();
 		let pool = IoTaskPool::get();

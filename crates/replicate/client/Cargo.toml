@@ -9,7 +9,9 @@ description = "A client api for state replication"
 publish = false
 
 [dependencies]
+async-trait = "0.1.80"
 base64.workspace = true
+bb8 = "0.8.5"
 bytes.workspace = true
 eyre.workspace = true
 futures.workspace = true

@@ -11,7 +11,7 @@ jobs:
     name: Check Formatting
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Cache cargo dependencies
         uses: Swatinem/rust-cache@v2
 
@@ -22,7 +22,7 @@ jobs:
     name: Lint and Build
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Install bevy dependencies
         run: |
           sudo apt-get update && sudo apt-get install -y \
@@ -40,7 +40,7 @@ jobs:
     name: Run Tests
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Install bevy dependencies
         run: |
           sudo apt-get update && sudo apt-get install -y \
@@ -52,10 +52,17 @@ jobs:
         run: xvfb-run cargo test --all --all-features --all-targets
 
       - name: Upload screenshots to artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           path: "**/tests/screnshots"
           name: screenshots
           retention-days: 1
+
+  deny:
+    name: Run cargo deny
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v4
+    - uses: EmbarkStudios/cargo-deny-action@v1
 
 

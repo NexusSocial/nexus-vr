@@ -1,23 +1,25 @@
 //! WebTransport server, i.e. "chad" transport.
 
+mod certificate;
+
 use std::{
 	num::Wrapping,
 	sync::{Arc, RwLock},
 	time::Duration,
 };
 
-use base64::prelude::{Engine, BASE64_URL_SAFE_NO_PAD};
 use color_eyre::{eyre::Context, Result};
 use eyre::{bail, ensure};
-use futures::{sink::SinkExt, stream::StreamExt};
+use futures::{sink::SinkExt, stream::StreamExt, FutureExt as _};
 use replicate_common::{
 	messages::manager::{Clientbound as Cb, Serverbound as Sb},
 	InstanceId,
 };
-use tracing::{error, info, info_span, Instrument};
+use tracing::{error, info, info_span, instrument, Instrument};
 use url::Url;
 use wtransport::{endpoint::IncomingSession, ServerConfig};
 
+use self::certificate::Certificate;
 use crate::{instance::InstanceManager, Args};
 
 type Server = wtransport::Endpoint<wtransport::endpoint::endpoint_side::Server>;
@@ -29,13 +31,14 @@ pub async fn launch_webtransport_server(
 	args: Args,
 	_im: Arc<InstanceManager>,
 ) -> Result<()> {
-	let cert = Certificate::new(wtransport::Certificate::self_signed(
-		args.subject_alt_names.iter(),
-	));
+	let cert = Certificate::new(
+		wtransport::Identity::self_signed(args.subject_alt_names.iter())
+			.wrap_err("failed to create self signed certificate")?,
+	);
 	let server = Server::server(
 		ServerConfig::builder()
 			.with_bind_default(args.port.unwrap_or(0))
-			.with_certificate(cert.cert.clone())
+			.with_identity(cert.as_ref())
 			.build(),
 	)
 	.wrap_err("failed to create wtransport server")?;
@@ -75,37 +78,44 @@ pub async fn launch_webtransport_server(
 		}
 	};
 
-	let mut interval = tokio::time::interval(CERT_REFRESH_INTERVAL);
-	let refresh_cert_fut = async {
-		// tick it once to clear the initial tick
-		interval.tick().await;
-		loop {
-			interval.tick().await;
-			info!("refreshing certs");
-			let mut svr_ctx_l = svr_ctx.0.write().expect("server context poisoned");
-			svr_ctx_l.cert =
-				wtransport::Certificate::self_signed(svr_ctx_l.san.iter()).into();
+	let _: ((), ()) = tokio::try_join! {
+		accept_fut.map(|()| Ok(())),
+		cert_refresh_task(&server,svr_ctx.clone(), args.port),
+	}?;
 
-			#[allow(clippy::question_mark)] // false positive
-			if let Err(err) = server
-				.reload_config(
-					ServerConfig::builder()
-						.with_bind_default(args.port.unwrap_or(0))
-						.with_certificate(svr_ctx_l.cert.cert.clone())
-						.build(),
-					false,
-				)
-				.wrap_err("failed to reload server config")
-			{
-				return Err(err);
-			}
-			info!("new server url:\n{}", server_url(&svr_ctx_l));
+	Ok(())
+}
+
+#[instrument(name = "cert refresh task", skip(server))]
+async fn cert_refresh_task(
+	server: &Server,
+	svr_ctx: ServerCtx,
+	port: Option<u16>,
+) -> Result<()> {
+	let mut interval = tokio::time::interval(CERT_REFRESH_INTERVAL);
+	// tick it once to clear the initial tick
+	interval.tick().await;
+	loop {
+		interval.tick().await;
+		info!("refreshing certs");
+		let mut svr_ctx_l = svr_ctx.0.write().expect("server context poisoned");
+		svr_ctx_l.cert = Certificate::self_signed(svr_ctx_l.san.iter())
+			.expect("already validated the SAN, so this should never panic");
+
+		#[allow(clippy::question_mark)] // false positive
+		if let Err(err) = server
+			.reload_config(
+				ServerConfig::builder()
+					.with_bind_default(port.unwrap_or(0))
+					.with_identity(svr_ctx_l.cert.as_ref())
+					.build(),
+				false,
+			)
+			.wrap_err("failed to reload server config")
+		{
+			return Err(err);
 		}
-	}
-	.instrument(info_span!("cert refresh task"));
-	tokio::select! {
-		_ = accept_fut => unreachable!(),
-		result = refresh_cert_fut => result?,
+		info!("new server url:\n{}", server_url(&svr_ctx_l));
 	}
 }
 
@@ -162,7 +172,7 @@ async fn handle_connection(
 					let domain_name =
 						svr_ctx_l.san.first().expect("should have domain name");
 					let port = svr_ctx_l.port;
-					let hash = &svr_ctx_l.cert.base64;
+					let hash = &svr_ctx_l.cert.base64_hash;
 					// TODO: Actually manipulate the instance manager.
 					Url::parse(&format!("https://{domain_name}:{port}/{id}/#{hash}"))
 						.expect("invalid url")
@@ -181,7 +191,7 @@ async fn handle_connection(
 }
 
 fn server_url(svr_ctx: &ServerCtxInner) -> String {
-	let encoded_cert_hash = &svr_ctx.cert.base64;
+	let encoded_cert_hash = &svr_ctx.cert.base64_hash;
 	let subject_alt_name = svr_ctx.san.first().expect("should have at least 1 SAN");
 	let port = svr_ctx.port;
 	format!("https://{subject_alt_name}:{port}/#{encoded_cert_hash}")
@@ -201,54 +211,6 @@ struct ServerCtx(Arc<RwLock<ServerCtxInner>>);
 impl ServerCtx {
 	fn new(ctx: ServerCtxInner) -> Self {
 		Self(Arc::new(RwLock::new(ctx)))
-	}
-}
-
-/// Newtype on [`wtransport::Certificate`].
-#[derive(Clone)]
-struct Certificate {
-	cert: wtransport::Certificate,
-	base64: String,
-}
-
-impl Certificate {
-	fn new(cert: wtransport::Certificate) -> Self {
-		let cert_hash = cert.hashes().pop().expect("should be at least one hash");
-		let base64 = BASE64_URL_SAFE_NO_PAD.encode(cert_hash.as_ref());
-		Self { cert, base64 }
-	}
-}
-
-impl From<wtransport::Certificate> for Certificate {
-	fn from(value: wtransport::Certificate) -> Self {
-		Self::new(value)
-	}
-}
-
-impl std::fmt::Debug for Certificate {
-	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-		f.debug_tuple(std::any::type_name::<Self>())
-			.field(&self.cert.certificates())
-			.finish()
-	}
-}
-
-impl std::fmt::Display for Certificate {
-	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-		f.debug_list()
-			.entries(
-				self.cert
-					.hashes()
-					.into_iter()
-					.map(|h| h.fmt(wtransport::tls::Sha256DigestFmt::DottedHex)),
-			)
-			.finish()
-	}
-}
-
-impl AsRef<wtransport::Certificate> for Certificate {
-	fn as_ref(&self) -> &wtransport::Certificate {
-		&self.cert
 	}
 }
 

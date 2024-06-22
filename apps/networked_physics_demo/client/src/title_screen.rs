@@ -10,16 +10,15 @@ use bevy::{
 		},
 		system::{Commands, Res, ResMut},
 	},
-	input::{keyboard::KeyCode, ButtonInput},
-	log::trace,
+	log::{info, trace},
 	reflect::Reflect,
 };
 use bevy_inspector_egui::bevy_egui::{egui, EguiContexts};
 
 use crate::{
 	netcode::{
-		ConnectToManagerRequest, ConnectToManagerResponse, CreateInstanceRequest,
-		CreateInstanceResponse,
+		ConnectToInstanceRequest, ConnectToInstanceResponse, ConnectToManagerRequest,
+		ConnectToManagerResponse, CreateInstanceRequest, CreateInstanceResponse,
 	},
 	AppExt, GameModeState,
 };
@@ -45,6 +44,7 @@ impl Plugin for TitleScreenPlugin {
 					(
 						handle_connect_to_manager_response,
 						handle_create_instance_response,
+						handle_connect_to_instance_response,
 					)
 						.in_set(UiStateSystems),
 					(should_transition, draw_ui.after(UiStateSystems))
@@ -58,7 +58,9 @@ impl Plugin for TitleScreenPlugin {
 mod ui {
 	use bevy::{ecs::system::Resource, prelude::default};
 
-	use crate::netcode::{ConnectToManagerRequest, CreateInstanceRequest};
+	use crate::netcode::{
+		ConnectToInstanceRequest, ConnectToManagerRequest, CreateInstanceRequest,
+	};
 
 	use super::*;
 
@@ -66,6 +68,7 @@ mod ui {
 	pub(super) struct EventWriters<'a> {
 		pub connect_to_manager: EventWriter<'a, ConnectToManagerRequest>,
 		pub create_instance: EventWriter<'a, CreateInstanceRequest>,
+		pub connect_to_instance: EventWriter<'a, ConnectToInstanceRequest>,
 	}
 
 	impl EventWriters<'_> {
@@ -90,6 +93,12 @@ mod ui {
 	impl UiEvent for CreateInstanceRequest {
 		fn send(self, evw: &mut EventWriters<'_>) {
 			evw.create_instance.send(self);
+		}
+	}
+
+	impl UiEvent for ConnectToInstanceRequest {
+		fn send(self, evw: &mut EventWriters<'_>) {
+			evw.connect_to_instance.send(self);
 		}
 	}
 
@@ -166,7 +175,7 @@ mod ui {
 							.then(|| manager_url.parse())
 							.transpose()
 						{
-							Ok(parsed_manager_url) => {
+							Ok(Some(parsed_manager_url)) => {
 								evw.send(ConnectToManagerRequest {
 									manager_url: parsed_manager_url,
 								});
@@ -174,6 +183,13 @@ mod ui {
 									manager_url: std::mem::take(manager_url),
 								}
 								.into();
+							}
+							Ok(None) => {
+								// Locally host
+								evw.send(ConnectToInstanceRequest {
+									instance_url: None,
+								});
+								return JoinInstance::WaitingForConnection.into();
 							}
 							Err(_parse_err) => {
 								error_msg.clear();
@@ -202,7 +218,10 @@ mod ui {
 					ui.label(&*instance_url);
 					ui.output_mut(|o| instance_url.clone_into(&mut o.copied_text));
 					if ui.button("Join Instance").clicked() {
-						// TODO: Spawn event to connect to instance
+						let instance_url = instance_url.parse().expect("infallible");
+						evw.send(ConnectToInstanceRequest {
+							instance_url: Some(instance_url),
+						});
 						return JoinInstance::WaitingForConnection.into();
 					}
 					self.into()
@@ -223,24 +242,52 @@ mod ui {
 	/// User has chosen to join an instance.
 	#[derive(Debug, Reflect, Eq, PartialEq)]
 	pub enum JoinInstance {
-		Initial { instance_url: String },
+		Initial {
+			instance_url: String,
+			error_msg: String,
+		},
 		WaitingForConnection,
 		Connected,
 	}
 
 	impl JoinInstance {
-		fn draw(mut self, ui: &mut egui::Ui, _evw: EventWriters) -> TitleScreen {
+		fn draw(mut self, ui: &mut egui::Ui, mut evw: EventWriters) -> TitleScreen {
 			match self {
 				JoinInstance::Initial {
 					ref mut instance_url,
+					ref mut error_msg,
 				} => {
 					ui.add(
 						egui::TextEdit::singleline(instance_url)
-							.hint_text("Instance Url"),
+							.hint_text("Instance Url")
+							.text_color_opt(
+								(!error_msg.is_empty()).then_some(egui::Color32::RED),
+							),
 					);
-					if ui.button("Submit").clicked() {
-						// TODO: spawn event for joining instance
-						return JoinInstance::WaitingForConnection.into();
+					if instance_url.is_empty() {
+						error_msg.clear();
+					}
+					let text = if error_msg.is_empty() {
+						"Connect"
+					} else {
+						error_msg.as_str()
+					};
+					if ui
+						.add_enabled(!instance_url.is_empty(), egui::Button::new(text))
+						.clicked()
+					{
+						match instance_url.parse() {
+							Ok(instance_url) => {
+								evw.send(ConnectToInstanceRequest {
+									instance_url: Some(instance_url),
+								});
+								return JoinInstance::WaitingForConnection.into();
+							}
+							Err(_parse_err) => {
+								error_msg.clear();
+								error_msg.push_str("Invalid URL");
+							}
+						}
 					}
 					if ui.button("Back").clicked() {
 						return default();
@@ -251,7 +298,10 @@ mod ui {
 					ui.spinner();
 					self.into()
 				}
-				JoinInstance::Connected => todo!(),
+				JoinInstance::Connected => {
+					ui.label("Connected!");
+					self.into()
+				}
 			}
 		}
 	}
@@ -260,6 +310,7 @@ mod ui {
 		fn default() -> Self {
 			Self::Initial {
 				instance_url: default(),
+				error_msg: String::new(),
 			}
 		}
 	}
@@ -329,11 +380,38 @@ fn handle_create_instance_response(
 	}
 }
 
+fn handle_connect_to_instance_response(
+	mut ui_state: ResMut<ui::TitleScreen>,
+	mut connect_to_instance_response: EventReader<ConnectToInstanceResponse>,
+) {
+	let ui::TitleScreen::Join(ref mut join_state) = *ui_state else {
+		return;
+	};
+	for response in connect_to_instance_response.read() {
+		trace!("handling ConnectToInstanceResponse");
+		match &response.result {
+			Err(_err) => {
+				*join_state = ui::JoinInstance::Initial {
+					error_msg: "Failed to connect to instance".to_owned(),
+					instance_url: response
+						.instance_url
+						.as_ref()
+						.map(|url| url.to_string())
+						.unwrap_or_default(),
+				}
+			}
+			Ok(_) => *join_state = ui::JoinInstance::Connected,
+		}
+		//
+	}
+}
+
 fn draw_ui(
 	mut state: ResMut<ui::TitleScreen>,
 	mut contexts: EguiContexts,
 	connect_to_manager: EventWriter<ConnectToManagerRequest>,
 	create_instance: EventWriter<CreateInstanceRequest>,
+	connect_to_instance: EventWriter<ConnectToInstanceRequest>,
 ) {
 	egui::Window::new("Instances")
 		.resizable(false)
@@ -344,6 +422,7 @@ fn draw_ui(
 			let evw = EventWriters {
 				connect_to_manager,
 				create_instance,
+				connect_to_instance,
 			};
 			// need ownership of state, so replace with the default temporarily
 			let stolen = std::mem::take(state.as_mut());
@@ -353,10 +432,14 @@ fn draw_ui(
 
 /// Emits a state change under certain conditions.
 fn should_transition(
-	kb: Res<ButtonInput<KeyCode>>,
+	mut connect_to_instance: EventReader<ConnectToInstanceResponse>,
 	mut next_state: ResMut<NextState<GameModeState>>,
 ) {
-	if kb.just_pressed(KeyCode::Space) {
+	if connect_to_instance
+		.read()
+		.any(|response| response.result.is_ok())
+	{
+		info!("Connected to instance, transitioning...");
 		next_state.set(GameModeState::InMinecraft)
 	}
 }

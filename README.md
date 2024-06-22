@@ -5,15 +5,15 @@ libraries and `apps` for application-specific crates.
 
 ## Apps
 
-- [rvid](apps/rvid) - Remote Virtual Display, a rust based PCVR solution.
-- [social VR demo](apps/social) - Demo Social VR game.
+- [Social VR demo](apps/social) - Initial prototype for a Social VR game.
+- [Networked Physics Demo](apps/networked_physics_demo) - Multiplayer physics demo.
 
 ## Libraries
 
-- [universal-capture](crates/universal-capture) - A cross platform solution for
-  window capture.
 - [did-simple](crates/did-simple) - An easy to use crate for working with 
   Decentralized Identifiers (DIDs).
+- [replicate](crates/replicate) - Realtime low-latency engine-agnostic networking, with
+  a distributed authority scheme.
 
 ## First Time Setup
 

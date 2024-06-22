@@ -5,8 +5,6 @@ members = [
 	"apps/legacy_web/frontend",
 	"apps/networked_physics_demo/client",
 	"apps/networked_physics_demo/server",
-	"apps/rvid/client",
-	"apps/rvid/server",
 	"apps/social/client",
 	"apps/social/common",
 	"apps/social/networking",
@@ -19,7 +17,6 @@ members = [
 	"crates/replicate/client",
 	"crates/replicate/common",
 	"crates/replicate/server",
-	"crates/universal-capture",
 ]
 
 # These settings will apply to all members of the workspace that opt in to them

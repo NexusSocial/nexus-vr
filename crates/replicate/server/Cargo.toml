@@ -10,7 +10,7 @@ publish = false
 
 [dependencies]
 base64.workspace = true
-bytes.workspace = true
+bytes = { workspace = true, features = ["serde"] }
 clap.workspace = true
 color-eyre.workspace = true
 dashmap = "5.5.3"
@@ -20,6 +20,7 @@ futures.workspace = true
 rand.workspace = true
 replicate-common.path = "../common"
 serde.workspace = true
+thiserror.workspace = true
 tokio-serde = { workspace = true, features = ["json"] }
 tokio-util = { workspace = true, features = ["codec"] }
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }

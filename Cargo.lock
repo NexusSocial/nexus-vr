@@ -6513,6 +6513,7 @@ dependencies = [
  "rand 0.8.5",
  "replicate-common",
  "serde",
+ "thiserror",
  "tokio",
  "tokio-serde",
  "tokio-util",

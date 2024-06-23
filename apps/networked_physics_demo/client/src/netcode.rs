@@ -20,12 +20,16 @@ use bevy::{
 };
 use color_eyre::eyre::{Result, WrapErr as _};
 use replicate_client::{
-	common::data_model::{DataModel, Entity as DmEntity},
+	common::data_model::{
+		entity::{EntityId as DmEntity, Namespace},
+		DataModel,
+	},
 	url::Url,
 };
 use tokio::sync::mpsc;
 
 const BOUNDED_CHAN_COMMAND_QUEUE_SIZE: usize = 16;
+const DEFAULT_LOCAL_NAMESPACE: Namespace = Namespace(0);
 
 #[derive(Debug, Default)]
 pub struct NetcodePlugin {}
@@ -197,7 +201,7 @@ fn handle_connect_to_instance(
 	for ConnectToInstanceRequest { instance_url } in request.read() {
 		let Some(instance_url) = instance_url else {
 			commands.insert_resource(NetcodeDataModel {
-				dm: DmEnum::Local(DataModel::new()),
+				dm: DmEnum::Local(Box::new(DataModel::new(DEFAULT_LOCAL_NAMESPACE))),
 			});
 			response.send(ConnectToInstanceResponse {
 				result: Ok(()),
@@ -276,9 +280,8 @@ impl DerefMut for NetcodeDataModel {
 
 #[derive(Debug)]
 pub enum DmEnum {
-	#[allow(dead_code)]
 	Remote(replicate_client::instance::Instance),
-	Local(DataModel),
+	Local(Box<DataModel>),
 }
 
 impl Deref for DmEnum {
@@ -303,7 +306,7 @@ impl DerefMut for DmEnum {
 
 impl Default for DmEnum {
 	fn default() -> Self {
-		Self::Local(DataModel::default())
+		Self::Local(Box::new(DataModel::new(DEFAULT_LOCAL_NAMESPACE)))
 	}
 }
 

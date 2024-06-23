@@ -6477,6 +6477,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "url",
+ "uuid",
  "wtransport",
 ]
 
@@ -6487,6 +6488,7 @@ dependencies = [
  "bytes",
  "futures",
  "pin-project",
+ "rand 0.8.5",
  "serde",
  "thiserror",
  "tokio",
@@ -6508,6 +6510,7 @@ dependencies = [
  "derive_more",
  "eyre",
  "futures",
+ "rand 0.8.5",
  "replicate-common",
  "serde",
  "tokio",

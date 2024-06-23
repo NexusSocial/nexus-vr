@@ -73,10 +73,10 @@
 //! [did:web]: https://w3c-ccg.github.io/did-method-web/
 //! [ABA]: https://en.wikipedia.org/wiki/ABA_problem
 
-use eyre::{bail, ensure, Result, WrapErr};
+use eyre::{bail, Result, WrapErr};
 use futures::{SinkExt, StreamExt};
 use replicate_common::data_model::{
-	DataModel, Entity, LocalChanges, RemoteChanges, State,
+	entity::EntityId, DataModel, LocalChanges, RemoteChanges, State,
 };
 use url::Url;
 
@@ -129,7 +129,7 @@ impl Instance {
 		let mut rpc = RpcFramed::new(bi);
 
 		// Do handshake before anything else
-		{
+		let local_namespace = {
 			rpc.send(Sb::HandshakeRequest)
 				.await
 				.wrap_err("failed to send handshake request")?;
@@ -137,17 +137,17 @@ impl Instance {
 				bail!("Server disconnected before completing handshake");
 			};
 			let msg = msg.wrap_err("error while receiving handshake response")?;
-			ensure!(
-				msg == Cb::HandshakeResponse,
-				"invalid message during handshake"
-			);
-		}
+			let Cb::HandshakeResponse(local_namespace) = msg else {
+				bail!("invalid message during handshake");
+			};
+			local_namespace
+		};
 
 		Ok(Self {
 			_conn: conn,
 			_url: url,
 			_state_seq: Default::default(),
-			dm: DataModel::new(),
+			dm: DataModel::new(local_namespace),
 			_rpc: rpc,
 		})
 	}
@@ -177,9 +177,9 @@ impl Instance {
 /// The results of a state update pushed by the server.
 // TODO: This is gonna go away now.
 pub enum RecvState<'a> {
-	DeletedEntities(&'a [Entity]),
+	DeletedEntities(&'a [EntityId]),
 	StateUpdates {
-		entities: &'a [Entity],
+		entities: &'a [EntityId],
 		states: &'a [State],
 	},
 }

@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
-pub type EntityMap<T> = HashMap<Entity, T>;
+pub mod entity;
+use self::entity::{EntityId, Index, Namespace};
+
+pub type EntityMap<T> = HashMap<EntityId, T>;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum SpawnedBy {
@@ -8,63 +11,7 @@ pub enum SpawnedBy {
 	Remote,
 }
 
-/// MSB is whether spawning of the entity was initiated remotely or locally.
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, PartialOrd, Ord)]
-struct Index(u32);
-
-impl Index {
-	fn default_local() -> Self {
-		Self(0)
-	}
-
-	fn default_remote() -> Self {
-		Self(u32::MAX / 2 + 1)
-	}
-
-	fn spawned_by(&self) -> SpawnedBy {
-		if *self >= Self::default_remote() {
-			SpawnedBy::Remote
-		} else {
-			SpawnedBy::Local
-		}
-	}
-
-	/// The next entity's index.
-	///
-	/// # Panics
-	/// Panics if the number of entities overflows.
-	fn next(&self) -> Self {
-		let before = self.spawned_by();
-		let result = Self(self.0.wrapping_add(1));
-		assert_eq!(result.spawned_by(), before, "ran out of available entities");
-
-		result
-	}
-}
-
-/// An identifier for an entity in the network datamodel. NOTE: This is not the
-/// same as an ECS entity. This crate is completely independent of bevy.
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
-pub struct Entity {
-	// TODO: Maybe there should be no difference between the index and the entity?
-	idx: Index,
-}
-
-impl Entity {
-	pub fn default_local() -> Self {
-		Self {
-			idx: Index::default_local(),
-		}
-	}
-
-	pub fn default_remote() -> Self {
-		Self {
-			idx: Index::default_remote(),
-		}
-	}
-}
-
-/// The state of an [`Entity`].
+/// The state of an entity.
 pub type State = bytes::Bytes;
 
 /// Higher values = higher network priority.
@@ -95,6 +42,7 @@ struct EntityData {
 #[derive(Debug, Clone, Eq, PartialEq, Default)]
 pub struct LocalChanges {
 	/// The state when spawning is always guaranteed to be observed by the remote peer.
+	// TODO: This could be Index -> State
 	pub spawns: EntityMap<State>,
 	/// The state at the time of despawn is always guaranteed to be observed by the
 	/// remote peer.
@@ -118,6 +66,7 @@ pub struct LocalChanges {
 /// anymore to the overall data model.
 #[derive(Debug, Clone, Eq, PartialEq, Default)]
 struct PendingLocalChanges {
+	// TODO: This could be Index -> State
 	spawns: EntityMap<State>,
 	despawns: EntityMap<State>,
 	mutations: EntityMap<StateMutation>,
@@ -140,10 +89,10 @@ impl PendingLocalChanges {
 pub struct RemoteChanges {
 	/// Spawns done by remote peers. Applied first.
 	spawns: EntityMap<EntityData>,
-	/// Despawns done by remote peers. Applied last.
-	despawns: EntityMap<State>,
 	/// Updates. Applied after spawns.
 	updates: EntityMap<EntityData>,
+	/// Despawns done by remote peers. Applied last.
+	despawns: EntityMap<State>,
 }
 
 /// Tracks all state of entities.
@@ -152,34 +101,48 @@ pub struct DataModel {
 	data: EntityMap<EntityData>,
 	/// Tracks local changes that haven't been flushed yet.
 	pending: PendingLocalChanges,
-	/// The last index of the locally spawned entities.
-	local_idx: Index,
+	/// The next free index for locally spawned entities.
+	local_free_idx: Index,
+	local_namespace: Namespace,
 }
 
 impl DataModel {
-	pub fn new() -> Self {
+	/// Creates a `DataModel`.
+	///
+	/// Any entities spawned with [`Self::spawn`] will use `local_namespace` as their
+	/// [`Namespace`].
+	pub fn new(local_namespace: Namespace) -> Self {
 		Self {
 			data: EntityMap::new(),
 			pending: PendingLocalChanges::default(),
-			local_idx: Index::default_local(),
+			local_free_idx: Index::default(),
+			local_namespace,
 		}
 	}
 
-	pub fn with_capacity(cap: usize) -> Self {
+	pub fn with_capacity(local_namespace: Namespace, cap: usize) -> Self {
 		Self {
 			data: EntityMap::with_capacity(cap),
 			pending: PendingLocalChanges::default(),
-			local_idx: Index::default_local(),
+			local_free_idx: Index::default(),
+			local_namespace,
 		}
+	}
+
+	/// Any entities spawned locally will have this namespace.
+	pub fn local_namespace(&self) -> Namespace {
+		self.local_namespace
 	}
 
 	/// Spawns an entity, returning its id.
 	///
 	/// # Panics
 	/// Panics if the number of entities overflows.
-	pub fn spawn(&mut self, state: State) -> Entity {
-		let next = self.local_idx.next();
-		let entity = Entity { idx: next };
+	pub fn spawn(&mut self, state: State) -> EntityId {
+		let entity = EntityId {
+			idx: self.local_free_idx,
+			namespace: self.local_namespace,
+		};
 		let insert_result = self.data.insert(
 			entity,
 			EntityData {
@@ -198,11 +161,11 @@ impl DataModel {
 			"sanity: can't spawn same entity twice"
 		);
 
-		self.local_idx = next;
+		self.local_free_idx = self.local_free_idx.next();
 		entity
 	}
 
-	pub fn despawn(&mut self, entity: Entity) -> Result<(), EntityNotPresent> {
+	pub fn despawn(&mut self, entity: EntityId) -> Result<(), EntityNotPresent> {
 		let deleted_data = self.data.remove(&entity).ok_or(EntityNotPresent)?;
 		let insert_result = self.pending.despawns.insert(entity, deleted_data.state);
 		debug_assert!(insert_result.is_none(), "sanity: can't despawn twice");
@@ -229,7 +192,7 @@ impl DataModel {
 	/// than the events system when you only care about the latest value being observed.
 	pub fn update(
 		&mut self,
-		entity: Entity,
+		entity: EntityId,
 		state: State,
 	) -> Result<(), EntityNotPresent> {
 		self.update_inner(entity, state, StateMutation::Unreliable)
@@ -255,7 +218,7 @@ impl DataModel {
 	/// case, use the events system instead (TODO: make events a thing).
 	pub fn update_reliable(
 		&mut self,
-		entity: Entity,
+		entity: EntityId,
 		state: State,
 	) -> Result<(), EntityNotPresent> {
 		self.update_inner(entity, state, StateMutation::Reliable)
@@ -263,7 +226,7 @@ impl DataModel {
 
 	fn update_inner(
 		&mut self,
-		entity: Entity,
+		entity: EntityId,
 		state: State,
 		mutation: StateMutation,
 	) -> Result<(), EntityNotPresent> {
@@ -288,7 +251,7 @@ impl DataModel {
 		Ok(())
 	}
 
-	pub fn get(&self, entity: Entity) -> Result<&State, EntityNotPresent> {
+	pub fn get(&self, entity: EntityId) -> Result<&State, EntityNotPresent> {
 		self.data
 			.get(&entity)
 			.ok_or(EntityNotPresent)
@@ -298,7 +261,7 @@ impl DataModel {
 	/// Returns the priorities as `(send, recv)`.
 	pub fn priority(
 		&mut self,
-		entity: Entity,
+		entity: EntityId,
 	) -> Result<(Priority, Priority), EntityNotPresent> {
 		self.data
 			.get_mut(&entity)
@@ -309,7 +272,7 @@ impl DataModel {
 	/// Returns mutable refs to the priorities as `(send, recv)`.
 	pub fn priority_mut(
 		&mut self,
-		entity: Entity,
+		entity: EntityId,
 	) -> Result<(&mut Priority, &mut Priority), EntityNotPresent> {
 		self.data
 			.get_mut(&entity)
@@ -351,12 +314,6 @@ impl DataModel {
 	}
 }
 
-impl Default for DataModel {
-	fn default() -> Self {
-		Self::new()
-	}
-}
-
 #[derive(thiserror::Error, Debug, Eq, PartialEq)]
 #[error("entity not present")]
 pub struct EntityNotPresent;
@@ -365,26 +322,32 @@ pub struct EntityNotPresent;
 mod test_pending {
 	use super::*;
 
+	const TEST_NAMESPACE: Namespace = Namespace(1337);
+
+	fn local_id(idx: u32) -> EntityId {
+		EntityId {
+			idx: Index(idx),
+			namespace: TEST_NAMESPACE,
+		}
+	}
+
 	#[test]
 	fn test_pending_local_is_empty() {
 		assert!(PendingLocalChanges::default().is_empty());
 		let empty_state = bytes::Bytes::new();
 
 		assert!(!PendingLocalChanges {
-			spawns: EntityMap::from([(Entity::default_local(), empty_state.clone())]),
+			spawns: EntityMap::from([(local_id(0), empty_state.clone())]),
 			..Default::default()
 		}
 		.is_empty());
 		assert!(!PendingLocalChanges {
-			despawns: EntityMap::from([(Entity::default_local(), empty_state.clone())]),
+			despawns: EntityMap::from([(local_id(0), empty_state.clone())]),
 			..Default::default()
 		}
 		.is_empty());
 		assert!(!PendingLocalChanges {
-			mutations: EntityMap::from([(
-				Entity::default_local(),
-				StateMutation::Unreliable
-			)]),
+			mutations: EntityMap::from([(local_id(0), StateMutation::Unreliable)]),
 			..Default::default()
 		}
 		.is_empty());
@@ -395,61 +358,60 @@ mod test_pending {
 mod test_dm {
 	use super::*;
 
+	const TEST_NAMESPACE: Namespace = Namespace(1337);
+
+	fn local_id(idx: u32) -> EntityId {
+		EntityId {
+			idx: Index(idx),
+			namespace: TEST_NAMESPACE,
+		}
+	}
+
 	#[test]
 	fn test_new() {
-		let mut dm = DataModel::new();
+		let mut dm = DataModel::new(TEST_NAMESPACE);
 
-		assert_eq!(dm.local_idx, Index::default_local());
+		assert_eq!(dm.local_free_idx, Index::default());
 		assert_eq!(dm.data.capacity(), 0);
 		assert!(dm.pending.is_empty());
 
-		assert_eq!(dm.get(Entity::default_local()), Err(EntityNotPresent));
-		assert_eq!(dm.despawn(Entity::default_local()), Err(EntityNotPresent));
-		assert_eq!(dm.priority(Entity::default_local()), Err(EntityNotPresent));
-		assert_eq!(
-			dm.priority_mut(Entity::default_local()),
-			Err(EntityNotPresent)
-		);
+		assert_eq!(dm.get(local_id(0)), Err(EntityNotPresent));
+		assert_eq!(dm.despawn(local_id(0)), Err(EntityNotPresent));
+		assert_eq!(dm.priority(local_id(0)), Err(EntityNotPresent));
+		assert_eq!(dm.priority_mut(local_id(0)), Err(EntityNotPresent));
 	}
 
 	#[test]
 	fn test_capacity() {
 		let cap = 10;
-		let mut dm = DataModel::with_capacity(cap);
+		let dm = DataModel::with_capacity(TEST_NAMESPACE, cap);
 
-		assert_eq!(dm.local_idx, Index::default_local());
+		assert_eq!(dm.local_free_idx, Index::default());
 		assert!(dm.data.capacity() >= cap);
 		assert!(dm.pending.is_empty());
-
-		assert_eq!(dm.get(Entity::default_local()), Err(EntityNotPresent));
-		assert_eq!(dm.despawn(Entity::default_local()), Err(EntityNotPresent));
-		assert_eq!(dm.priority(Entity::default_local()), Err(EntityNotPresent));
-		assert_eq!(
-			dm.priority_mut(Entity::default_local()),
-			Err(EntityNotPresent)
-		);
 	}
 
 	#[test]
 	fn test_spawn() {
-		let mut dm = DataModel::new();
+		let mut dm = DataModel::new(TEST_NAMESPACE);
 		// Sanity checks
-		assert_eq!(dm.local_idx, Index::default_local());
+		assert_eq!(dm.local_free_idx, Index::default());
 		assert!(dm.pending.is_empty());
 
 		// Spawn the first entity
 		let expected_state1 = bytes::Bytes::from_static(&[1]);
-		let expected_index1 = Index::default_local().next();
+		let expected_index1 = Index::default();
 		let entity1 = dm.spawn(expected_state1.clone());
 
 		fn check_entity(
 			dm: &DataModel,
-			entity: Entity,
+			entity: EntityId,
 			expected_state: &State,
 			expected_idx: Index,
 		) {
 			// Check expected values of entity
 			assert_eq!(entity.idx, expected_idx);
+			assert_eq!(entity.namespace, TEST_NAMESPACE);
 			// Check expected values of entity's state.
 			assert_eq!(dm.get(entity), Ok(expected_state));
 			// Check expected values of change detection
@@ -460,7 +422,7 @@ mod test_dm {
 
 		check_entity(&dm, entity1, &expected_state1, expected_index1);
 		// Check expected value of local_idx
-		assert_eq!(dm.local_idx, entity1.idx);
+		assert_eq!(dm.local_free_idx, entity1.idx.next());
 		// Check expected values of change detection
 		assert!(!dm.pending.is_empty());
 		assert_eq!(dm.pending.spawns.len(), 1);
@@ -469,13 +431,13 @@ mod test_dm {
 
 		// Spawn another entity
 		let expected_state2 = bytes::Bytes::from_static(&[2]);
-		let expected_index2 = Index::default_local().next().next();
+		let expected_index2 = Index::default().next();
 		let entity2 = dm.spawn(expected_state2.clone());
 
 		check_entity(&dm, entity1, &expected_state1, expected_index1);
 		check_entity(&dm, entity2, &expected_state2, expected_index2);
 		// Check expected value of local_idx
-		assert_eq!(dm.local_idx, entity2.idx);
+		assert_eq!(dm.local_free_idx, entity2.idx.next());
 		// Check expected values of change detection
 		assert!(!dm.pending.is_empty());
 		assert_eq!(dm.pending.spawns.len(), 2);
@@ -531,7 +493,7 @@ mod test_dm {
 			}
 		}
 
-		let mut dm = DataModel::default();
+		let mut dm = DataModel::new(TEST_NAMESPACE);
 		let mut expected_local = LocalChanges::default();
 
 		fn check(dm: &DataModel, expected_local: &LocalChanges) {
@@ -605,93 +567,9 @@ mod test_dm {
 mod test_index {
 	use super::*;
 
-	fn max_local() -> Index {
-		let idx = Index(u32::MAX / 2);
-		assert_eq!(idx.spawned_by(), SpawnedBy::Local);
-
-		let higher = Index(idx.0.wrapping_add(1));
-		assert_eq!(higher.spawned_by(), SpawnedBy::Remote);
-
-		let lower = Index(idx.0.wrapping_sub(1));
-		assert_eq!(lower.spawned_by(), SpawnedBy::Local);
-
-		idx
-	}
-
-	fn min_local() -> Index {
-		let idx = Index(0);
-		assert_eq!(idx.spawned_by(), SpawnedBy::Local);
-
-		let higher = Index(idx.0.wrapping_add(1));
-		assert_eq!(higher.spawned_by(), SpawnedBy::Local);
-
-		let lower = Index(idx.0.wrapping_sub(1));
-		assert_eq!(lower.spawned_by(), SpawnedBy::Remote);
-
-		idx
-	}
-
-	fn max_remote() -> Index {
-		let idx = Index(u32::MAX);
-		assert_eq!(idx.spawned_by(), SpawnedBy::Remote);
-
-		let higher = Index(idx.0.wrapping_add(1));
-		assert_eq!(higher.spawned_by(), SpawnedBy::Local);
-
-		let lower = Index(idx.0.wrapping_sub(1));
-		assert_eq!(lower.spawned_by(), SpawnedBy::Remote);
-
-		idx
-	}
-
-	fn min_remote() -> Index {
-		let idx = Index(u32::MAX / 2 + 1);
-		assert_eq!(idx.spawned_by(), SpawnedBy::Remote);
-
-		let higher = Index(idx.0.wrapping_add(1));
-		assert_eq!(higher.spawned_by(), SpawnedBy::Remote);
-
-		let lower = Index(idx.0.wrapping_sub(1));
-		assert_eq!(lower.spawned_by(), SpawnedBy::Local);
-
-		idx
-	}
-
-	#[test]
-	fn test_next() {
-		let default_local = Index::default_local();
-		assert_eq!(default_local.0, 0);
-		assert_eq!(default_local.next(), Index(1));
-
-		let default_remote = Index::default_remote();
-		assert_eq!(default_remote.0, u32::MAX / 2 + 1);
-		assert_eq!(default_remote.next(), Index(u32::MAX / 2 + 2));
-	}
-
 	#[test]
 	#[should_panic(expected = "ran out of available entities")]
-	fn test_next_max_remote_overflows() {
-		max_remote().next();
-	}
-
-	#[test]
-	#[should_panic(expected = "ran out of available entities")]
-	fn test_next_max_local_overflows() {
-		max_local().next();
-	}
-
-	#[test]
-	fn test_spawned_by() {
-		assert_eq!(Index(u32::MAX).spawned_by(), SpawnedBy::Remote);
-		assert_eq!(Index(u32::MAX / 2 + 1).spawned_by(), SpawnedBy::Remote);
-		assert_eq!(Index(u32::MAX / 2).spawned_by(), SpawnedBy::Local);
-		assert_eq!(Index(u32::MIN).spawned_by(), SpawnedBy::Local);
-		assert_eq!(Index(0).spawned_by(), SpawnedBy::Local);
-	}
-
-	#[test]
-	fn test_spawned_by_defaults() {
-		assert_eq!(Index::default_local(), min_local());
-		assert_eq!(Index::default_remote(), min_remote());
+	fn test_next_max_index_overflows() {
+		Index(u32::MAX).next();
 	}
 }

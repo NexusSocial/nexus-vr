@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use base64::{prelude::BASE64_URL_SAFE_NO_PAD, Engine as _};
 use eyre::Result;
 use tracing::warn;
@@ -65,6 +67,9 @@ async fn connect_to_url(
 	} else {
 		cfg.with_native_certs()
 	}
+	.max_idle_timeout(Some(Duration::from_secs(30)))
+	.expect("idle timeout should always set")
+	.keep_alive_interval(Some(Duration::from_secs(15)))
 	.build();
 
 	let client = Endpoint::client(cfg)?;

@@ -9,6 +9,7 @@ description = "A client api for state replication"
 publish = false
 
 [dependencies]
+uuid.workspace = true
 base64.workspace = true
 bytes.workspace = true
 eyre.workspace = true

@@ -17,6 +17,7 @@ dashmap = "5.5.3"
 derive_more.workspace = true
 eyre.workspace = true
 futures.workspace = true
+rand.workspace = true
 replicate-common.path = "../common"
 serde.workspace = true
 tokio-serde = { workspace = true, features = ["json"] }

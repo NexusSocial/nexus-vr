@@ -1,15 +1,28 @@
 #![warn(clippy::unwrap_used)]
 
-mod chad;
+mod certificate;
 mod instance;
+mod manager;
 
-use std::sync::Arc;
+use std::num::Wrapping;
+use std::sync::{Arc, RwLock};
+use std::time::Duration;
 
 use clap::Parser;
 use color_eyre::Result;
+use eyre::{bail, WrapErr as _};
+use futures::FutureExt as _;
+use tracing::{error, info, info_span, instrument, Instrument as _};
 use tracing_subscriber::{filter::LevelFilter, EnvFilter};
+use wtransport::ServerConfig;
 
-use crate::instance::InstanceManager;
+use crate::certificate::Certificate;
+use crate::instance::manager::InstanceManager;
+use crate::instance::InstanceCtx;
+
+const CERT_REFRESH_INTERVAL: Duration = Duration::from_secs(60 * 60 * 24);
+
+type Server = wtransport::Endpoint<wtransport::endpoint::endpoint_side::Server>;
 
 #[derive(Parser, Debug, Clone)]
 #[clap(author, version, about)]
@@ -45,5 +58,156 @@ pub async fn main(args: Args) -> Result<()> {
 	// 		.wrap_err("instance_manager task failed to join")?
 	// 		.wrap_err("instance_manager task terminated with error")?)
 	// };
-	crate::chad::launch_webtransport_server(args.clone(), im.clone()).await
+	launch_webtransport_server(args.clone(), im.clone()).await
+}
+
+async fn launch_webtransport_server(
+	args: Args,
+	_im: Arc<InstanceManager>,
+) -> Result<()> {
+	let cert = Certificate::self_signed(args.subject_alt_names.iter())
+		.wrap_err("failed to create self signed certificate")?;
+	let server = Server::server(
+		ServerConfig::builder()
+			.with_bind_default(args.port.unwrap_or(0))
+			.with_identity(cert.as_ref())
+			.max_idle_timeout(Some(Duration::from_secs(30)))
+			.expect("idle timeout should always set")
+			// we do not set a keep alive interval, because we expect clients to handle
+			// that.
+			.build(),
+	)
+	.wrap_err("failed to create wtransport server")?;
+
+	let port = server
+		.local_addr()
+		.expect("could not determine port")
+		.port();
+
+	let svr_ctx = ServerCtx::new(ServerCtxInner {
+		san: args.subject_alt_names,
+		port,
+		cert,
+	});
+
+	{
+		let svr_ctx = svr_ctx.0.read().expect("lock poisoned");
+		info!("server url:\n{}", crate::manager::manager_url(&svr_ctx));
+	}
+
+	let mut id = Wrapping(0u64);
+	let accept_fut = async {
+		loop {
+			let incoming = server.accept().await;
+			let svr_ctx_clone = svr_ctx.clone();
+			id += 1;
+			tokio::spawn(
+				async move {
+					info!("Waiting for session request...");
+					let session_request = incoming.await?;
+					info!(
+						"New session: Authority: '{}', Path: '{}'",
+						session_request.authority(),
+						session_request.path()
+					);
+					let Some((prefix, _suffix)) = session_request
+						.path()
+						.trim_start_matches('/')
+						.split_once('/')
+					else {
+						session_request.not_found().await;
+						bail!("failed to parse url handler");
+					};
+
+					match prefix {
+						crate::instance::URL_PREFIX => {
+							crate::instance::handle_connection(
+								InstanceCtx::new(rand::rngs::OsRng),
+								session_request,
+							)
+							.await
+						}
+
+						crate::manager::URL_PREFIX => {
+							crate::manager::handle_connection(
+								svr_ctx_clone,
+								session_request,
+							)
+							.await
+						}
+						_ => {
+							session_request.not_found().await;
+							bail!("unrecognized url handler");
+						}
+					}
+				}
+				.map(|result| {
+					if let Err(err) = result {
+						error!("{err:?}");
+					}
+				})
+				.instrument(info_span!("connection", id)),
+			);
+		}
+	};
+
+	let _: ((), ()) = tokio::try_join! {
+		accept_fut.map(|()| Ok(())),
+		cert_refresh_task(&server,svr_ctx.clone(), args.port),
+	}?;
+
+	Ok(())
+}
+
+#[instrument(name = "cert refresh task", skip(server))]
+async fn cert_refresh_task(
+	server: &Server,
+	svr_ctx: ServerCtx,
+	port: Option<u16>,
+) -> Result<()> {
+	let mut interval = tokio::time::interval(CERT_REFRESH_INTERVAL);
+	// tick it once to clear the initial tick
+	interval.tick().await;
+	loop {
+		interval.tick().await;
+		info!("refreshing certs");
+		let mut svr_ctx_l = svr_ctx.0.write().expect("server context poisoned");
+		svr_ctx_l.cert = Certificate::self_signed(svr_ctx_l.san.iter())
+			.expect("already validated the SAN, so this should never panic");
+
+		#[allow(clippy::question_mark)] // false positive
+		if let Err(err) = server
+			.reload_config(
+				ServerConfig::builder()
+					.with_bind_default(port.unwrap_or(0))
+					.with_identity(svr_ctx_l.cert.as_ref())
+					.build(),
+				false,
+			)
+			.wrap_err("failed to reload server config")
+		{
+			return Err(err);
+		}
+		info!(
+			"new server url:\n{}",
+			crate::manager::manager_url(&svr_ctx_l)
+		);
+	}
+}
+
+/// Server state, concurrently shared across all connections
+#[derive(Debug)]
+struct ServerCtxInner {
+	san: Vec<String>,
+	port: u16,
+	cert: Certificate,
+}
+
+#[derive(Debug, Clone)]
+struct ServerCtx(Arc<RwLock<ServerCtxInner>>);
+
+impl ServerCtx {
+	fn new(ctx: ServerCtxInner) -> Self {
+		Self(Arc::new(RwLock::new(ctx)))
+	}
 }

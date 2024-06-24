@@ -9,7 +9,7 @@ description = "Shared code between replicate-client and replicate-server"
 publish = false
 
 [dependencies]
-bytes.workspace = true
+bytes = { workspace = true, features = ["serde"] }
 futures.workspace = true
 pin-project.workspace = true
 rand.workspace = true

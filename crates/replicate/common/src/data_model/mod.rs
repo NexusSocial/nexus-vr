@@ -5,12 +5,6 @@ use self::entity::{EntityId, Index, Namespace};
 
 pub type EntityMap<T> = HashMap<EntityId, T>;
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
-pub enum SpawnedBy {
-	Local,
-	Remote,
-}
-
 /// The state of an entity.
 pub type State = bytes::Bytes;
 

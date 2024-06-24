@@ -75,8 +75,9 @@
 
 use eyre::{bail, Result, WrapErr};
 use futures::{SinkExt, StreamExt};
-use replicate_common::data_model::{
-	entity::EntityId, DataModel, LocalChanges, RemoteChanges, State,
+use replicate_common::{
+	data_model::{entity::EntityId, DataModel, LocalChanges, RemoteChanges, State},
+	ClientId,
 };
 use url::Url;
 
@@ -130,7 +131,7 @@ impl Instance {
 
 		// Do handshake before anything else
 		let local_namespace = {
-			rpc.send(Sb::HandshakeRequest)
+			rpc.send(Sb::HandshakeRequest(ClientId::random()))
 				.await
 				.wrap_err("failed to send handshake request")?;
 			let Some(msg) = rpc.next().await else {

@@ -1,6 +1,7 @@
 /.idea
 /.vscode
 /target
+/vendor
 
 *.swp
 .DS_Store

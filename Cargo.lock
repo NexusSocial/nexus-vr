@@ -947,7 +947,7 @@ dependencies = [
  "bevy_core",
  "bevy_core_pipeline",
  "bevy_ecs",
- "bevy_egui 0.25.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bevy_egui",
  "bevy_hierarchy",
  "bevy_log",
  "bevy_math",
@@ -1216,20 +1216,6 @@ dependencies = [
 [[package]]
 name = "bevy_egui"
 version = "0.25.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b84bfb8d4104a1467910cf2090bc6a6d394ebde39c0dbc02397b45aa9ef88e80"
-dependencies = [
- "arboard",
- "bevy",
- "egui",
- "thread_local",
- "web-sys",
- "webbrowser",
-]
-
-[[package]]
-name = "bevy_egui"
-version = "0.25.0"
 source = "git+https://github.com/Schmarni-Dev/bevy_egui/?branch=nexus-use-bevy-0.13#eb90890148e9fe3031d402d58875dd8c895f1554"
 dependencies = [
  "arboard",
@@ -1246,7 +1232,7 @@ name = "bevy_egui_keyboard"
 version = "0.0.0"
 dependencies = [
  "bevy",
- "bevy_egui 0.25.0 (git+https://github.com/Schmarni-Dev/bevy_egui/?branch=nexus-use-bevy-0.13)",
+ "bevy_egui",
  "bevy_mod_picking",
  "egui-picking",
 ]
@@ -3335,7 +3321,7 @@ name = "egui-picking"
 version = "0.0.0"
 dependencies = [
  "bevy",
- "bevy_egui 0.25.0 (git+https://github.com/Schmarni-Dev/bevy_egui/?branch=nexus-use-bevy-0.13)",
+ "bevy_egui",
  "bevy_mod_picking",
 ]
 
@@ -7214,7 +7200,7 @@ version = "0.0.0"
 dependencies = [
  "bevy",
  "bevy-inspector-egui",
- "bevy_egui 0.25.0 (git+https://github.com/Schmarni-Dev/bevy_egui/?branch=nexus-use-bevy-0.13)",
+ "bevy_egui",
  "bevy_mod_inverse_kinematics",
  "bevy_mod_picking",
  "bevy_oxr",
@@ -7244,7 +7230,7 @@ version = "0.0.0"
 dependencies = [
  "bevy",
  "bevy-inspector-egui",
- "bevy_egui 0.25.0 (git+https://github.com/Schmarni-Dev/bevy_egui/?branch=nexus-use-bevy-0.13)",
+ "bevy_egui",
  "bevy_vrm",
  "color-eyre",
  "derive_more",
@@ -7273,7 +7259,7 @@ name = "social-server"
 version = "0.0.0"
 dependencies = [
  "bevy",
- "bevy_egui 0.25.0 (git+https://github.com/Schmarni-Dev/bevy_egui/?branch=nexus-use-bevy-0.13)",
+ "bevy_egui",
  "bevy_vrm",
  "bevy_web_asset",
  "clap",

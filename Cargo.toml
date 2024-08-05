@@ -49,15 +49,19 @@ bevy_web_asset = { git = "https://github.com/Schmarni-Dev/bevy_web_asset", rev =
 bytes = "1.5.0"
 clap = { version = "4.4.11", features = ["derive"] }
 color-eyre = "0.6"
+did-simple.path = "crates/did-simple"
 egui = "0.26"
 egui-picking = { path = "crates/egui-picking" }
 eyre = "0.6"
 futures = "0.3.30"
+hex-literal = "0.4.1"
+jose-jwk = { version = "0.1.2", default-features = false }
 lightyear = "0.12"
 openxr = "0.18"
 picking-xr = { path = "crates/picking-xr" }
 pin-project = "1"
 rand = "0.8.5"
+rand_chacha = "0.3.1"
 rand_xoshiro = "0.6.0"
 random-number = "0.1.8"
 replicate-client.path = "crates/replicate/client"

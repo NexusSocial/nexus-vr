@@ -4534,6 +4534,27 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b9e0384b61958566e926dc50660321d12159025e767c18e043daf26b70104c39"
 
 [[package]]
+name = "identity_server"
+version = "0.0.0"
+dependencies = [
+ "axum",
+ "base64 0.21.7",
+ "clap",
+ "color-eyre",
+ "did-simple",
+ "hex-literal",
+ "jose-jwk",
+ "rand 0.8.5",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tower-http",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
+]
+
+[[package]]
 name = "idna"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4746,6 +4767,39 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d2b099aaa34a9751c5bf0878add70444e1ed2dd73f347be99003d4577277de6e"
 dependencies = [
  "libc",
+]
+
+[[package]]
+name = "jose-b64"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bec69375368709666b21c76965ce67549f2d2db7605f1f8707d17c9656801b56"
+dependencies = [
+ "base64ct",
+ "serde",
+ "subtle",
+ "zeroize",
+]
+
+[[package]]
+name = "jose-jwa"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9ab78e053fe886a351d67cf0d194c000f9d0dcb92906eb34d853d7e758a4b3a7"
+dependencies = [
+ "serde",
+]
+
+[[package]]
+name = "jose-jwk"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "280fa263807fe0782ecb6f2baadc28dffc04e00558a58e33bfdb801d11fd58e7"
+dependencies = [
+ "jose-b64",
+ "jose-jwa",
+ "serde",
+ "zeroize",
 ]
 
 [[package]]
@@ -9161,6 +9215,9 @@ name = "zeroize"
 version = "1.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ced3678a2879b30306d323f4542626697a464a97c0a07c9aebf7ebca65cd4dde"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "zvariant"

@@ -4,7 +4,7 @@
 use std::sync::Arc;
 
 use axum::{
-	extract::{Path, State},
+	extract::{NestedPath, Path, State},
 	http::StatusCode,
 	response::{IntoResponse, Redirect},
 	routing::{get, post},
@@ -12,7 +12,7 @@ use axum::{
 };
 use color_eyre::eyre::Context as _;
 use jose_jwk::{Jwk, JwkSet};
-use tracing::{debug, error};
+use tracing::error;
 use uuid::Uuid;
 
 use crate::uuid::UuidProvider;
@@ -76,6 +76,7 @@ impl IntoResponse for CreateErr {
 #[tracing::instrument(skip_all)]
 async fn create(
 	state: State<RouterState>,
+	nested_path: NestedPath,
 	pubkey: Json<Jwk>,
 ) -> Result<Redirect, CreateErr> {
 	let uuid = state.uuid_provider.next_v4();
@@ -92,7 +93,8 @@ async fn create(
 		.wrap_err("failed to insert identity into db")?;
 
 	Ok(Redirect::to(&format!(
-		"/users/{}/did.json",
+		"{}/users/{}/did.json",
+		nested_path.as_str(),
 		uuid.as_hyphenated()
 	)))
 }
@@ -119,6 +121,8 @@ impl IntoResponse for ReadErr {
 	}
 }
 
+// TODO: currently this returns a JSON Web Key Set, but we actually want to be
+// returning a did:web json.
 #[tracing::instrument(skip_all)]
 async fn read(
 	state: State<RouterState>,

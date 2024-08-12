@@ -12,6 +12,7 @@ use axum::{
 };
 use color_eyre::eyre::Context as _;
 use jose_jwk::{Jwk, JwkSet};
+use tracing::{debug, error};
 use uuid::Uuid;
 
 use crate::uuid::UuidProvider;
@@ -54,9 +55,46 @@ impl RouterConfig {
 			}))
 	}
 }
-async fn create(state: State<RouterState>, _pubkey: Json<Jwk>) -> Redirect {
+
+#[derive(thiserror::Error, Debug)]
+enum CreateErr {
+	#[error(transparent)]
+	Internal(#[from] color_eyre::Report),
+}
+
+impl IntoResponse for CreateErr {
+	fn into_response(self) -> axum::response::Response {
+		error!("{self:?}");
+		match self {
+			Self::Internal(err) => {
+				(StatusCode::INTERNAL_SERVER_ERROR, err.to_string()).into_response()
+			}
+		}
+	}
+}
+
+#[tracing::instrument(skip_all)]
+async fn create(
+	state: State<RouterState>,
+	pubkey: Json<Jwk>,
+) -> Result<Redirect, CreateErr> {
 	let uuid = state.uuid_provider.next_v4();
-	Redirect::to(&format!("/users/{}/did.json", uuid.as_hyphenated()))
+	let jwks = JwkSet {
+		keys: vec![pubkey.0],
+	};
+	let serialized_jwks = serde_json::to_string(&jwks).expect("infallible");
+
+	sqlx::query("INSERT INTO users (user_id, pubkeys) VALUES ($1, $2)")
+		.bind(uuid)
+		.bind(serialized_jwks)
+		.execute(&state.db_pool)
+		.await
+		.wrap_err("failed to insert identity into db")?;
+
+	Ok(Redirect::to(&format!(
+		"/users/{}/did.json",
+		uuid.as_hyphenated()
+	)))
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -69,6 +107,7 @@ enum ReadErr {
 
 impl IntoResponse for ReadErr {
 	fn into_response(self) -> axum::response::Response {
+		error!("{self:?}");
 		match self {
 			ReadErr::NoSuchUser => {
 				(StatusCode::NOT_FOUND, self.to_string()).into_response()
@@ -80,6 +119,7 @@ impl IntoResponse for ReadErr {
 	}
 }
 
+#[tracing::instrument(skip_all)]
 async fn read(
 	state: State<RouterState>,
 	Path(user_id): Path<Uuid>,
@@ -96,5 +136,6 @@ async fn read(
 	// TODO: Do we actually care about round-trip validating the JwkSet here?
 	let keyset: JwkSet = serde_json::from_str(&keyset_in_string)
 		.wrap_err("failed to deserialize JwkSet from database")?;
+
 	Ok(Json(keyset))
 }

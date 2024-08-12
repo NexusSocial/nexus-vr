@@ -1,6 +1,7 @@
 pub mod jwk;
-mod uuid;
 pub mod v1;
+
+mod uuid;
 
 use axum::routing::get;
 use color_eyre::eyre::Context as _;

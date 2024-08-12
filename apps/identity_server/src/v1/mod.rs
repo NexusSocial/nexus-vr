@@ -40,6 +40,11 @@ impl RouterConfig {
 				format!("failed to connect to pool with url {}", self.db_url)
 			})?;
 
+		sqlx::migrate!("./migrations")
+			.run(&db_pool)
+			.await
+			.wrap_err("failed to run migrations")?;
+
 		Ok(Router::new()
 			.route("/create", post(create))
 			.route("/users/:id/did.json", get(read))
@@ -80,12 +85,11 @@ async fn read(
 	Path(user_id): Path<Uuid>,
 ) -> Result<Json<JwkSet>, ReadErr> {
 	let keyset_in_string: Option<String> =
-		sqlx::query_scalar("SELECT pubkey FROM users WHERE user_id = $1")
+		sqlx::query_scalar("SELECT pubkeys FROM users WHERE user_id = $1")
 			.bind(user_id)
 			.fetch_optional(&state.db_pool)
 			.await
-			.wrap_err("failed to retrieve from database")
-			.unwrap();
+			.wrap_err("failed to retrieve from database")?;
 	let Some(keyset_in_string) = keyset_in_string else {
 		return Err(ReadErr::NoSuchUser);
 	};

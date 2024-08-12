@@ -17,6 +17,8 @@ jose-jwk = { workspace = true, default-features = false }
 rand.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+sqlx = { version = "0.8.0", features = ["runtime-tokio", "tls-rustls", "sqlite", "uuid"] }
+thiserror.workspace = true
 tokio = { workspace = true, features = ["full"] }
 tower-http = { workspace = true, features = ["trace"] }
 tracing-subscriber = { workspace = true, features = ["env-filter"] }

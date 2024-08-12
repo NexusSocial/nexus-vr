@@ -20,6 +20,8 @@ async fn main() -> color_eyre::Result<()> {
 
 	let cli = Cli::parse();
 
+	let router_cfg = identity_server::RouterConfig::default();
+
 	let listener = tokio::net::TcpListener::bind(SocketAddr::new(
 		Ipv6Addr::UNSPECIFIED.into(),
 		cli.port,
@@ -27,7 +29,7 @@ async fn main() -> color_eyre::Result<()> {
 	.await
 	.unwrap();
 	info!("listening on {}", listener.local_addr().unwrap());
-	axum::serve(listener, identity_server::router())
+	axum::serve(listener, router_cfg.build().await?)
 		.await
 		.map_err(|e| e.into())
 }

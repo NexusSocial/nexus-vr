@@ -7,3 +7,6 @@
 .DS_Store
 .direnv
 .envrc
+
+# SQLite
+*.db

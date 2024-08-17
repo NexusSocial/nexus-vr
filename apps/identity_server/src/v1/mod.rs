@@ -1,116 +1,145 @@
 //! V1 of the API. This is subject to change until we commit to stability, after
 //! which point any breaking changes will go in a V2 api.
 
-use std::{collections::BTreeSet, sync::Arc};
+use std::sync::Arc;
 
 use axum::{
-	extract::{Path, State},
-	response::Redirect,
+	extract::{NestedPath, Path, State},
+	http::StatusCode,
+	response::{IntoResponse, Redirect},
 	routing::{get, post},
 	Json, Router,
 };
-use did_simple::crypto::ed25519;
-use jose_jwk::Jwk;
+use color_eyre::eyre::Context as _;
+use jose_jwk::{Jwk, JwkSet};
+use tracing::error;
 use uuid::Uuid;
 
 use crate::uuid::UuidProvider;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct RouterState {
-	uuid_provider: UuidProvider,
+	uuid_provider: Arc<UuidProvider>,
+	db_pool: sqlx::sqlite::SqlitePool,
 }
-type SharedState = Arc<RouterState>;
 
 /// Configuration for the V1 api's router.
 #[derive(Debug, Default)]
 pub struct RouterConfig {
 	pub uuid_provider: UuidProvider,
+	pub db_pool_opts: sqlx::sqlite::SqlitePoolOptions,
+	pub db_url: String,
 }
 
 impl RouterConfig {
-	pub fn build(self) -> Router {
-		Router::new()
+	pub async fn build(self) -> color_eyre::Result<Router> {
+		let db_pool = self
+			.db_pool_opts
+			.connect(&self.db_url)
+			.await
+			.wrap_err_with(|| {
+				format!("failed to connect to pool with url {}", self.db_url)
+			})?;
+
+		sqlx::migrate!("./migrations")
+			.run(&db_pool)
+			.await
+			.wrap_err("failed to run migrations")?;
+
+		Ok(Router::new()
 			.route("/create", post(create))
 			.route("/users/:id/did.json", get(read))
-			.with_state(Arc::new(RouterState {
-				uuid_provider: self.uuid_provider,
+			.with_state(RouterState {
+				uuid_provider: Arc::new(self.uuid_provider),
+				db_pool,
 			}))
 	}
 }
 
-async fn create(state: State<SharedState>, _pubkey: Json<Jwk>) -> Redirect {
-	let uuid = state.uuid_provider.next_v4();
-	Redirect::to(&format!("/users/{}/did.json", uuid.as_hyphenated()))
+#[derive(thiserror::Error, Debug)]
+enum CreateErr {
+	#[error(transparent)]
+	Internal(#[from] color_eyre::Report),
 }
 
-async fn read(_state: State<SharedState>, Path(_user_id): Path<Uuid>) -> Json<Jwk> {
-	Json(ed25519_pub_jwk(
-		ed25519::SigningKey::random().verifying_key(),
-	))
-}
-
-fn ed25519_pub_jwk(pub_key: ed25519::VerifyingKey) -> jose_jwk::Jwk {
-	Jwk {
-		key: jose_jwk::Okp {
-			crv: jose_jwk::OkpCurves::Ed25519,
-			x: pub_key.into_inner().as_bytes().as_slice().to_owned().into(),
-			d: None,
+impl IntoResponse for CreateErr {
+	fn into_response(self) -> axum::response::Response {
+		error!("{self:?}");
+		match self {
+			Self::Internal(err) => {
+				(StatusCode::INTERNAL_SERVER_ERROR, err.to_string()).into_response()
+			}
 		}
-		.into(),
-		prm: jose_jwk::Parameters {
-			ops: Some(BTreeSet::from([jose_jwk::Operations::Verify])),
-			..Default::default()
-		},
 	}
 }
 
-#[cfg(test)]
-mod test {
-	use base64::Engine as _;
+#[tracing::instrument(skip_all)]
+async fn create(
+	state: State<RouterState>,
+	nested_path: NestedPath,
+	pubkey: Json<Jwk>,
+) -> Result<Redirect, CreateErr> {
+	let uuid = state.uuid_provider.next_v4();
+	let jwks = JwkSet {
+		keys: vec![pubkey.0],
+	};
+	let serialized_jwks = serde_json::to_string(&jwks).expect("infallible");
 
-	use super::*;
+	sqlx::query("INSERT INTO users (user_id, pubkeys) VALUES ($1, $2)")
+		.bind(uuid)
+		.bind(serialized_jwks)
+		.execute(&state.db_pool)
+		.await
+		.wrap_err("failed to insert identity into db")?;
 
-	#[test]
-	fn pub_jwk_test_vectors() {
-		// See https://datatracker.ietf.org/doc/html/rfc8037#appendix-A.2
-		let rfc_example = serde_json::json! ({
-			"kty": "OKP",
-			"crv": "Ed25519",
-			"x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
-		});
-		let pubkey_bytes = hex_literal::hex!(
-			"d7 5a 98 01 82 b1 0a b7 d5 4b fe d3 c9 64 07 3a
-            0e e1 72 f3 da a6 23 25 af 02 1a 68 f7 07 51 1a"
-		);
-		assert_eq!(
-			base64::prelude::BASE64_URL_SAFE_NO_PAD
-				.decode(rfc_example["x"].as_str().unwrap())
-				.unwrap(),
-			pubkey_bytes,
-			"sanity check: example bytes should match, they come from the RFC itself"
-		);
+	Ok(Redirect::to(&format!(
+		"{}/users/{}/did.json",
+		nested_path.as_str(),
+		uuid.as_hyphenated()
+	)))
+}
 
-		let input_key = ed25519::VerifyingKey::try_from_bytes(&pubkey_bytes).unwrap();
-		let mut output_jwk = ed25519_pub_jwk(input_key);
+#[derive(thiserror::Error, Debug)]
+enum ReadErr {
+	#[error("no such user exists")]
+	NoSuchUser,
+	#[error(transparent)]
+	Internal(#[from] color_eyre::Report),
+}
 
-		// Check all additional outputs for expected values
-		assert_eq!(
-			output_jwk.prm.ops.take().unwrap(),
-			BTreeSet::from([jose_jwk::Operations::Verify]),
-			"expected Verify as a supported operation"
-		);
-		let output_jwk = output_jwk; // Freeze mutation from here on out
-
-		// Check serialization and deserialization against the rfc example
-		assert_eq!(
-			serde_json::from_value::<Jwk>(rfc_example.clone()).unwrap(),
-			output_jwk,
-			"deserializing json to Jwk did not match"
-		);
-		assert_eq!(
-			rfc_example,
-			serde_json::to_value(output_jwk).unwrap(),
-			"serializing Jwk to json did not match"
-		);
+impl IntoResponse for ReadErr {
+	fn into_response(self) -> axum::response::Response {
+		error!("{self:?}");
+		match self {
+			ReadErr::NoSuchUser => {
+				(StatusCode::NOT_FOUND, self.to_string()).into_response()
+			}
+			Self::Internal(err) => {
+				(StatusCode::INTERNAL_SERVER_ERROR, err.to_string()).into_response()
+			}
+		}
 	}
+}
+
+// TODO: currently this returns a JSON Web Key Set, but we actually want to be
+// returning a did:web json.
+#[tracing::instrument(skip_all)]
+async fn read(
+	state: State<RouterState>,
+	Path(user_id): Path<Uuid>,
+) -> Result<Json<JwkSet>, ReadErr> {
+	let keyset_in_string: Option<String> =
+		sqlx::query_scalar("SELECT pubkeys FROM users WHERE user_id = $1")
+			.bind(user_id)
+			.fetch_optional(&state.db_pool)
+			.await
+			.wrap_err("failed to retrieve from database")?;
+	let Some(keyset_in_string) = keyset_in_string else {
+		return Err(ReadErr::NoSuchUser);
+	};
+	// TODO: Do we actually care about round-trip validating the JwkSet here?
+	let keyset: JwkSet = serde_json::from_str(&keyset_in_string)
+		.wrap_err("failed to deserialize JwkSet from database")?;
+
+	Ok(Json(keyset))
 }

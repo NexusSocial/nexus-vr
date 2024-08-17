@@ -1,19 +1,30 @@
-mod uuid;
+pub mod jwk;
 pub mod v1;
 
+mod uuid;
+
 use axum::routing::get;
+use color_eyre::eyre::Context as _;
 use tower_http::trace::TraceLayer;
 
 /// Main router of API
-pub fn router() -> axum::Router<()> {
-	let v1_router = crate::v1::RouterConfig {
-		..Default::default()
+#[derive(Debug, Default)]
+pub struct RouterConfig {
+	pub v1: crate::v1::RouterConfig,
+}
+
+impl RouterConfig {
+	pub async fn build(self) -> color_eyre::Result<axum::Router<()>> {
+		let v1 = self
+			.v1
+			.build()
+			.await
+			.wrap_err("failed to build v1 router")?;
+		Ok(axum::Router::new()
+			.route("/", get(root))
+			.nest("/api/v1", v1)
+			.layer(TraceLayer::new_for_http()))
 	}
-	.build();
-	axum::Router::new()
-		.route("/", get(root))
-		.nest("/api/v1", v1_router)
-		.layer(TraceLayer::new_for_http())
 }
 
 async fn root() -> &'static str {

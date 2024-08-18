@@ -26,7 +26,6 @@ impl UuidProvider {
 
 	/// Allows controlling the sequence of generated UUIDs. Only available in
 	/// `cfg(test)`.
-	#[allow(dead_code)]
 	#[cfg(test)]
 	pub fn new_from_sequence(uuids: Vec<Uuid>) -> Self {
 		Self {

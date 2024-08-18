@@ -13,6 +13,7 @@ axum.workspace = true
 clap = { workspace = true, features = ["derive", "env"] }
 color-eyre.workspace = true
 did-simple.workspace = true
+http-body-util.workspace = true
 jose-jwk = { workspace = true, default-features = false }
 rand.workspace = true
 serde.workspace = true
@@ -28,3 +29,4 @@ uuid = { workspace = true, features = ["std", "v4", "serde"] }
 [dev-dependencies]
 base64.workspace = true
 hex-literal.workspace = true
+tower.workspace = true

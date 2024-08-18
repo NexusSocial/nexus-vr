@@ -131,4 +131,102 @@ async fn read(
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+	use super::*;
+	use axum::{
+		body::Body,
+		http::{Request, Response},
+	};
+	use color_eyre::Result;
+	use http_body_util::BodyExt;
+	use jose_jwk::OkpCurves;
+	use sqlx::SqlitePool;
+	use tower::ServiceExt as _; // for `collect`
+
+	fn uuids(num_uuids: usize) -> Vec<Uuid> {
+		(1..=num_uuids)
+			.map(|x| Uuid::from_u128(x.try_into().unwrap()))
+			.collect()
+	}
+
+	async fn test_router(db_pool: SqlitePool) -> Result<Router> {
+		let db_pool = crate::MigratedDbPool::new(db_pool)
+			.await
+			.wrap_err("failed to migrate db")?;
+		let router = RouterConfig {
+			uuid_provider: UuidProvider::new_from_sequence(uuids(10)),
+			db_pool,
+		};
+		router.build().await.wrap_err("failed to build router")
+	}
+
+	/// Validates the response and ensures it matches `expected_keys`
+	async fn check_response_keys(
+		response: Response<Body>,
+		mut expected_keys: Vec<[u8; 32]>,
+	) -> Result<()> {
+		assert_eq!(response.status(), StatusCode::OK);
+		assert_eq!(response.headers()["Content-Type"], "application/json");
+		let body = response.into_body().collect().await?.to_bytes();
+		let jwks: JwkSet =
+			serde_json::from_slice(&body).wrap_err("failed to deserialize response")?;
+		let mut ed25519_keys: Vec<[u8; 32]> = jwks
+			.keys
+			.into_iter()
+			.map(|jwk| {
+				let jose_jwk::Key::Okp(ref key) = jwk.key else {
+					panic!("did not encounter okp key group");
+				};
+				assert_eq!(key.crv, OkpCurves::Ed25519);
+				assert!(key.d.is_none(), "private keys should not be stored");
+				let key: [u8; 32] =
+					key.x.as_ref().try_into().expect("wrong key length");
+				key
+			})
+			.collect();
+
+		ed25519_keys.sort();
+		expected_keys.sort();
+		assert_eq!(ed25519_keys, expected_keys);
+
+		Ok(())
+	}
+
+	/// Puts `num` as last byte of pubkey, everything else zero.
+	fn key_from_number(num: u8) -> [u8; 32] {
+		let mut expected_key = [0; 32];
+		*expected_key.last_mut().unwrap() = num;
+		expected_key
+	}
+
+	#[sqlx::test(
+		migrator = "crate::MIGRATOR",
+		fixtures("../../fixtures/sample_users.sql")
+	)]
+	async fn test_read_db(db_pool: SqlitePool) -> Result<()> {
+		let router = test_router(db_pool).await?;
+		let req = Request::builder()
+			.method("GET")
+			.uri(format!("/users/{}/did.json", Uuid::from_u128(1)))
+			.body(axum::body::Body::empty())
+			.unwrap();
+		let response = router.oneshot(req).await?;
+
+		check_response_keys(response, vec![key_from_number(1)]).await
+	}
+
+	#[sqlx::test(migrator = "crate::MIGRATOR")]
+	async fn test_read_nonexistent_user(db_pool: SqlitePool) -> Result<()> {
+		let router = test_router(db_pool).await?;
+		let req = Request::builder()
+			.method("GET")
+			.uri(format!("/users/{}/did.json", Uuid::nil()))
+			.body(axum::body::Body::empty())
+			.unwrap();
+		let response = router.oneshot(req).await?;
+
+		assert_eq!(response.status(), axum::http::StatusCode::NOT_FOUND);
+
+		Ok(())
+	}
+}

@@ -85,7 +85,7 @@ async fn create(
 	};
 	let serialized_jwks = serde_json::to_string(&jwks).expect("infallible");
 
-	sqlx::query("INSERT INTO users (user_id, pubkeys) VALUES ($1, $2)")
+	sqlx::query("INSERT INTO users (user_id, pubkeys_jwks) VALUES ($1, $2)")
 		.bind(uuid)
 		.bind(serialized_jwks)
 		.execute(&state.db_pool)
@@ -129,7 +129,7 @@ async fn read(
 	Path(user_id): Path<Uuid>,
 ) -> Result<Json<JwkSet>, ReadErr> {
 	let keyset_in_string: Option<String> =
-		sqlx::query_scalar("SELECT pubkeys FROM users WHERE user_id = $1")
+		sqlx::query_scalar("SELECT pubkeys_jwks FROM users WHERE user_id = $1")
 			.bind(user_id)
 			.fetch_optional(&state.db_pool)
 			.await

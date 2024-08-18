@@ -2,8 +2,9 @@ use std::net::{Ipv6Addr, SocketAddr};
 
 use clap::Parser as _;
 use color_eyre::eyre::Context as _;
+use identity_server::MigratedDbPool;
 use std::path::PathBuf;
-use tracing::{info, warn};
+use tracing::info;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 
 #[derive(clap::Parser, Debug)]
@@ -23,23 +24,29 @@ async fn main() -> color_eyre::Result<()> {
 		.init();
 
 	let cli = Cli::parse();
-	// Validate cli args further
-	if !cli.db_path.exists() {
-		warn!(
-			"no file exists at {}, creating a new database",
-			cli.db_path.display()
-		);
-		tokio::fs::OpenOptions::new()
-			.append(true)
-			.create_new(true)
-			.open(&cli.db_path)
+
+	let db_pool = {
+		let connect_opts = sqlx::sqlite::SqliteConnectOptions::new()
+			.create_if_missing(true)
+			.filename(&cli.db_path);
+		let pool_opts = sqlx::sqlite::SqlitePoolOptions::new();
+		let pool = pool_opts
+			.connect_with(connect_opts.clone())
 			.await
-			.wrap_err("failed to create empty file for new database")?;
-	}
+			.wrap_err_with(|| {
+				format!(
+					"failed to connect to database with path {}",
+					connect_opts.get_filename().display()
+				)
+			})?;
+		MigratedDbPool::new(pool)
+			.await
+			.wrap_err("failed to migrate db pool")?
+	};
 
 	let v1_cfg = identity_server::v1::RouterConfig {
-		db_url: format!("sqlite:{}", cli.db_path.display()),
-		..Default::default()
+		uuid_provider: Default::default(),
+		db_pool,
 	};
 	let router = identity_server::RouterConfig { v1: v1_cfg }
 		.build()

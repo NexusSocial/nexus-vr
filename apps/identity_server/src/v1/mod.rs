@@ -15,43 +15,29 @@ use jose_jwk::{Jwk, JwkSet};
 use tracing::error;
 use uuid::Uuid;
 
-use crate::uuid::UuidProvider;
+use crate::{uuid::UuidProvider, MigratedDbPool};
 
 #[derive(Debug, Clone)]
 struct RouterState {
 	uuid_provider: Arc<UuidProvider>,
-	db_pool: sqlx::sqlite::SqlitePool,
+	db_pool: MigratedDbPool,
 }
 
 /// Configuration for the V1 api's router.
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct RouterConfig {
 	pub uuid_provider: UuidProvider,
-	pub db_pool_opts: sqlx::sqlite::SqlitePoolOptions,
-	pub db_url: String,
+	pub db_pool: MigratedDbPool,
 }
 
 impl RouterConfig {
 	pub async fn build(self) -> color_eyre::Result<Router> {
-		let db_pool = self
-			.db_pool_opts
-			.connect(&self.db_url)
-			.await
-			.wrap_err_with(|| {
-				format!("failed to connect to pool with url {}", self.db_url)
-			})?;
-
-		sqlx::migrate!("./migrations")
-			.run(&db_pool)
-			.await
-			.wrap_err("failed to run migrations")?;
-
 		Ok(Router::new()
 			.route("/create", post(create))
 			.route("/users/:id/did.json", get(read))
 			.with_state(RouterState {
 				uuid_provider: Arc::new(self.uuid_provider),
-				db_pool,
+				db_pool: self.db_pool,
 			}))
 	}
 }
@@ -88,7 +74,7 @@ async fn create(
 	sqlx::query("INSERT INTO users (user_id, pubkeys_jwks) VALUES ($1, $2)")
 		.bind(uuid)
 		.bind(serialized_jwks)
-		.execute(&state.db_pool)
+		.execute(&state.db_pool.0)
 		.await
 		.wrap_err("failed to insert identity into db")?;
 
@@ -131,7 +117,7 @@ async fn read(
 	let keyset_in_string: Option<String> =
 		sqlx::query_scalar("SELECT pubkeys_jwks FROM users WHERE user_id = $1")
 			.bind(user_id)
-			.fetch_optional(&state.db_pool)
+			.fetch_optional(&state.db_pool.0)
 			.await
 			.wrap_err("failed to retrieve from database")?;
 	let Some(keyset_in_string) = keyset_in_string else {
@@ -143,3 +129,6 @@ async fn read(
 
 	Ok(Json(keyset))
 }
+
+#[cfg(test)]
+mod tests {}

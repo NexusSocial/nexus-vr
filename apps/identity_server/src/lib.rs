@@ -5,10 +5,27 @@ mod uuid;
 
 use axum::routing::get;
 use color_eyre::eyre::Context as _;
+use sqlx::sqlite::SqlitePool;
 use tower_http::trace::TraceLayer;
 
-/// Main router of API
-#[derive(Debug, Default)]
+/// A [`SqlitePool`] that has already been migrated.
+#[derive(Debug, Clone)]
+pub struct MigratedDbPool(SqlitePool);
+
+impl MigratedDbPool {
+	pub const MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations");
+
+	pub async fn new(pool: SqlitePool) -> color_eyre::Result<Self> {
+		Self::MIGRATOR
+			.run(&pool)
+			.await
+			.wrap_err("failed to run migrations")?;
+
+		Ok(Self(pool))
+	}
+}
+
+#[derive(Debug)]
 pub struct RouterConfig {
 	pub v1: crate::v1::RouterConfig,
 }

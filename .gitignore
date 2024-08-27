@@ -1,6 +1,6 @@
 /.idea
 /.vscode
-/target
+target/
 /vendor
 
 *.swp

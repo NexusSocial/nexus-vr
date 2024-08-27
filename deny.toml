@@ -10,6 +10,7 @@ ignore = [
 	"RUSTSEC-2021-0064", # cpuid-bool renamed
 	"RUSTSEC-2023-0052", # webpki DOS
 	"RUSTSEC-2024-0336", # rusttls inf loop
+	"RUSTSEC-2024-0363", # waiting for sqlx 0.8.1 to release
 ]
 
 [licenses]

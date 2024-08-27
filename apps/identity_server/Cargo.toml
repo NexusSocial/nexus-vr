@@ -13,11 +13,12 @@ axum.workspace = true
 clap = { workspace = true, features = ["derive", "env"] }
 color-eyre.workspace = true
 did-simple.workspace = true
+http-body-util.workspace = true
 jose-jwk = { workspace = true, default-features = false }
 rand.workspace = true
 serde.workspace = true
 serde_json.workspace = true
-sqlx = { version = "0.8.0", features = ["runtime-tokio", "tls-rustls", "sqlite", "uuid"] }
+sqlx = { version = "0.8.0", features = ["runtime-tokio", "tls-rustls", "sqlite", "uuid", "migrate"] }
 thiserror.workspace = true
 tokio = { workspace = true, features = ["full"] }
 tower-http = { workspace = true, features = ["trace"] }
@@ -28,3 +29,4 @@ uuid = { workspace = true, features = ["std", "v4", "serde"] }
 [dev-dependencies]
 base64.workspace = true
 hex-literal.workspace = true
+tower.workspace = true

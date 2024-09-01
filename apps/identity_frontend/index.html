@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus Demo</title>
+    <script src="https://cdn.tailwindcss.com?version=3.4.5"></script>
+	<script src="./index.js"></script>
+</head>
+<body class="bg-slate-200">
+	<h1>Login</h1>
+	<!-- <form id="loginForm"> -->
+		<label for="userId">User ID</label>
+		<input type="text" id="userId" name="user_id" required placeholder="Enter User ID" />
+		<button type="button" onClick="onLoginPressed()">Submit</button>
+	<!-- </form> -->
+	<script>
+		document.getElementById("userId").value = userIdFromUrl();
+	</script
+    
+</body>
+</html>

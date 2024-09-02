@@ -9,14 +9,19 @@
 </head>
 <body class="bg-slate-200">
 	<h1>Login</h1>
-	<!-- <form id="loginForm"> -->
+	<form id="loginForm">
 		<label for="userId">User ID</label>
-		<input type="text" id="userId" name="user_id" required placeholder="Enter User ID" />
-		<button type="button" onClick="onLoginPressed()">Submit</button>
-	<!-- </form> -->
+		<input type="text" id="userId" name="user_id" required placeholder="Enter User ID"/>
+		<button>Submit</button>
+	</form>
+
 	<script>
-		document.getElementById("userId").value = userIdFromUrl();
-	</script
-    
+		const userInputBox = document.getElementById("userId");
+		userInputBox.value = userIdFromUrl();
+		document
+			.getElementById("loginForm")
+			.addEventListener("submit", onFormSubmit);
+	</script>
+
 </body>
 </html>

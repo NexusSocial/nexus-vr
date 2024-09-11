@@ -8,11 +8,12 @@
 	<script src="./index.js"></script>
 </head>
 <body class="bg-slate-200">
-	<h1>Login</h1>
+	<h1>Nexus Login Page</h1>
 	<form id="loginForm">
 		<label for="userId">User ID</label>
 		<input type="text" id="userId" name="user_id" required placeholder="Enter User ID"/>
-		<button>Submit</button>
+		<button id="createButton" class="bg-violet-400">Create Passkey</button>
+		<button id="signButton" class="bg-violet-400">Sign with Passkey</button>
 	</form>
 
 	<script>

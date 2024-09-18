@@ -28,7 +28,7 @@ portpicker = "0.1.1"
 rodio = "0.17.3"
 social-common.workspace = true
 social-networking.workspace = true
-derive_more.workspace = true
+derive_more = { workspace = true, features = ["display"] }
 picking-xr.workspace = true
 egui-picking.workspace = true
 bevy_egui.workspace = true

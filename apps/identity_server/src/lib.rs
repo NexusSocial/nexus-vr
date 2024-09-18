@@ -1,4 +1,6 @@
+pub mod google_jwks_provider;
 pub mod jwk;
+pub mod oauth;
 pub mod v1;
 
 mod uuid;
@@ -28,6 +30,7 @@ impl MigratedDbPool {
 #[derive(Debug)]
 pub struct RouterConfig {
 	pub v1: crate::v1::RouterConfig,
+	pub oauth: crate::oauth::OAuthConfig,
 }
 
 impl RouterConfig {
@@ -37,9 +40,17 @@ impl RouterConfig {
 			.build()
 			.await
 			.wrap_err("failed to build v1 router")?;
+
+		let oauth = self
+			.oauth
+			.build()
+			.await
+			.wrap_err("failed to build oauth router")?;
+
 		Ok(axum::Router::new()
 			.route("/", get(root))
 			.nest("/api/v1", v1)
+			.nest("/oauth2", oauth)
 			.layer(TraceLayer::new_for_http()))
 	}
 }

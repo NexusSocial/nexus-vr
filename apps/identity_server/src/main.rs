@@ -2,7 +2,7 @@ use std::net::{Ipv6Addr, SocketAddr};
 
 use clap::Parser as _;
 use color_eyre::eyre::Context as _;
-use identity_server::MigratedDbPool;
+use identity_server::{google_jwks_provider::JwksProvider, MigratedDbPool};
 use std::path::PathBuf;
 use tracing::info;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
@@ -13,6 +13,10 @@ struct Cli {
 	port: u16,
 	#[clap(long, env, default_value = "identities.db")]
 	db_path: PathBuf,
+	/// The Google API OAuth2 Client ID.
+	/// See https://developers.google.com/identity/gsi/web/guides/get-google-api-clientid
+	#[clap(long, env)]
+	google_client_id: String,
 }
 
 #[tokio::main]
@@ -43,15 +47,23 @@ async fn main() -> color_eyre::Result<()> {
 			.await
 			.wrap_err("failed to migrate db pool")?
 	};
+	let reqwest_client = reqwest::Client::new();
 
 	let v1_cfg = identity_server::v1::RouterConfig {
 		uuid_provider: Default::default(),
 		db_pool,
 	};
-	let router = identity_server::RouterConfig { v1: v1_cfg }
-		.build()
-		.await
-		.wrap_err("failed to build router")?;
+	let oauth_cfg = identity_server::oauth::OAuthConfig {
+		google_client_id: cli.google_client_id,
+		google_jwks_provider: JwksProvider::google(reqwest_client.clone()),
+	};
+	let router = identity_server::RouterConfig {
+		v1: v1_cfg,
+		oauth: oauth_cfg,
+	}
+	.build()
+	.await
+	.wrap_err("failed to build router")?;
 
 	let listener = tokio::net::TcpListener::bind(SocketAddr::new(
 		Ipv6Addr::UNSPECIFIED.into(),

@@ -14,6 +14,7 @@ members = [
 	"crates/did-chain",
 	"crates/did-simple",
 	"crates/egui-picking",
+	"crates/header-parsing",
 	"crates/picking-xr",
 	"crates/replicate/client",
 	"crates/replicate/common",
@@ -29,8 +30,11 @@ edition = "2021"
 rust-version = "1.78.0"
 
 [workspace.dependencies]
+arc-swap = "1.7.1"
 async-compat = "0.2.4"
 axum = "0.7.5"
+axum-extra = "0.9.3"
+axum-macros = "0.4.1"
 base64 = "0.21.7"
 bevy = { version = "0.13", features = ["serialize"] }
 bevy-inspector-egui = "0.23.4"
@@ -54,7 +58,9 @@ egui = "0.26"
 egui-picking = { path = "crates/egui-picking" }
 eyre = "0.6"
 futures = "0.3.30"
+header-parsing.path = "crates/header-parsing"
 hex-literal = "0.4.1"
+http = "1.1.0"
 http-body-util = "0.1.2"
 jose-jwk = { version = "0.1.2", default-features = false }
 lightyear = "0.12"
@@ -67,6 +73,7 @@ rand_xoshiro = "0.6.0"
 random-number = "0.1.8"
 replicate-client.path = "crates/replicate/client"
 replicate-server.path = "crates/replicate/server"
+reqwest = { version = "0.12.7", features = ["rustls-tls"] }
 serde = { version = "1.0.193", features = ["derive"] }
 serde_json = "1.0.114"
 slotmap = "1.0.7"
@@ -85,15 +92,8 @@ uuid = "1.7.0"
 wtransport = "0.1.13"
 
 [workspace.dependencies.derive_more]
-version = "0.99"
+version = "1.0.0"
 default-features = false
-features = [
-	"add",
-	"deref",
-	"deref_mut",
-	"mul",
-	"from",
-]
 
 [workspace.dependencies.opus]
 git = "https://github.com/Schmarni-Dev/opus-rs"

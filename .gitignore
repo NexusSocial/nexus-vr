@@ -10,3 +10,6 @@ target/
 
 # SQLite
 *.db
+
+# acme cached info
+cached_account_*

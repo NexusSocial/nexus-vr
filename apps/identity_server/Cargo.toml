@@ -10,6 +10,7 @@ publish = false
 
 [dependencies]
 axum.workspace = true
+axum-server.workspace = true
 clap = { workspace = true, features = ["derive", "env"] }
 color-eyre.workspace = true
 did-simple.workspace = true
@@ -25,6 +26,8 @@ tower-http = { workspace = true, features = ["trace"] }
 tracing-subscriber = { workspace = true, features = ["env-filter"] }
 tracing.workspace = true
 uuid = { workspace = true, features = ["std", "v4", "serde"] }
+rustls-acme = { version = "0.11.1", default-features = false, features = ["ring", "axum"] }
+futures.workspace = true
 
 [dev-dependencies]
 base64.workspace = true

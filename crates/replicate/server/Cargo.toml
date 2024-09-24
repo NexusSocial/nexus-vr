@@ -14,7 +14,7 @@ bytes = { workspace = true, features = ["serde"] }
 clap.workspace = true
 color-eyre.workspace = true
 dashmap = "5.5.3"
-derive_more.workspace = true
+derive_more = { workspace = true, features = ["deref", "deref_mut"] }
 eyre.workspace = true
 futures.workspace = true
 rand.workspace = true

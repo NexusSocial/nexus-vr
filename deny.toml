@@ -11,6 +11,7 @@ ignore = [
 	"RUSTSEC-2023-0052", # webpki DOS
 	"RUSTSEC-2024-0336", # rusttls inf loop
 	"RUSTSEC-2024-0363", # waiting for sqlx 0.8.1 to release
+	"RUSTSEC-2023-0086", # waiting for an upgrade to lexical-core in bevy_web_asset
 ]
 
 [licenses]

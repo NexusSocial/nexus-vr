@@ -1,0 +1,5 @@
+[toolchain]
+channel = "1.81.0" # See workspace Cargo.toml
+components = ["rust-src"]
+profile = "default"
+targets = ["x86_64-pc-windows-msvc", "aarch64-linux-android", "x86_64-unknown-linux-gnu"]

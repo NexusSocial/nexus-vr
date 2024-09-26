@@ -1,0 +1,14 @@
+[workspace]
+resolver = "2"
+members = [
+	"crates/dummy",
+]
+
+# These settings will apply to all members of the workspace that opt in to them
+[workspace.package]
+edition = "2021"
+license = "MIT-0 OR Apache-2.0"
+repository = "https://github.com/NexusSocial/nexus-vr"
+rust-version = "1.81.0"
+
+[workspace.dependencies]

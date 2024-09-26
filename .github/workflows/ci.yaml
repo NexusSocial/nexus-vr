@@ -1,0 +1,51 @@
+name: CI
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  fmt:
+    name: Check Formatting
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache cargo dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Check formatting
+        run: cargo fmt --check --all
+
+  check:
+    name: Lint and Build
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache cargo dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Clippy lints
+        run: cargo clippy --all --all-features --all-targets --no-deps -- -D warnings
+
+      - name: Cargo Doc
+        run: RUSTDOCFLAGS="-D warnings" cargo doc --all --all-features --no-deps --document-private-items
+
+  test:
+    name: Run Tests
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache cargo dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Test
+        run: cargo test --all --all-features --all-targets
+
+  deny:
+    name: Run cargo deny
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v4
+    - uses: EmbarkStudios/cargo-deny-action@v1

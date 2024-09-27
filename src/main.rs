@@ -1,6 +1,7 @@
 use crate::file_sharing::FileSharingPlugin;
-use crate::networking::{ConnectToRoom, NetworkingPlugin};
-use avian3d::prelude::{Collider, CollisionLayers, RigidBody};
+use crate::networking::{ConnectToRoom, LocalPlayer, NetworkingPlugin, SpawnPlayer};
+use crate::player_networking::PlayerNetworking;
+use avian3d::prelude::{Collider, CollisionLayers, GravityScale, LockedAxes, RigidBody};
 use avian3d::PhysicsPlugins;
 use bevy::app::App;
 use bevy::asset::{AssetMetaCheck, AssetServer, Assets, Handle};
@@ -17,36 +18,46 @@ use bevy_suis::debug::SuisDebugGizmosPlugin;
 use bevy_suis::window_pointers::SuisWindowPointerPlugin;
 use bevy_suis::SuisCorePlugin;
 use bevy_vr_controller::animation::defaults::default_character_animations;
-use bevy_vr_controller::player::PlayerSettings;
+use bevy_vr_controller::movement::PlayerInputState;
+use bevy_vr_controller::player::{
+	PlayerAvatar, PlayerBody, PlayerHeight, PlayerJumpHeight, PlayerSettings,
+	PlayerSpawn, PlayerSpeed, SpawnedPlayer, VoidTeleport,
+};
+use bevy_vr_controller::velocity::AverageVelocity;
 use bevy_vr_controller::VrControllerPlugin;
+use bevy_vrm::VrmBundle;
+use uuid::Uuid;
+use crate::physics_sync::PhysicsSyncNetworkingPlugin;
 
 mod file_sharing;
 pub mod networking;
+mod player_networking;
+mod physics_sync;
 
 pub fn main() {
 	App::new()
-	.add_plugins((
-		EmbeddedAssetPlugin::default(),
-		bevy_web_file_drop::WebFileDropPlugin,
-		DefaultPlugins.set(AssetPlugin {
-			meta_check: AssetMetaCheck::Never,
-			..AssetPlugin::default()
-		}),
-		PhysicsPlugins::default(),
-		VrControllerPlugin,
-	))
-	.add_plugins((
-		SuisCorePlugin,
-		SuisWindowPointerPlugin,
-		SuisDebugGizmosPlugin,
-	))
-	.add_plugins(bevy_spatial_egui::SpatialEguiPlugin)
-	.add_plugins(EguiPlugin)
-	.add_plugins((NetworkingPlugin, FileSharingPlugin))
-	.add_systems(Startup, setup_main_window)
-	.add_systems(Startup, (setup_scene, setup_player))
-	.add_systems(Update, draw_ui)
-	.run();
+		.add_plugins((
+			EmbeddedAssetPlugin::default(),
+			bevy_web_file_drop::WebFileDropPlugin,
+			DefaultPlugins.set(AssetPlugin {
+				meta_check: AssetMetaCheck::Never,
+				..AssetPlugin::default()
+			}),
+			PhysicsPlugins::default(),
+			VrControllerPlugin,
+		))
+		.add_plugins((
+			SuisCorePlugin,
+			SuisWindowPointerPlugin,
+			//SuisDebugGizmosPlugin,
+		))
+		.add_plugins(bevy_spatial_egui::SpatialEguiPlugin)
+		.add_plugins(EguiPlugin)
+		.add_plugins((NetworkingPlugin, FileSharingPlugin, PlayerNetworking, PhysicsSyncNetworkingPlugin))
+		.add_systems(Startup, setup_main_window)
+		.add_systems(Startup, (setup_scene, setup_player))
+		.add_systems(Update, draw_ui)
+		.run();
 }
 
 fn draw_ui(mut query: Query<&mut EguiContext, With<MainWindow>>) {
@@ -81,14 +92,61 @@ const GROUND_SIZE: f32 = 30.0;
 const GROUND_THICK: f32 = 0.2;
 
 fn setup_player(asset_server: Res<AssetServer>, mut commands: Commands) {
-	PlayerSettings {
+	let awa = PlayerSettings {
 		animations: Some(default_character_animations(&asset_server)),
 		vrm: Some(asset_server.load("embedded://models/robot.vrm")),
 		void_level: Some(-20.0),
 		spawn: Vec3::new(0.0, 3.0, 0.0),
 		..default()
 	}
-		.spawn(&mut commands);
+	.spawn(&mut commands);
+	commands.entity(awa.body).insert(LocalPlayer(Uuid::new_v4()));
+}
+
+pub fn spawn_avatar(this: PlayerSettings, commands: &mut Commands) -> Entity {
+	let mut body = commands.spawn((
+		Collider::capsule(this.width / 2.0, this.height - this.width),
+		LockedAxes::ROTATION_LOCKED,
+		PlayerBody,
+		PlayerSpawn(this.spawn),
+		RigidBody::Dynamic,
+		SpatialBundle {
+			global_transform: GlobalTransform::from_translation(this.spawn),
+			..default()
+		},
+		GravityScale(0.0)
+	));
+
+	if let Some(value) = this.void_level {
+		body.insert(VoidTeleport(value));
+	}
+
+	let body = body.id();
+
+	let mut avatar = commands.spawn((
+		PlayerAvatar,
+		AverageVelocity {
+			target: Some(body),
+			..default()
+		},
+		VrmBundle {
+			scene_bundle: SceneBundle {
+				transform: Transform::from_xyz(0.0, -this.height / 2.0, 0.0),
+				..default()
+			},
+			vrm: this.vrm.clone().unwrap_or_default(),
+			..default()
+		},
+	));
+
+	if let Some(value) = &this.animations {
+		avatar.insert(value.clone());
+	}
+
+	let avatar = avatar.id();
+
+	commands.entity(body).push_children(&[avatar]);
+	body
 }
 
 fn setup_scene(

@@ -1,10 +1,13 @@
+use crate::file_sharing::FileParts;
 use avian3d::prelude::{AngularVelocity, LinearVelocity, Position};
 use bevy::app::App;
 use bevy::ecs::system::{EntityCommand, SystemParam};
 use bevy::ecs::world::Command;
 use bevy::prelude::*;
 use bevy_derive::{Deref, DerefMut};
-use bevy_matchbox::prelude::{MultipleChannels, PeerId, WebRtcSocketBuilder};
+use bevy_matchbox::prelude::{
+	MultipleChannels, PeerId, PeerState, WebRtcSocketBuilder,
+};
 use bevy_matchbox::MatchboxSocket;
 use futures_channel::mpsc::SendError;
 use serde::{Deserialize, Serialize};
@@ -25,6 +28,7 @@ pub enum UnreliableMessage {
 #[derive(Clone, Debug, Serialize, Deserialize, Event)]
 pub struct SpawnPlayer {
 	pub uuid: Uuid,
+	pub peer_id: Option<PeerId>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, Event)]
@@ -55,9 +59,9 @@ pub struct PlayerPositionUpdate {
 pub struct LocalPlayer(pub Uuid);
 
 #[derive(
-	Reflect, Clone, Debug, Serialize, Deserialize, Deref, DerefMut, PartialEq, Component,
+	Clone, Debug, Serialize, Deserialize, PartialEq, Component,
 )]
-pub struct RemotePlayer(pub Uuid);
+pub struct RemotePlayer(pub Uuid, pub PeerId);
 
 pub trait ConnectToRoom {
 	fn connect_to_room(&mut self, room: impl AsRef<str>);
@@ -80,15 +84,77 @@ impl ConnectToRoom for Commands<'_, '_> {
 pub struct NetworkingPlugin;
 impl Plugin for NetworkingPlugin {
 	fn build(&self, app: &mut App) {
+		app.add_event::<SpawnPlayer>();
+		app.add_event::<PlayerConnected>();
+		app.add_event::<PlayerDisconnected>();
+		app.add_event::<UpdatePhysicsPosition>();
+
 		app.add_systems(
 			FixedUpdate,
 			update_peers.run_if(resource_exists::<MatchboxSocket<MultipleChannels>>),
 		);
+		app.add_systems(
+			Update,
+			(handle_messages_reliable, handle_messages_unreliable),
+		);
 	}
 }
 
-fn update_peers(mut socket: ResMut<MatchboxSocket<MultipleChannels>>) {
-	socket.update_peers();
+fn handle_messages_reliable(
+	mut connection: Connection,
+	mut spawn_players: EventWriter<SpawnPlayer>,
+	mut file_parts: ResMut<FileParts>,
+) {
+	for (message, peer_id) in connection.recv() {
+		let message: ReliableMessage = message;
+		match message {
+			ReliableMessage::SpawnPlayer(mut spawn_player) => {
+				spawn_player.peer_id.replace(peer_id);
+				spawn_players.send(spawn_player);
+			}
+			ReliableMessage::FilePart(file_part) => {
+				file_parts.0.push(file_part);
+			}
+		}
+	}
+}
+
+fn handle_messages_unreliable(
+	mut connection: Connection,
+	mut update_physics_positions: EventWriter<UpdatePhysicsPosition>,
+) {
+	for (message, _peer_id) in connection.recv() {
+		let message: UnreliableMessage = message;
+		match message {
+			UnreliableMessage::UpdatePhysicsPosition(update_physics_position) => {
+				update_physics_positions.send(update_physics_position);
+			}
+			UnreliableMessage::PlayerPositionUpdate(_) => todo!(),
+		}
+	}
+}
+
+#[derive(Event)]
+pub struct PlayerDisconnected(pub PeerId);
+
+#[derive(Event)]
+pub struct PlayerConnected(pub PeerId);
+
+fn update_peers(
+	mut socket: ResMut<MatchboxSocket<MultipleChannels>>,
+	mut player_connected: EventWriter<PlayerConnected>,
+	mut player_disconnected: EventWriter<PlayerDisconnected>,
+) {
+	for (peer, state) in socket.update_peers() {
+		match state {
+			PeerState::Connected => {
+				player_connected.send(PlayerConnected(peer));
+			}
+			PeerState::Disconnected => {
+				player_disconnected.send(PlayerDisconnected(peer));
+			}
+		}
+	}
 }
 
 #[derive(SystemParam)]
@@ -98,7 +164,7 @@ pub struct Connection<'w> {
 
 pub trait ConnectionTrait<MessageType> {
 	fn peers(&self) -> Vec<PeerId>;
-	fn update_peers(&mut self);
+	fn update_peers(&mut self) -> Vec<(PeerId, PeerState)>;
 	fn send(
 		&mut self,
 		peer: bevy_matchbox::prelude::PeerId,
@@ -125,6 +191,8 @@ pub trait ConnectionTrait<MessageType> {
 			Some(vec) => Err(vec),
 		}
 	}
+
+	fn recv(&mut self) -> Vec<(MessageType, PeerId)>;
 }
 
 impl ConnectionTrait<UnreliableMessage> for Connection<'_> {
@@ -132,8 +200,8 @@ impl ConnectionTrait<UnreliableMessage> for Connection<'_> {
 		self.socket.connected_peers().collect::<Vec<_>>()
 	}
 
-	fn update_peers(&mut self) {
-		self.socket.update_peers();
+	fn update_peers(&mut self) -> Vec<(PeerId, PeerState)> {
+		self.socket.update_peers()
 	}
 
 	fn send(
@@ -146,6 +214,15 @@ impl ConnectionTrait<UnreliableMessage> for Connection<'_> {
 			.channel_mut(1)
 			.try_send(Box::from(encoded), peer)
 	}
+
+	fn recv(&mut self) -> Vec<(UnreliableMessage, PeerId)> {
+		self.socket
+			.channel_mut(1)
+			.receive()
+			.into_iter()
+			.map(|(peer_id, packet)| (bincode::deserialize(&packet).unwrap(), peer_id))
+			.collect()
+	}
 }
 
 impl ConnectionTrait<ReliableMessage> for Connection<'_> {
@@ -153,8 +230,8 @@ impl ConnectionTrait<ReliableMessage> for Connection<'_> {
 		self.socket.connected_peers().collect::<Vec<_>>()
 	}
 
-	fn update_peers(&mut self) {
-		self.socket.update_peers();
+	fn update_peers(&mut self) -> Vec<(PeerId, PeerState)> {
+		self.socket.update_peers()
 	}
 
 	fn send(
@@ -166,5 +243,14 @@ impl ConnectionTrait<ReliableMessage> for Connection<'_> {
 		self.socket
 			.channel_mut(0)
 			.try_send(Box::from(encoded), peer)
+	}
+
+	fn recv(&mut self) -> Vec<(ReliableMessage, PeerId)> {
+		self.socket
+			.channel_mut(0)
+			.receive()
+			.into_iter()
+			.map(|(peer_id, packet)| (bincode::deserialize(&packet).unwrap(), peer_id))
+			.collect()
 	}
 }

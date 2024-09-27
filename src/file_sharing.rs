@@ -1,11 +1,11 @@
 use crate::networking::{Connection, ConnectionTrait, ReliableMessage};
 use bevy::prelude::*;
 use bevy::reflect::List;
+use bevy_matchbox::prelude::MultipleChannels;
+use bevy_matchbox::MatchboxSocket;
 use futures_channel::mpsc::{channel, Receiver, SendError, Sender};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use bevy_matchbox::MatchboxSocket;
-use bevy_matchbox::prelude::MultipleChannels;
 use uuid::Uuid;
 
 #[derive(Clone, Debug, Serialize, Deserialize, Event)]
@@ -41,8 +41,16 @@ impl Plugin for FileSharingPlugin {
 		let (tx, rx) = channel(100);
 		app.insert_resource(P2pFileRx(rx));
 		app.insert_resource(P2pFileSender(tx));
-		app.add_systems(Update, handle_file_part.run_if(resource_exists::<MatchboxSocket<MultipleChannels>>));
-		app.add_systems(Update, send_parts_of_file.run_if(resource_exists::<MatchboxSocket<MultipleChannels>>));
+		app.add_systems(
+			Update,
+			handle_file_part
+				.run_if(resource_exists::<MatchboxSocket<MultipleChannels>>),
+		);
+		app.add_systems(
+			Update,
+			send_parts_of_file
+				.run_if(resource_exists::<MatchboxSocket<MultipleChannels>>),
+		);
 	}
 }
 

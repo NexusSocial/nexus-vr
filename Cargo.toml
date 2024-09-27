@@ -43,7 +43,10 @@ bevy_mod_openxr = { git = "https://github.com/awtterpip/bevy_oxr" }
 bevy_spatial_egui = { path = "../bevy_spatial_egui" }
 bevy_egui = "0.29.0"
 bevy-suis = { git = "https://github.com/Schmarni-Dev/bevy-suis", branch = "further_work" }
-
+bevy_vrm = "0.0.12"
 [profile.release]
 lto = "thin"
 opt-level = "z"
+
+[profile.dev]
+opt-level = 3

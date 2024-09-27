@@ -1,11 +1,13 @@
-use crate::networking::{Connection, ConnectionTrait, LocalPlayer, PlayerConnected, PlayerDisconnected, ReliableMessage, RemotePlayer, SpawnPlayer, UnreliableMessage, UpdatePhysicsPosition};
+use crate::networking::{Connection, ConnectionTrait, LocalPlayer, PlayerConnected, PlayerDisconnected, PlayerPositionUpdate, ReliableMessage, RemotePlayer, SpawnPlayer, UnreliableMessage, UpdatePhysicsPosition};
 use crate::spawn_avatar;
 use avian3d::prelude::{AngularVelocity, LinearVelocity, Position, Rotation};
 use bevy::prelude::*;
 use bevy_matchbox::prelude::MultipleChannels;
 use bevy_matchbox::MatchboxSocket;
+use bevy_mod_openxr::session::OxrSession;
 use bevy_vr_controller::animation::defaults::default_character_animations;
 use bevy_vr_controller::player::PlayerSettings;
+use bevy_vrm::BoneName;
 
 pub struct PlayerNetworking;
 
@@ -79,6 +81,7 @@ fn send_players_when_connected(
 fn update_player_position(
 	local_player: Query<
 		(
+			Entity,
 			&Position,
 			&Rotation,
 			&LinearVelocity,
@@ -94,8 +97,11 @@ fn update_player_position(
 		),
 	>,
 	mut connection: Connection,
+	transforms: Query<(&BoneName, &Transform), Changed<Transform>>,
+	children: Query<&Children>,
+	session: Option<Res<OxrSession>>,
 ) {
-	let Ok((position, rotation, lin_vel, ang_vel, local_player)) = local_player.get_single() else {return};
+	let Ok((entity, position, rotation, lin_vel, ang_vel, local_player)) = local_player.get_single() else {return};
 	let message = UnreliableMessage::UpdatePhysicsPosition(UpdatePhysicsPosition {
 		authority: 0,
 		uuid: local_player.0,
@@ -106,4 +112,38 @@ fn update_player_position(
 	});
 
 	let _ = connection.send_all(&message);
+
+	if session.is_none() {
+		return;
+	}
+
+	let mut player_position_update = PlayerPositionUpdate {
+		uuid: local_player.0.clone(),
+		head: Default::default(),
+		left_shoulder: Default::default(),
+		right_shoulder: Default::default(),
+		left_upper_arm: Default::default(),
+		right_upper_arm: Default::default(),
+		left_lower_arm: Default::default(),
+		right_lower_arm: Default::default(),
+		left_hand: Default::default(),
+		right_hand: Default::default(),
+	};
+	for children in children.iter_descendants(entity) {
+		for (bone_name, transform) in transforms.get(children) {
+			match bone_name {
+				BoneName::Head => player_position_update.head = transform.clone(),
+				BoneName::LeftShoulder => player_position_update.left_shoulder = transform.clone(),
+				BoneName::RightShoulder => player_position_update.right_shoulder = transform.clone(),
+				BoneName::LeftUpperArm => player_position_update.left_upper_arm = transform.clone(),
+				BoneName::RightUpperArm => player_position_update.right_upper_arm = transform.clone(),
+				BoneName::LeftLowerArm => player_position_update.left_lower_arm = transform.clone(),
+				BoneName::RightLowerArm => player_position_update.right_lower_arm = transform.clone(),
+				BoneName::LeftHand => player_position_update.left_hand = transform.clone(),
+				BoneName::RightHand => player_position_update.right_hand = transform.clone(),
+				_ => {}
+			}
+		}
+	}
+	let _ = connection.send_all(&UnreliableMessage::PlayerPositionUpdate(player_position_update));
 }

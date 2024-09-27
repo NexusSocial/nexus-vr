@@ -39,10 +39,11 @@ pub fn main() {
 		.add_plugins((
 			EmbeddedAssetPlugin::default(),
 			bevy_web_file_drop::WebFileDropPlugin,
-			DefaultPlugins.set(AssetPlugin {
+			/*bevy_mod_openxr::add_xr_plugins(*/DefaultPlugins.set(AssetPlugin {
 				meta_check: AssetMetaCheck::Never,
 				..AssetPlugin::default()
-			}),
+			})/*)*/,
+			//bevy_xr_utils::xr_utils_actions::XRUtilsActionsPlugin,
 			PhysicsPlugins::default(),
 			VrControllerPlugin,
 		))

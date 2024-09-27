@@ -1743,6 +1743,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy_xr_utils"
+version = "0.1.0-rc1"
+source = "git+https://github.com/awtterpip/bevy_oxr#cb3ba5496a47dcc743c319da4c7872cc2db02f0f"
+dependencies = [
+ "bevy",
+ "bevy_mod_openxr",
+ "bevy_mod_xr",
+ "openxr",
+]
+
+[[package]]
 name = "bincode"
 version = "1.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4184,6 +4195,7 @@ dependencies = [
  "bevy_vr_controller",
  "bevy_vrm",
  "bevy_web_file_drop",
+ "bevy_xr_utils",
  "bincode",
  "futures-channel",
  "serde",

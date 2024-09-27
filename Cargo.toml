@@ -40,13 +40,17 @@ bevy_embedded_assets = "0.11.0"
 bevy_web_file_drop = "0.0.6"
 bevy_vr_controller = { path = "../bevy_vr_controller"}
 bevy_mod_openxr = { git = "https://github.com/awtterpip/bevy_oxr" }
+bevy_xr_utils = { git = "https://github.com/awtterpip/bevy_oxr"}
 bevy_spatial_egui = { path = "../bevy_spatial_egui" }
 bevy_egui = "0.29.0"
 bevy-suis = { git = "https://github.com/Schmarni-Dev/bevy-suis", branch = "further_work" }
 bevy_vrm = "0.0.12"
+
 [profile.release]
-lto = "thin"
+lto = true
+codegen-units = 1
 opt-level = "z"
+panic="abort"
 
 [profile.dev]
 opt-level = 3

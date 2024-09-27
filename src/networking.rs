@@ -43,14 +43,16 @@ pub struct UpdatePhysicsPosition {
 
 #[derive(Clone, Debug, Serialize, Deserialize, Event)]
 pub struct PlayerPositionUpdate {
-	uuid: Uuid,
-	head: Transform,
-	left_upper_arm: Transform,
-	right_upper_arm: Transform,
-	left_lower_arm: Transform,
-	right_lower_arm: Transform,
-	left_hand: Transform,
-	right_hand: Transform,
+	pub uuid: Uuid,
+	pub head: Transform,
+	pub left_shoulder: Transform,
+	pub right_shoulder: Transform,
+	pub left_upper_arm: Transform,
+	pub right_upper_arm: Transform,
+	pub left_lower_arm: Transform,
+	pub right_lower_arm: Transform,
+	pub left_hand: Transform,
+	pub right_hand: Transform,
 }
 
 #[derive(
@@ -88,6 +90,7 @@ impl Plugin for NetworkingPlugin {
 		app.add_event::<PlayerConnected>();
 		app.add_event::<PlayerDisconnected>();
 		app.add_event::<UpdatePhysicsPosition>();
+		app.add_event::<PlayerPositionUpdate>();
 
 		app.add_systems(
 			FixedUpdate,
@@ -122,6 +125,7 @@ fn handle_messages_reliable(
 fn handle_messages_unreliable(
 	mut connection: Connection,
 	mut update_physics_positions: EventWriter<UpdatePhysicsPosition>,
+	mut player_position_updates: EventWriter<PlayerPositionUpdate>,
 ) {
 	for (message, _peer_id) in connection.recv() {
 		let message: UnreliableMessage = message;
@@ -129,7 +133,9 @@ fn handle_messages_unreliable(
 			UnreliableMessage::UpdatePhysicsPosition(update_physics_position) => {
 				update_physics_positions.send(update_physics_position);
 			}
-			UnreliableMessage::PlayerPositionUpdate(_) => todo!(),
+			UnreliableMessage::PlayerPositionUpdate(player_position_update) => {
+				player_position_updates.send(player_position_update);
+			},
 		}
 	}
 }

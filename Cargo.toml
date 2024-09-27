@@ -45,6 +45,7 @@ bevy_spatial_egui = { path = "../bevy_spatial_egui" }
 bevy_egui = "0.29.0"
 bevy-suis = { git = "https://github.com/Schmarni-Dev/bevy-suis", branch = "further_work" }
 bevy_vrm = "0.0.12"
+egui-aesthetix = {version = "0.2.4", features = ["tokyo_night", "default"]}
 
 [profile.release]
 lto = true

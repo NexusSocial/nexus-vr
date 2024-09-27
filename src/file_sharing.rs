@@ -1,6 +1,5 @@
 use crate::networking::{Connection, ConnectionTrait, ReliableMessage};
 use bevy::prelude::*;
-use bevy::reflect::List;
 use bevy_matchbox::prelude::MultipleChannels;
 use bevy_matchbox::MatchboxSocket;
 use futures_channel::mpsc::{channel, Receiver, SendError, Sender};

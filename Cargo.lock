@@ -708,7 +708,7 @@ dependencies = [
 [[package]]
 name = "bevy-suis"
 version = "0.1.0"
-source = "git+https://github.com/Schmarni-Dev/bevy-suis?branch=further_work#4a7425c602291a06dbe07eee166c87bf84456c6f"
+source = "git+https://github.com/Schmarni-Dev/bevy-suis?branch=further_work#d94ae5b0989732b7b840e8744af02c5bf233c0d2"
 dependencies = [
  "bevy",
  "bevy_mod_openxr",
@@ -2627,6 +2627,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "egui-aesthetix"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c0b91e1b07193fa9bc71849e39a76d30ffd6a2f57bfc54552e3a2df263da577b"
+dependencies = [
+ "egui",
+]
+
+[[package]]
 name = "either"
 version = "1.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4197,6 +4206,7 @@ dependencies = [
  "bevy_web_file_drop",
  "bevy_xr_utils",
  "bincode",
+ "egui-aesthetix",
  "futures-channel",
  "serde",
  "uuid",

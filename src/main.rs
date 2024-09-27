@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use crate::file_sharing::FileSharingPlugin;
 use crate::networking::{ConnectToRoom, LocalPlayer, NetworkingPlugin, SpawnPlayer};
 use crate::player_networking::PlayerNetworking;
@@ -11,6 +12,7 @@ use bevy::math::Vec3;
 use bevy::pbr::{AmbientLight, DirectionalLightBundle, PbrBundle, StandardMaterial};
 use bevy::prelude::*;
 use bevy::DefaultPlugins;
+use bevy::window::PrimaryWindow;
 use bevy_egui::{egui, EguiContext, EguiPlugin};
 use bevy_embedded_assets::EmbeddedAssetPlugin;
 use bevy_spatial_egui::SpawnSpatialEguiWindowCommand;
@@ -26,6 +28,7 @@ use bevy_vr_controller::player::{
 use bevy_vr_controller::velocity::AverageVelocity;
 use bevy_vr_controller::VrControllerPlugin;
 use bevy_vrm::VrmBundle;
+use egui_aesthetix::Aesthetix;
 use uuid::Uuid;
 use crate::physics_sync::PhysicsSyncNetworkingPlugin;
 
@@ -50,7 +53,7 @@ pub fn main() {
 		.add_plugins((
 			SuisCorePlugin,
 			SuisWindowPointerPlugin,
-			//SuisDebugGizmosPlugin,
+			SuisDebugGizmosPlugin,
 		))
 		.add_plugins(bevy_spatial_egui::SpatialEguiPlugin)
 		.add_plugins(EguiPlugin)
@@ -58,11 +61,26 @@ pub fn main() {
 		.add_systems(Startup, setup_main_window)
 		.add_systems(Startup, (setup_scene, setup_player))
 		.add_systems(Update, draw_ui)
+		.add_systems(Update, cursor_recenter)
 		.run();
+}
+
+fn cursor_recenter(mut q_windows: Query<&mut Window, With<PrimaryWindow>>) {
+	let mut primary_window = match q_windows.get_single_mut() {
+		Ok(v) => v,
+		Err(_) => return,
+	};
+	if primary_window.cursor.visible {
+		return;
+	}
+	let center = Vec2::new(primary_window.width() / 2.0, primary_window.height() / 2.0);
+	primary_window.set_cursor_position(Some(center));
 }
 
 fn draw_ui(mut query: Query<&mut EguiContext, With<MainWindow>>) {
 	for mut ctx in &mut query {
+		let ctx: &mut EguiContext = &mut ctx;
+		ctx.get_mut().set_style(Arc::new(egui_aesthetix::themes::TokyoNightStorm).custom_style());
 		egui::panel::CentralPanel::default().show(ctx.get_mut(), |ui| {
 			ui.heading("Hello, World!");
 			if ui.button("Press Me!").clicked() {

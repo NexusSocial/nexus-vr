@@ -4,7 +4,8 @@ use avian3d::prelude::{AngularVelocity, LinearVelocity, Position, Rotation};
 use bevy::prelude::*;
 use bevy_matchbox::prelude::MultipleChannels;
 use bevy_matchbox::MatchboxSocket;
-use bevy_mod_openxr::session::OxrSession;
+/*#[cfg(not(target_os = "wasm"))]
+use bevy_mod_openxr::session::OxrSession;*/
 use bevy_vr_controller::animation::defaults::default_character_animations;
 use bevy_vr_controller::player::PlayerSettings;
 use bevy_vrm::BoneName;
@@ -99,7 +100,7 @@ fn update_player_position(
 	mut connection: Connection,
 	transforms: Query<(&BoneName, &Transform), Changed<Transform>>,
 	children: Query<&Children>,
-	session: Option<Res<OxrSession>>,
+	//session: Option<Res<OxrSession>>,
 ) {
 	let Ok((entity, position, rotation, lin_vel, ang_vel, local_player)) = local_player.get_single() else {return};
 	let message = UnreliableMessage::UpdatePhysicsPosition(UpdatePhysicsPosition {
@@ -113,9 +114,9 @@ fn update_player_position(
 
 	let _ = connection.send_all(&message);
 
-	if session.is_none() {
+	/*if session.is_none() {
 		return;
-	}
+	}*/
 
 	let mut player_position_update = PlayerPositionUpdate {
 		uuid: local_player.0.clone(),

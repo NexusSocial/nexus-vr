@@ -1,0 +1,22 @@
+#bevy {
+    z-index: 2;
+}
+audio{
+    display:none;
+}
+canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+html {
+    height: 100%;
+    background-color: black;
+    margin: 0;
+    overflow: hidden;
+}
+
+body {
+    height: 100%;
+    background-color: black;
+    margin: 0;
+}

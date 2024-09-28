@@ -30,11 +30,3 @@ fn setup(mut cmds: Commands) {
 	.insert(Field::Cuboid(Cuboid::from_size(Vec3::splat(0.25))))
 	.insert(InputHandler::new(|_: In<CaptureContext>| true));
 }
-
-fn move_in_circle(mut query: Query<&mut Laser>, time: Res<Time>) {
-	let t = time.elapsed_seconds();
-	for mut laser in query.iter_mut() {
-		laser.end.x = (t * 2.4).sin() * 4.0;
-		laser.end.z = (t * 4.8).cos() * 4.0;
-	}
-}

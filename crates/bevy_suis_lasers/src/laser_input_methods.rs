@@ -38,7 +38,8 @@ fn update_rays(
 		let laser = laser.get(lazer.0).unwrap();
 		ray.0.origin = global_transform.translation();
 		ray.0.direction = Dir3::new_unchecked(
-			(laser.current_end - global_transform.translation()).normalize(),
+			(laser.ray.get_point(laser.length) - global_transform.translation())
+				.normalize(),
 		);
 	}
 }
@@ -89,8 +90,9 @@ fn update_things(
 		info!("distance: {distance}");
 		let transform = location.compute_transform();
 
-		laser.start = transform.translation;
-		laser.end = transform.translation + (transform.forward() * distance);
+		laser.ray.origin = transform.translation;
+		laser.ray.direction = transform.forward();
+		laser.length = distance;
 	}
 }
 
@@ -102,19 +104,11 @@ fn setup_methods(
 	query: Query<(Entity, &HandSide), With<XrControllerInputMethodData>>,
 ) {
 	let lazer_left = cmds
-		.spawn(Laser {
-			start: Vec3::ZERO,
-			end: Vec3::NEG_Z,
-			current_end: Vec3::NEG_Z,
-		})
+		.spawn(Laser::new())
 		.insert(SpatialBundle::default())
 		.id();
 	let lazer_right = cmds
-		.spawn(Laser {
-			start: Vec3::ZERO,
-			end: Vec3::NEG_Z,
-			current_end: Vec3::NEG_Z,
-		})
+		.spawn(Laser::new())
 		.insert(SpatialBundle::default())
 		.id();
 	let left = cmds

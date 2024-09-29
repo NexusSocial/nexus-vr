@@ -6,8 +6,7 @@ use bevy_suis::{
 	SuisCorePlugin,
 };
 use bevy_suis_lasers::{
-	draw_lasers::{Laser, LaserPlugin},
-	laser_input_methods::LaserInputMethodPlugin,
+	draw_lasers::LaserPlugin, laser_input_methods::LaserInputMethodPlugin,
 };
 fn main() -> AppExit {
 	App::new()

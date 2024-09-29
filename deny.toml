@@ -24,6 +24,12 @@ allow = [
 	"LicenseRef-ring",
 ]
 
+[[licenses.exceptions]]
+# https://github.com/emilk/egui/issues/2321
+name = "epaint"
+allow = ["OFL-1.1", "LicenseRef-UFL-1.0"]
+
+
 [bans]
 multiple-versions = "warn"
 # Certain crates that we don't want multiple versions of in the dependency tree

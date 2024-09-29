@@ -3,8 +3,7 @@ all-features = true
 
 [advisories]
 version = 2
-ignore = [
-]
+ignore = []
 
 [licenses]
 version = 2
@@ -38,4 +37,8 @@ unknown-registry = "deny"
 unknown-git = "deny"
 allow-registry = ["https://github.com/rust-lang/crates.io-index"]
 # please don't make this list any longer qwq
-allow-git = []
+allow-git = [
+	"https://github.com/Schmarni-Dev/bevy-suis",
+	"https://github.com/awtterpip/bevy_oxr",
+	"https://github.com/Schmarni-Dev/bevy_vr_controller/",
+]

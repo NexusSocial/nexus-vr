@@ -11,6 +11,9 @@ rust-version.workspace = true
 bevy-suis = { git = "https://github.com/Schmarni-Dev/bevy-suis", branch = "further_work" }
 bevy = { version = "0.14", default-features = false }
 
+[lints]
+workspace = true
+
 [dev-dependencies]
 bevy = { version = "0.14", default-features = true }
 bevy_mod_openxr.git = "https://github.com/awtterpip/bevy_oxr"

@@ -3,8 +3,7 @@ all-features = true
 
 [advisories]
 version = 2
-ignore = [
-]
+ignore = []
 
 [licenses]
 version = 2
@@ -25,6 +24,23 @@ allow = [
 	"LicenseRef-ring",
 ]
 
+[[licenses.exceptions]]
+name = "unicode-ident"
+allow = ["Unicode-DFS-2016"]
+
+[[licenses.exceptions]]
+# https://github.com/emilk/egui/issues/2321
+name = "epaint"
+allow = ["OFL-1.1", "LicenseRef-UFL-1.0"]
+
+[[licenses.clarify]]
+name = "ring"
+expression = "LicenseRef-ring"
+license-files = [
+    { path = "LICENSE", hash = 0xbd0eed23 },
+]
+
+
 [bans]
 multiple-versions = "warn"
 # Certain crates that we don't want multiple versions of in the dependency tree
@@ -38,4 +54,10 @@ unknown-registry = "deny"
 unknown-git = "deny"
 allow-registry = ["https://github.com/rust-lang/crates.io-index"]
 # please don't make this list any longer qwq
-allow-git = []
+allow-git = [
+	"https://github.com/Schmarni-Dev/bevy-suis",
+	"https://github.com/awtterpip/bevy_oxr",
+	"https://github.com/unavi-xyz/bevy_vr_controller",
+	"https://github.com/Schmarni-Dev/bevy_spatial_egui",
+	"https://github.com/Schmarni-Dev/schminput"
+]

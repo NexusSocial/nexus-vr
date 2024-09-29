@@ -34,7 +34,11 @@ impl Laser {
 	}
 }
 
-const TOTAL_LENGTH: f32 = SEGMENT_LENGTH + GAP_LENGTH;
+impl Default for Laser {
+	fn default() -> Self {
+		Self::new()
+	}
+}
 
 const SEGMENT_LENGTH: f32 = 0.05;
 const GAP_LENGTH: f32 = 0.03;
@@ -103,14 +107,12 @@ fn update_laser(
 
 		let mut position_along = 0.0;
 		let mut segment_count = 0;
-		let mut level = 0;
 		let mut segment_length = SEGMENT_LENGTH;
 		let mut gap_length = GAP_LENGTH;
 
 		while position_along < length {
 			// Adjust segment length and gap length every K segments
 			if segment_count > 0 && segment_count % K == 0 {
-				level += 1;
 				segment_length *= 2.0;
 				gap_length *= 2.0;
 			}
@@ -128,11 +130,10 @@ fn update_laser(
 			let rotation = Quat::from_rotation_arc(Vec3::Y, laser_direction);
 
 			// Scale the segment mesh along Y to represent the new length
-			let mut transform = Transform {
+			let transform = Transform {
 				translation: segment_position,
 				rotation,
 				scale: Vec3::new(1.0, segment_length / SEGMENT_LENGTH, 1.0),
-				..Default::default()
 			};
 
 			let bundle = PbrBundle {

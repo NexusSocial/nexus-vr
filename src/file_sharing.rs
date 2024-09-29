@@ -2,7 +2,7 @@ use crate::networking::{Connection, ConnectionTrait, ReliableMessage};
 use bevy::prelude::*;
 use bevy_matchbox::prelude::MultipleChannels;
 use bevy_matchbox::MatchboxSocket;
-use futures_channel::mpsc::{channel, Receiver, SendError, Sender};
+use futures_channel::mpsc::{channel, Receiver, Sender};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use uuid::Uuid;
@@ -24,6 +24,7 @@ impl FilePart {
 	}
 }
 
+#[allow(dead_code)]
 #[derive(Component)]
 pub struct InProgressFile {
 	len: usize,
@@ -56,6 +57,7 @@ impl Plugin for FileSharingPlugin {
 #[derive(Resource)]
 struct P2pFileRx(Receiver<(Uuid, Vec<u8>)>);
 
+#[allow(dead_code)]
 #[derive(Resource)]
 pub struct P2pFileSender(Sender<(Uuid, Vec<u8>)>);
 
@@ -70,7 +72,7 @@ fn send_parts_of_file(
 		for chunk in bytes.chunks(256) {
 			chunks.push(chunk.to_vec());
 		}
-		local.insert(uuid.clone(), chunks);
+		local.insert(uuid, chunks);
 		while let Err(e) = connection
 			.send_all(&ReliableMessage::FilePart(FilePart::Start { uuid, len }))
 		{
@@ -82,17 +84,16 @@ fn send_parts_of_file(
 
 	let mut list_of_empty = vec![];
 
-	for (uuid, mut chunks) in local.iter_mut() {
+	for (uuid, chunks) in local.iter_mut() {
 		if let Some(chunk) = chunks.pop() {
-			let message =
-				ReliableMessage::FilePart(FilePart::Part(uuid.clone(), chunk));
+			let message = ReliableMessage::FilePart(FilePart::Part(*uuid, chunk));
 			while let Err(e) = connection.send_all(&message) {
 				if e.first().unwrap().1.is_disconnected() {
 					return;
 				}
 			}
 		} else {
-			list_of_empty.push(uuid.clone());
+			list_of_empty.push(*uuid);
 		}
 	}
 

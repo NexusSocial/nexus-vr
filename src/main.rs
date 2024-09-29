@@ -1,11 +1,9 @@
 use crate::file_import::FileImportPlugin;
 use crate::file_sharing::FileSharingPlugin;
-use crate::networking::{ConnectToRoom, LocalPlayer, NetworkingPlugin, SpawnPlayer};
+use crate::networking::{ConnectToRoom, LocalPlayer, NetworkingPlugin};
 use crate::physics_sync::PhysicsSyncNetworkingPlugin;
 use crate::player_networking::PlayerNetworking;
-use avian3d::prelude::{
-	Collider, CollisionLayers, GravityScale, LockedAxes, RigidBody,
-};
+use avian3d::prelude::{Collider, GravityScale, LockedAxes, RigidBody};
 use avian3d::PhysicsPlugins;
 use bevy::app::App;
 use bevy::asset::{AssetMetaCheck, AssetServer, Assets, Handle};
@@ -23,10 +21,8 @@ use bevy_suis::debug::SuisDebugGizmosPlugin;
 use bevy_suis::window_pointers::SuisWindowPointerPlugin;
 use bevy_suis::SuisCorePlugin;
 use bevy_vr_controller::animation::defaults::default_character_animations;
-use bevy_vr_controller::movement::PlayerInputState;
 use bevy_vr_controller::player::{
-	PlayerAvatar, PlayerBody, PlayerHeight, PlayerJumpHeight, PlayerSettings,
-	PlayerSpawn, PlayerSpeed, SpawnedPlayer, VoidTeleport,
+	PlayerAvatar, PlayerBody, PlayerSettings, PlayerSpawn, VoidTeleport,
 };
 use bevy_vr_controller::velocity::AverageVelocity;
 use bevy_vr_controller::VrControllerPlugin;
@@ -118,6 +114,7 @@ fn setup_main_window(mut cmds: Commands) {
 	});
 }
 
+#[allow(dead_code)]
 #[derive(Resource)]
 pub struct FloorMaterial((Handle<StandardMaterial>, Handle<Mesh>));
 

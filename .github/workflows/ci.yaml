@@ -23,9 +23,12 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
+      - name: Install bevy dependencies
+        run: |
+          sudo apt-get update && sudo apt-get install -y \
+            g++ pkg-config libx11-dev libasound2-dev libudev-dev libopenxr-loader1 libopenxr-dev
       - name: Cache cargo dependencies
         uses: Swatinem/rust-cache@v2
-
       - name: Clippy lints
         run: cargo clippy --all --all-features --all-targets --no-deps -- -D warnings
 
@@ -37,6 +40,10 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
+      - name: Install bevy dependencies
+        run: |
+          sudo apt-get update && sudo apt-get install -y \
+            g++ pkg-config libx11-dev libasound2-dev libudev-dev libopenxr-loader1 libopenxr-dev
       - name: Cache cargo dependencies
         uses: Swatinem/rust-cache@v2
 

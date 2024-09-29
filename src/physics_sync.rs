@@ -1,5 +1,4 @@
 use crate::networking::{RemotePlayer, UpdatePhysicsPosition};
-use avian3d::math::AsF32;
 use avian3d::prelude::{AngularVelocity, LinearVelocity, Position, Rotation};
 use bevy::prelude::*;
 
@@ -22,19 +21,20 @@ fn sync_positions(
 	)>,
 ) {
 	for update in event_reader.read() {
-		for (uuid, mut pos, mut rot, mut lin, mut ang) in players.iter_mut() {
+		for (uuid, mut pos, mut rot, mut lin, _) in players.iter_mut() {
 			if uuid.0 != update.uuid {
 				continue;
 			}
-			if pos.distance(*update.position) <= 0.01 {
-				if rot.0.angle_between(update.rotation.0).abs() <= 0.01 {
-					continue;
-				}
+			// This position check is one centimeter?! that's a little big no?
+			if pos.distance(*update.position) <= 0.01
+				&& rot.0.angle_between(update.rotation.0).abs() <= 0.01
+			{
+				continue;
 			}
 
-			*pos = update.position.clone();
-			*rot = update.rotation.clone();
-			*lin = update.linear_velocity.clone();
+			*pos = update.position;
+			*rot = update.rotation;
+			*lin = update.linear_velocity;
 			//*ang = update.angular_velocity.clone();
 		}
 	}

@@ -708,7 +708,7 @@ dependencies = [
 [[package]]
 name = "bevy-suis"
 version = "0.1.0"
-source = "git+https://github.com/Schmarni-Dev/bevy-suis?branch=further_work#d94ae5b0989732b7b840e8744af02c5bf233c0d2"
+source = "git+https://github.com/Schmarni-Dev/bevy-suis?branch=further_work#f25918db5b12f1457fd8379f34bf79c8fbcb841c"
 dependencies = [
  "bevy",
  "bevy_mod_openxr",
@@ -1472,6 +1472,7 @@ dependencies = [
 [[package]]
 name = "bevy_spatial_egui"
 version = "0.1.0"
+source = "git+https://github.com/Schmarni-Dev/bevy_spatial_egui#bf9f5f28b6cda207cd3baf8895573e0a4d64b3dd"
 dependencies = [
  "bevy",
  "bevy-suis",
@@ -1665,6 +1666,7 @@ dependencies = [
 [[package]]
 name = "bevy_vr_controller"
 version = "0.1.1"
+source = "git+https://github.com/unavi-xyz/bevy_vr_controller?rev=4a5cc73#4a5cc73956cb23b9a1ff7a261f8964c3d0cfd3ce"
 dependencies = [
  "avian3d",
  "bevy",

@@ -1,12 +1,10 @@
-use crate::MainWindow;
 use bevy::log::info;
 use bevy::math::EulerRot::XYZ;
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContext};
 use bevy_spatial_egui::SpawnSpatialEguiWindowCommand;
 use egui_aesthetix::Aesthetix;
-use std::ops::{Add, Sub};
-use std::path::Path;
+use std::ops::Add;
 use std::sync::Arc;
 
 pub struct FileImportPlugin;
@@ -16,6 +14,7 @@ impl Plugin for FileImportPlugin {
 	}
 }
 
+#[allow(dead_code)]
 #[derive(Copy, Clone, Component, Debug)]
 pub enum FileType {
 	Vrm,
@@ -37,21 +36,16 @@ fn draw_ui(
 		ctx.get_mut().set_style(
 			Arc::new(egui_aesthetix::themes::TokyoNightStorm).custom_style(),
 		);
+		#[allow(clippy::needless_if)]
 		egui::panel::CentralPanel::default().show(ctx.get_mut(), |ui| {
 			ui.heading(format!("Path: {}", file_import_window.path));
-			if ui.button("png").clicked() {
-
-            }
-            if ui.button("worldspace model").clicked() {
-
-            }
-            if ui.button("switch avatar").clicked() {
-
-            }
-            ui.add_space(10.0);
-            if ui.button("cancel").clicked() {
-                commands.entity(entity).despawn_recursive();
-            }
+			if ui.button("png").clicked() {}
+			if ui.button("worldspace model").clicked() {}
+			if ui.button("switch avatar").clicked() {}
+			ui.add_space(10.0);
+			if ui.button("cancel").clicked() {
+				commands.entity(entity).despawn_recursive();
+			}
 		});
 	}
 }

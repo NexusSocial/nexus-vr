@@ -48,10 +48,9 @@ fn when_spawn_player(
 			},
 			&mut commands,
 		);
-		commands.entity(id).insert(RemotePlayer(
-			player.uuid.clone(),
-			player.peer_id.as_ref().unwrap().clone(),
-		));
+		commands
+			.entity(id)
+			.insert(RemotePlayer(player.uuid, player.peer_id.unwrap()));
 	}
 }
 
@@ -82,7 +81,7 @@ fn send_players_when_connected(
 		let _ = connection.send(
 			new_player.0,
 			&ReliableMessage::SpawnPlayer(SpawnPlayer {
-				uuid: local_player.0.clone(),
+				uuid: local_player.0,
 				peer_id: None,
 			}),
 		);
@@ -120,10 +119,10 @@ fn update_player_position(
 	let message = UnreliableMessage::UpdatePhysicsPosition(UpdatePhysicsPosition {
 		authority: 0,
 		uuid: local_player.0,
-		position: position.clone(),
-		rotation: rotation.clone(),
-		linear_velocity: lin_vel.clone(),
-		angular_velocity: ang_vel.clone(),
+		position: *position,
+		rotation: *rotation,
+		linear_velocity: *lin_vel,
+		angular_velocity: *ang_vel,
 	});
 
 	let _ = connection.send_all(&message);
@@ -133,7 +132,7 @@ fn update_player_position(
 	}*/
 
 	let mut player_position_update = PlayerPositionUpdate {
-		uuid: local_player.0.clone(),
+		uuid: local_player.0,
 		head: Default::default(),
 		left_shoulder: Default::default(),
 		right_shoulder: Default::default(),
@@ -145,32 +144,32 @@ fn update_player_position(
 		right_hand: Default::default(),
 	};
 	for children in children.iter_descendants(entity) {
-		for (bone_name, transform) in transforms.get(children) {
+		if let Ok((bone_name, transform)) = transforms.get(children) {
 			match bone_name {
-				BoneName::Head => player_position_update.head = transform.clone(),
+				BoneName::Head => player_position_update.head = *transform,
 				BoneName::LeftShoulder => {
-					player_position_update.left_shoulder = transform.clone()
+					player_position_update.left_shoulder = *transform;
 				}
 				BoneName::RightShoulder => {
-					player_position_update.right_shoulder = transform.clone()
+					player_position_update.right_shoulder = *transform;
 				}
 				BoneName::LeftUpperArm => {
-					player_position_update.left_upper_arm = transform.clone()
+					player_position_update.left_upper_arm = *transform;
 				}
 				BoneName::RightUpperArm => {
-					player_position_update.right_upper_arm = transform.clone()
+					player_position_update.right_upper_arm = *transform;
 				}
 				BoneName::LeftLowerArm => {
-					player_position_update.left_lower_arm = transform.clone()
+					player_position_update.left_lower_arm = *transform;
 				}
 				BoneName::RightLowerArm => {
-					player_position_update.right_lower_arm = transform.clone()
+					player_position_update.right_lower_arm = *transform;
 				}
 				BoneName::LeftHand => {
-					player_position_update.left_hand = transform.clone()
+					player_position_update.left_hand = *transform;
 				}
 				BoneName::RightHand => {
-					player_position_update.right_hand = transform.clone()
+					player_position_update.right_hand = *transform;
 				}
 				_ => {}
 			}

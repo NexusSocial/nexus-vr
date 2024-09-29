@@ -1,8 +1,6 @@
 use crate::file_sharing::FileParts;
 use avian3d::prelude::{AngularVelocity, LinearVelocity, Position};
-use bevy::app::App;
-use bevy::ecs::system::{EntityCommand, SystemParam};
-use bevy::ecs::world::Command;
+use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use bevy_derive::{Deref, DerefMut};
 use bevy_matchbox::prelude::{
@@ -19,6 +17,8 @@ pub enum ReliableMessage {
 	FilePart(crate::file_sharing::FilePart),
 }
 
+// should this used Boxed values for a smaller base size?
+#[allow(clippy::large_enum_variant)]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum UnreliableMessage {
 	UpdatePhysicsPosition(UpdatePhysicsPosition),

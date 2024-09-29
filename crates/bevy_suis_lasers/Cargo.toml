@@ -1,0 +1,16 @@
+[package]
+name = "bevy_suis_lasers"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+# really should pin a commit here
+bevy-suis = { git = "https://github.com/Schmarni-Dev/bevy-suis", branch = "further_work" }
+bevy = { version = "0.14", default-features = false }
+
+[dev-dependencies]
+bevy = { version = "0.14", default-features = true }
+bevy_mod_openxr.git = "https://github.com/awtterpip/bevy_oxr"

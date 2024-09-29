@@ -4210,6 +4210,7 @@ dependencies = [
  "bevy_matchbox",
  "bevy_mod_openxr",
  "bevy_spatial_egui",
+ "bevy_suis_lasers",
  "bevy_vr_controller",
  "bevy_vrm",
  "bevy_web_file_drop",

@@ -1,8 +1,11 @@
-use std::sync::Arc;
+use crate::file_import::FileImportPlugin;
 use crate::file_sharing::FileSharingPlugin;
 use crate::networking::{ConnectToRoom, LocalPlayer, NetworkingPlugin, SpawnPlayer};
+use crate::physics_sync::PhysicsSyncNetworkingPlugin;
 use crate::player_networking::PlayerNetworking;
-use avian3d::prelude::{Collider, CollisionLayers, GravityScale, LockedAxes, RigidBody};
+use avian3d::prelude::{
+	Collider, CollisionLayers, GravityScale, LockedAxes, RigidBody,
+};
 use avian3d::PhysicsPlugins;
 use bevy::app::App;
 use bevy::asset::{AssetMetaCheck, AssetServer, Assets, Handle};
@@ -11,8 +14,8 @@ use bevy::core::Name;
 use bevy::math::Vec3;
 use bevy::pbr::{AmbientLight, DirectionalLightBundle, PbrBundle, StandardMaterial};
 use bevy::prelude::*;
-use bevy::DefaultPlugins;
 use bevy::window::PrimaryWindow;
+use bevy::DefaultPlugins;
 use bevy_egui::{egui, EguiContext, EguiPlugin};
 use bevy_embedded_assets::EmbeddedAssetPlugin;
 use bevy_spatial_egui::SpawnSpatialEguiWindowCommand;
@@ -29,23 +32,25 @@ use bevy_vr_controller::velocity::AverageVelocity;
 use bevy_vr_controller::VrControllerPlugin;
 use bevy_vrm::VrmBundle;
 use egui_aesthetix::Aesthetix;
+use std::sync::Arc;
 use uuid::Uuid;
-use crate::physics_sync::PhysicsSyncNetworkingPlugin;
 
+mod file_import;
 mod file_sharing;
 pub mod networking;
-mod player_networking;
 mod physics_sync;
+mod player_networking;
 
 pub fn main() {
 	App::new()
 		.add_plugins((
 			EmbeddedAssetPlugin::default(),
 			bevy_web_file_drop::WebFileDropPlugin,
-			/*bevy_mod_openxr::add_xr_plugins(*/DefaultPlugins.set(AssetPlugin {
+			/*bevy_mod_openxr::add_xr_plugins(*/
+			DefaultPlugins.set(AssetPlugin {
 				meta_check: AssetMetaCheck::Never,
 				..AssetPlugin::default()
-			})/*)*/,
+			}), /*)*/
 			//bevy_xr_utils::xr_utils_actions::XRUtilsActionsPlugin,
 			PhysicsPlugins::default(),
 			VrControllerPlugin,
@@ -54,10 +59,17 @@ pub fn main() {
 			SuisCorePlugin,
 			SuisWindowPointerPlugin,
 			SuisDebugGizmosPlugin,
+			//(bevy_suis_lasers::draw_lasers::LaserPlugin, bevy_suis_lasers::laser_input_methods::LaserInputMethodPlugin)
 		))
 		.add_plugins(bevy_spatial_egui::SpatialEguiPlugin)
 		.add_plugins(EguiPlugin)
-		.add_plugins((NetworkingPlugin, FileSharingPlugin, PlayerNetworking, PhysicsSyncNetworkingPlugin))
+		.add_plugins((
+			FileImportPlugin,
+			NetworkingPlugin,
+			FileSharingPlugin,
+			PlayerNetworking,
+			PhysicsSyncNetworkingPlugin,
+		))
 		.add_systems(Startup, setup_main_window)
 		.add_systems(Startup, (setup_scene, setup_player))
 		.add_systems(Update, draw_ui)
@@ -80,7 +92,9 @@ fn cursor_recenter(mut q_windows: Query<&mut Window, With<PrimaryWindow>>) {
 fn draw_ui(mut query: Query<&mut EguiContext, With<MainWindow>>) {
 	for mut ctx in &mut query {
 		let ctx: &mut EguiContext = &mut ctx;
-		ctx.get_mut().set_style(Arc::new(egui_aesthetix::themes::TokyoNightStorm).custom_style());
+		ctx.get_mut().set_style(
+			Arc::new(egui_aesthetix::themes::TokyoNightStorm).custom_style(),
+		);
 		egui::panel::CentralPanel::default().show(ctx.get_mut(), |ui| {
 			ui.heading("Hello, World!");
 			if ui.button("Press Me!").clicked() {
@@ -96,7 +110,7 @@ fn setup_main_window(mut cmds: Commands) {
 	let window = cmds.spawn(MainWindow).id();
 	cmds.push(SpawnSpatialEguiWindowCommand {
 		target_entity: Some(window),
-		position: Vec3::new(0.0, 0.5, 0.0),
+		position: Vec3::new(3.0, 0.5, 0.0),
 		rotation: Quat::IDENTITY,
 		resolution: UVec2::splat(1024),
 		height: 1.0,
@@ -119,7 +133,9 @@ fn setup_player(asset_server: Res<AssetServer>, mut commands: Commands) {
 		..default()
 	}
 	.spawn(&mut commands);
-	commands.entity(awa.body).insert(LocalPlayer(Uuid::new_v4()));
+	commands
+		.entity(awa.body)
+		.insert(LocalPlayer(Uuid::new_v4()));
 }
 
 pub fn spawn_avatar(this: PlayerSettings, commands: &mut Commands) -> Entity {
@@ -133,7 +149,7 @@ pub fn spawn_avatar(this: PlayerSettings, commands: &mut Commands) -> Entity {
 			global_transform: GlobalTransform::from_translation(this.spawn),
 			..default()
 		},
-		GravityScale(0.0)
+		GravityScale(0.0),
 	));
 
 	if let Some(value) = this.void_level {

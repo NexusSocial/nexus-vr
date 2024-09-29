@@ -60,9 +60,7 @@ pub struct PlayerPositionUpdate {
 )]
 pub struct LocalPlayer(pub Uuid);
 
-#[derive(
-	Clone, Debug, Serialize, Deserialize, PartialEq, Component,
-)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Component)]
 pub struct RemotePlayer(pub Uuid, pub PeerId);
 
 pub trait ConnectToRoom {
@@ -135,7 +133,7 @@ fn handle_messages_unreliable(
 			}
 			UnreliableMessage::PlayerPositionUpdate(player_position_update) => {
 				player_position_updates.send(player_position_update);
-			},
+			}
 		}
 	}
 }

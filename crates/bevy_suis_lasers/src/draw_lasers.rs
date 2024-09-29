@@ -121,8 +121,8 @@ fn update_laser(
 			}
 
 			// Compute segment position
-			let segment_position =
-				laser.ray.origin + laser_direction * (position_along + segment_length / 2.0);
+			let segment_position = laser.ray.origin
+				+ laser_direction * (position_along + segment_length / 2.0);
 
 			// Compute rotation to align with laser_direction
 			let rotation = Quat::from_rotation_arc(Vec3::Y, laser_direction);

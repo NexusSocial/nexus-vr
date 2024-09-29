@@ -1472,6 +1472,7 @@ dependencies = [
 [[package]]
 name = "bevy_spatial_egui"
 version = "0.1.0"
+source = "git+https://github.com/Schmarni-Dev/bevy_spatial_egui#bf9f5f28b6cda207cd3baf8895573e0a4d64b3dd"
 dependencies = [
  "bevy",
  "bevy-suis",
@@ -1665,6 +1666,7 @@ dependencies = [
 [[package]]
 name = "bevy_vr_controller"
 version = "0.1.1"
+source = "git+https://github.com/Schmarni-Dev/bevy_vr_controller/#bf33efb1a01ec2b115689a290af17ceff450ee1c"
 dependencies = [
  "avian3d",
  "bevy",

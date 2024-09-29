@@ -34,10 +34,10 @@ bincode = "1.3.3"
 avian3d = { version = "0.1.2", features = ["serialize"] }
 bevy_embedded_assets = "0.11.0"
 bevy_web_file_drop = "0.0.6"
-bevy_vr_controller = { path = "../bevy_vr_controller" }
+bevy_vr_controller = { git = "https://github.com/Schmarni-Dev/bevy_vr_controller/" }
 bevy_mod_openxr = { git = "https://github.com/awtterpip/bevy_oxr" }
 bevy_xr_utils = { git = "https://github.com/awtterpip/bevy_oxr" }
-bevy_spatial_egui = { path = "../bevy_spatial_egui" }
+bevy_spatial_egui = { git = "https://github.com/Schmarni-Dev/bevy_spatial_egui" }
 bevy_egui = "0.29.0"
 bevy-suis = { git = "https://github.com/Schmarni-Dev/bevy-suis", branch = "further_work" }
 bevy_vrm = "0.0.12"

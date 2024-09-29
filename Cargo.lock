@@ -708,7 +708,7 @@ dependencies = [
 [[package]]
 name = "bevy-suis"
 version = "0.1.0"
-source = "git+https://github.com/Schmarni-Dev/bevy-suis?branch=further_work#d94ae5b0989732b7b840e8744af02c5bf233c0d2"
+source = "git+https://github.com/Schmarni-Dev/bevy-suis?branch=further_work#f25918db5b12f1457fd8379f34bf79c8fbcb841c"
 dependencies = [
  "bevy",
  "bevy_mod_openxr",
@@ -7076,7 +7076,7 @@ version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf221c93e13a30d793f7645a0e7762c55d169dbb0a49671918a2319d289b10bb"
 dependencies = [
- "windows-sys 0.48.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]

@@ -43,10 +43,23 @@ pub fn main() {
 			EmbeddedAssetPlugin::default(),
 			bevy_web_file_drop::WebFileDropPlugin,
 			/*bevy_mod_openxr::add_xr_plugins(*/
-			DefaultPlugins.set(AssetPlugin {
-				meta_check: AssetMetaCheck::Never,
-				..AssetPlugin::default()
-			}), /*)*/
+			DefaultPlugins
+				.set(WindowPlugin {
+					primary_window: Some(Window {
+						title: "Bevy game".to_string(), // ToDo
+						// Bind to canvas included in `index.html`
+						canvas: Some("#bevy".to_owned()),
+						fit_canvas_to_parent: true,
+						// Tells wasm not to override default event handling, like F5 and Ctrl+R
+						prevent_default_event_handling: false,
+						..default()
+					}),
+					..default()
+				})
+				.set(AssetPlugin {
+					meta_check: AssetMetaCheck::Never,
+					..AssetPlugin::default()
+				}), /*)*/
 			//bevy_xr_utils::xr_utils_actions::XRUtilsActionsPlugin,
 			PhysicsPlugins::default(),
 			VrControllerPlugin,

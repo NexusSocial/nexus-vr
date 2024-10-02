@@ -14,7 +14,7 @@ workspace = true
 
 [workspace]
 resolver = "2"
-members = ["crates/bevy_suis_lasers", "crates/dummy"]
+members = ["crates/bevy_suis_lasers", "crates/bevy_u8_assets", "crates/dummy"]
 
 # These settings will apply to all members of the workspace that opt in to them
 [workspace.package]

@@ -1,0 +1,18 @@
+[package]
+name = "bevy_u8_assets"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+bevy = "0.14.2"
+futures-io = "0.3"
+thiserror = "1.0.64"
+flume = "0.11.0"
+futures-lite = "2.0.0"
+futures-util = "0.3.30"
+futures-locks = "0.7.1"
+[lints]
+workspace = true

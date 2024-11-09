@@ -5,6 +5,8 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
+description = "Allows one to write u8 bytes of an asset with a fake file path to bevy"
+authors = ["Malek<Discord:MalekiRe,Email:pocmalek@gmail.com>"]
 
 [dependencies]
 bevy = "0.14.2"

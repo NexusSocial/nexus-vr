@@ -1,11 +1,17 @@
+# OS files
+.DS_Store
+
+# IDE files
+*.swp
 /.idea
 /.vscode
-/target
-
-*.swp
-.DS_Store
-.direnv
-.envrc
 
 # SQLite
 *.db
+
+# Nix
+/.direnv
+/.envrc
+
+# Rust files
+/target

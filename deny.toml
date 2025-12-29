@@ -1,12 +1,19 @@
 [graph]
 all-features = true
+# cargo-deny is really only ever intended to run on the "normal" tier-1 targets
+targets = [
+    "x86_64-unknown-linux-gnu",
+    "aarch64-unknown-linux-gnu",
+    "x86_64-unknown-linux-musl",
+    "aarch64-apple-darwin",
+    "x86_64-apple-darwin",
+    "x86_64-pc-windows-msvc",
+]
 
 [advisories]
-version = 2
-ignore = []
+unmaintained = "workspace"
 
 [licenses]
-version = 2
 allow = [
 	"0BSD",
 	"Apache-2.0",
@@ -26,7 +33,7 @@ allow = [
 
 [[licenses.exceptions]]
 name = "unicode-ident"
-allow = ["Unicode-DFS-2016"]
+allow = ["Unicode-3.0"]
 
 [[licenses.exceptions]]
 # https://github.com/emilk/egui/issues/2321
@@ -40,13 +47,15 @@ license-files = [
     { path = "LICENSE", hash = 0xbd0eed23 },
 ]
 
-
 [bans]
 multiple-versions = "warn"
 # Certain crates that we don't want multiple versions of in the dependency tree
 deny = [
 	{ name = "bevy", deny-multiple-versions = true },
 	{ name = "tokio", deny-multiple-versions = true },
+]
+skip-tree = [
+    { crate = "windows-sys", reason = "a foundational crate for many that bumps far too frequently to ever have a shared version" },
 ]
 
 [sources]

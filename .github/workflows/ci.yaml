@@ -20,39 +20,51 @@ jobs:
 
   check:
     name: Lint and Build
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - name: Install bevy dependencies
-        run: |
-          sudo apt-get update && sudo apt-get install -y \
-            g++ pkg-config libx11-dev libasound2-dev libudev-dev libopenxr-loader1 libopenxr-dev
+      - uses: actions/checkout@v5
+      - uses: cachix/install-nix-action@v31
+      - uses: cachix/cachix-action@v15
+        with:
+          name: nexus-ci
+          authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
       - name: Cache cargo dependencies
         uses: Swatinem/rust-cache@v2
+      - name: Print env
+        run: nix develop -c env
       - name: Clippy lints
-        run: cargo clippy --all --all-features --all-targets --no-deps -- -D warnings
+        run: |
+          nix develop -c \
+            cargo clippy --all --all-features --all-targets --no-deps -- -D warnings
 
       - name: Cargo Doc
-        run: RUSTDOCFLAGS="-D warnings" cargo doc --all --all-features --no-deps --document-private-items
+        run: |
+          nix develop -c bash -c \
+            'RUSTDOCFLAGS="-D warnings" cargo doc --all --all-features --no-deps --document-private-items'
 
   test:
     name: Run Tests
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - name: Install bevy dependencies
-        run: |
-          sudo apt-get update && sudo apt-get install -y \
-            g++ pkg-config libx11-dev libasound2-dev libudev-dev libopenxr-loader1 libopenxr-dev
+      - uses: actions/checkout@v5
+      - uses: cachix/install-nix-action@v31
+      - uses: cachix/cachix-action@v15
+        with:
+          name: nexus-ci
+          authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
       - name: Cache cargo dependencies
         uses: Swatinem/rust-cache@v2
+      - name: Print env
+        run: nix develop -c env
 
       - name: Test
-        run: cargo test --all --all-features --all-targets
+        run: |
+          nix develop -c \
+            cargo test --all --all-features --all-targets
 
   deny:
     name: Run cargo deny
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
-    - uses: actions/checkout@v4
-    - uses: EmbarkStudios/cargo-deny-action@v1
+    - uses: actions/checkout@v5
+    - uses: EmbarkStudios/cargo-deny-action@v2

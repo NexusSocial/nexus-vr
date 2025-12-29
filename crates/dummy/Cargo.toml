@@ -1,9 +1,0 @@
-[package]
-name = "dummy"
-version = "0.0.0"
-description = "A client api for state replication"
-
-license.workspace = true
-repository.workspace = true
-edition.workspace = true
-rust-version.workspace = true

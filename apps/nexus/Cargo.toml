@@ -1,0 +1,20 @@
+[package]
+name = "nexus"
+version = "0.0.0"
+description = "The main nexus application"
+
+license.workspace = true
+repository.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+# Nexus dependencies
+nx-core.workspace = true
+bevy.workspace = true
+
+# other dependencies
+color-eyre.workspace = true

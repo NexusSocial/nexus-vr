@@ -100,6 +100,7 @@
           packages = with pkgs; [
             selectedRustToolchain
             # Add any additional development tools here
+            taplo
             cargo-deny
             cargo-edit
             cargo-outdated

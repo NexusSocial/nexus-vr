@@ -1,6 +1,6 @@
 [workspace]
+members = ["apps/*", "crates/*", "internal/*", "internal/ui/login"]
 resolver = "3"
-members = ["apps/*", "crates/*", "internal/*"]
 
 # These settings will apply to all members of the workspace that opt in to them
 [workspace.package]
@@ -14,15 +14,20 @@ too_many_arguments = "allow"
 type_complexity = "allow"
 
 [workspace.dependencies]
-color-eyre = "0.6.5"
 bevy = "0.17"
+bevy-inspector-egui = "0.35.0"
+bevy_egui = "0.38.1"
+color-eyre = "0.6.5"
+egui = "0.33.3"
 
 # nx dependencies
 nx-core.path = "internal/core"
+nx-ui-login.path = "internal/ui/login"
+nx-ui.path = "internal/ui"
 
 [profile.release]
-lto = true
 codegen-units = 1
+lto = true
 opt-level = "z"
 panic = "abort"
 

@@ -1,5 +1,5 @@
 [workspace]
-members = ["apps/*", "crates/*", "internal/*"]
+members = ["apps/*", "crates/*", "internal/*", "internal/ui/login"]
 resolver = "3"
 
 # These settings will apply to all members of the workspace that opt in to them
@@ -22,6 +22,7 @@ egui = "0.33.3"
 
 # nx dependencies
 nx-core.path = "internal/core"
+nx-ui-login.path = "internal/ui/login"
 nx-ui.path = "internal/ui"
 
 [profile.release]

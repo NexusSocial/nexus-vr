@@ -1,7 +1,6 @@
 [package]
-name = "nx-ui"
+name = "nx-ui-login"
 version = "0.0.0"
-description = "The core UI crate"
 
 license.workspace = true
 repository.workspace = true
@@ -13,10 +12,5 @@ workspace = true
 
 [dependencies]
 bevy.workspace = true
-bevy_egui.workspace = true
 egui.workspace = true
-
-[dev-dependencies]
-bevy-inspector-egui.workspace = true
-color-eyre.workspace = true
-nx-ui-login.workspace = true
+nx-ui.workspace = true

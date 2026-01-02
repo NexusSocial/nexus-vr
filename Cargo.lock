@@ -3626,6 +3626,16 @@ dependencies = [
  "bevy_egui",
  "color-eyre",
  "egui",
+ "nx-ui-login",
+]
+
+[[package]]
+name = "nx-ui-login"
+version = "0.0.0"
+dependencies = [
+ "bevy",
+ "egui",
+ "nx-ui",
 ]
 
 [[package]]

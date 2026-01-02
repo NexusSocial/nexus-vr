@@ -27,7 +27,8 @@ use bevy::{
 };
 use bevy_egui::{EguiGlobalSettings, EguiPlugin, PrimaryEguiContext};
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
-use nx_ui::{NexusUiPlugin, views::LoginUi};
+use nx_ui::UiViewPlugin;
+use nx_ui_login::LoginUi;
 
 fn main() -> AppExit {
 	color_eyre::install().unwrap();
@@ -36,7 +37,7 @@ fn main() -> AppExit {
 		.add_plugins(DefaultPlugins)
 		.add_plugins(EguiPlugin::default())
 		.add_plugins(WorldInspectorPlugin::new())
-		.add_plugins(NexusUiPlugin)
+		.add_plugins(UiViewPlugin::<LoginUi>::default())
 		.add_systems(Startup, setup)
 		.run()
 }

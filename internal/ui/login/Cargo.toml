@@ -1,7 +1,6 @@
 [package]
-name = "nexus"
+name = "nx-ui-login"
 version = "0.0.0"
-description = "The main nexus application"
 
 license.workspace = true
 repository.workspace = true
@@ -12,9 +11,6 @@ rust-version.workspace = true
 workspace = true
 
 [dependencies]
-# Nexus dependencies
 bevy.workspace = true
-nx-core.workspace = true
-
-# other dependencies
-color-eyre.workspace = true
+egui.workspace = true
+nx-ui.workspace = true

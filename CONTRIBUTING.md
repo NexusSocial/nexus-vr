@@ -82,6 +82,14 @@ for the application binaries, because they are not yet usable by end-users. You
 still need to set up monado, for which you should consult the [linux VR
 wiki][lvra]
 
+### Windows
+
+- Install llvm: `winget install -i --id=LLVM.LLVM -e`. Be sure to select the
+  option to set the PATH for all users. Then, set the `LIBCLANG_PATH` to
+  `C:\Program Files\LLVM\bin` or whatever the base path was that you installed.
+  Note: in addition to needing libclang, we use lld-link.exe instead of link.exe
+  because it plays slightly nicer with Linux -> Windows cross compilation.
+
 [workspace inheritance]: https://doc.rust-lang.org/cargo/reference/workspaces.html#the-package-table
 [vscode fmt]: https://stackoverflow.com/a/54665086
 [rustrover fmt]: https://www.jetbrains.com/help/rust/rustfmt.html#rustfmt-on-save

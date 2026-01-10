@@ -64,9 +64,5 @@ unknown-git = "deny"
 allow-registry = ["https://github.com/rust-lang/crates.io-index"]
 # please don't make this list any longer qwq
 allow-git = [
-	"https://github.com/Schmarni-Dev/bevy-suis",
-	"https://github.com/awtterpip/bevy_oxr",
-	"https://github.com/unavi-xyz/bevy_vr_controller",
-	"https://github.com/Schmarni-Dev/bevy_spatial_egui",
-	"https://github.com/Schmarni-Dev/schminput"
+	"https://github.com/Ralith/openxrs",
 ]

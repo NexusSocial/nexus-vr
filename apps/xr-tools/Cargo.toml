@@ -1,5 +1,5 @@
 [package]
-name = "nx-xr-tools"
+name = "xr-tools"
 version = "0.0.0"
 description = "Miscellaneous XR Tools"
 
@@ -12,7 +12,7 @@ rust-version.workspace = true
 workspace = true
 
 [dependencies]
-openxr = { workspace = true, features = ["linked"] }
+openxr = { workspace = true, features = ["static"] }
 clap.workspace = true
 color-eyre.workspace = true
 tracing.workspace = true

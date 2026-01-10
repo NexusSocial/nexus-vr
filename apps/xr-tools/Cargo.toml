@@ -1,0 +1,20 @@
+[package]
+name = "nx-xr-tools"
+version = "0.0.0"
+description = "Miscellaneous XR Tools"
+
+license.workspace = true
+repository.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+openxr = { workspace = true, features = ["linked"] }
+clap.workspace = true
+color-eyre.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+owo-colors.workspace = true

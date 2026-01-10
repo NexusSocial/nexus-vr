@@ -52,6 +52,8 @@
           pkg-config
           cmake
           python3
+          lld
+          xwin
         ];
 
         buildInputs = with pkgs; [
@@ -105,6 +107,9 @@
             cargo-outdated
             cargo-watch
             rust-analyzer
+            cargo-zigbuild
+            zig
+            binutils
           ];
 
           # Environment variables for proper library linking

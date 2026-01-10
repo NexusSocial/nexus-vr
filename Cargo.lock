@@ -1845,6 +1845,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a1d728cc89cf3aee9ff92b05e62b19ee65a02b5702cff7d5a377e32c6ae29d8d"
 
 [[package]]
+name = "cmake"
+version = "0.1.57"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "75443c44cd6b379beb8c5b45d85d0773baf31cce901fe7bb252f4eff3008ef7d"
+dependencies = [
+ "cc",
+]
+
+[[package]]
 name = "codespan-reporting"
 version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3361,18 +3370,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "nx-xr-tools"
-version = "0.0.0"
-dependencies = [
- "clap",
- "color-eyre",
- "openxr",
- "owo-colors",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
 name = "objc"
 version = "0.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3678,8 +3675,7 @@ checksum = "384b8ab6d37215f3c5301a95a4accb5d64aa607f1fcb26a11b5303878451b4fe"
 [[package]]
 name = "openxr"
 version = "0.21.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "09a7b5f4a26a71928a11b912f94c387378b1c14caac3bde3d9cecd4bb8870262"
+source = "git+https://github.com/Ralith/openxrs?rev=193b76ac2cb5eeefb78f5f7d8ab7b76a805c546f#193b76ac2cb5eeefb78f5f7d8ab7b76a805c546f"
 dependencies = [
  "libc",
  "libloading 0.9.0",
@@ -3690,9 +3686,9 @@ dependencies = [
 [[package]]
 name = "openxr-sys"
 version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b69a1e728e450d419fa7e82fdfb2988d4a0eadd6bdd16fceff72f1b485c4d96b"
+source = "git+https://github.com/Ralith/openxrs?rev=193b76ac2cb5eeefb78f5f7d8ab7b76a805c546f#193b76ac2cb5eeefb78f5f7d8ab7b76a805c546f"
 dependencies = [
+ "cmake",
  "libc",
 ]
 
@@ -5826,6 +5822,18 @@ name = "xml-rs"
 version = "0.8.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3ae8337f8a065cfc972643663ea4279e04e7256de865aa66fe25cec5fb912d3f"
+
+[[package]]
+name = "xr-tools"
+version = "0.0.0"
+dependencies = [
+ "clap",
+ "color-eyre",
+ "openxr",
+ "owo-colors",
+ "tracing",
+ "tracing-subscriber",
+]
 
 [[package]]
 name = "yazi"
